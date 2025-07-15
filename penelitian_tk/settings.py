@@ -20,10 +20,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-@c2$vz*=c_&hqf^b5ua8n!%j2)9#k=(m2l__@p!bzd))&$5^@3'
+# SECRET_KEY = 'django-insecure-@c2$vz*=c_&hqf^b5ua8n!%j2)9#k=(m2l__@p!bzd))&$5^@3'
+import os
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'fallback-key-jangan-pakai-ini-di-prod')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ['45.158.126.112', 'beesmart.site', 'www.beesmart.site', 'localhost', '127.0.0.1']
 
