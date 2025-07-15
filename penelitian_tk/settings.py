@@ -28,7 +28,14 @@ SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'fallback-key-jangan-pakai-ini-di-pr
 # DEBUG = True
 DEBUG = False
 
-ALLOWED_HOSTS = ['45.158.126.112', 'beesmart.site', 'www.beesmart.site', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = [
+    'beesmartfinance.online',
+    'www.beesmartfinance.online',
+    '45.158.126.112',
+    'localhost',
+    '127.0.0.1',
+]
+
 
 LOGIN_URL = '/login/'
 
