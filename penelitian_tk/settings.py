@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-@c2$vz*=c_&hqf^b5ua8n!%j2)9#k=(m2l__@p!bzd))&$5^@3
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['45.158.126.112', 'beesmart.site', 'www.beesmart.site', 'localhost', '127.0.0.1']
 
 LOGIN_URL = '/login/'
 
