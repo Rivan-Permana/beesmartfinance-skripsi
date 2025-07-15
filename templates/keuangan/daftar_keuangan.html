@@ -1,0 +1,56 @@
+{% extends "backend/base.html" %}
+
+{%block current_menu%}
+Home / Keuangan
+{%endblock%}
+{% block content_main_row1 %}
+<div class="row">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Data Keuangan</h3>
+        <div class="card-tools">
+          <a href="{% url 'tambah_keuangan' %}" class="btn btn-sm btn-primary">Tambah Data</a>
+        </div>
+      </div>
+
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-bordered table-striped m-0">
+            <thead class="thead-light">
+              <tr>
+                <th>Tanggal</th>
+                <th>Deskripsi</th>
+                <th>Jenis</th>
+                <th>Jumlah</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in keuangan_list %}
+              <tr>
+                <td>{{ item.tanggal }}</td>
+                <td>{{ item.deskripsi }}</td>
+                <td>{{ item.jenis }}</td>
+                <td>{{ item.jumlah|floatformat:0 }}</td>
+                <td>
+                  <a href="{% url 'edit_keuangan' item.pk %}" class="btn btn-sm btn-warning">Edit</a>
+                  <a href="{% url 'hapus_keuangan' item.pk %}" class="btn btn-sm btn-danger" onclick="return confirm('Yakin ingin menghapus?')">Hapus</a>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="5" class="text-center">Belum ada data keuangan.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block content_main_row2 %}{% endblock %}
+{% block content_main_row3 %}{% endblock %}

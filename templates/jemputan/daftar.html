@@ -1,0 +1,54 @@
+{% extends "backend/base.html" %}
+
+{%block current_menu%}
+Home / Jemputan
+{%endblock%}
+{% block content_main_row1 %}
+<div class="row">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Data Jemputan</h3>
+        <div class="card-tools">
+          <a href="{% url 'tambah_jemputan' %}" class="btn btn-sm btn-primary">Tambah Jemputan</a>
+        </div>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-bordered table-striped m-0">
+            <thead>
+              <tr>
+                <th>Nama Supir</th>
+                <th>No Kendaraan</th>
+                <th>Kapasitas</th>
+                <th>Keterangan</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for jemputan in jemputan_list %}
+              <tr>
+                <td>{{ jemputan.nama_supir }}</td>
+                <td>{{ jemputan.no_kendaraan }}</td>
+                <td>{{ jemputan.kapasitas }}</td>
+                <td>{{ jemputan.keterangan }}</td>
+                <td>
+                  <a href="{% url 'edit_jemputan' jemputan.pk %}" class="btn btn-warning btn-sm">Edit</a>
+                  <a href="{% url 'hapus_jemputan' jemputan.pk %}" onclick="return confirm('Yakin ingin menghapus?')" class="btn btn-danger btn-sm">Hapus</a>
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="5" class="text-center">Belum ada data jemputan.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+
+{% block content_main_row2 %}{% endblock %}
+{% block content_main_row3 %}{% endblock %}

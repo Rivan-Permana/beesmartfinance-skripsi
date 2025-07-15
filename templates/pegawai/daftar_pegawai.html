@@ -1,0 +1,55 @@
+{% extends "backend/base.html" %}
+{%block current_menu%}
+Home / Pegawai
+{%endblock%}
+{% block content_main_row1 %}
+<div class="row">
+  <div class="col-12"> <!-- Full-width 12 kolom -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Daftar Pegawai</h3>
+        <div class="card-tools">
+          <a href="{% url 'tambah_pegawai' %}" class="btn btn-sm btn-primary">Tambah Pegawai</a>
+        </div>
+      </div>
+
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-bordered table-striped m-0">
+            <thead class="thead-light">
+              <tr>
+                <th>Nama</th>
+                <th>Jabatan</th>
+                <th>Email</th>
+                <th>Nomor HP</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for pegawai in pegawai_list %}
+              <tr>
+                <td>{{ pegawai.nama }}</td>
+                <td>{{ pegawai.jabatan }}</td>
+                <td>{{ pegawai.email }}</td>
+                <td>{{ pegawai.nomor_hp }}</td>
+                <td>
+                  <a href="{% url 'edit_pegawai' pegawai.pk %}" class="btn btn-sm btn-warning">Edit</a>
+                  <a href="{% url 'hapus_pegawai' pegawai.pk %}" class="btn btn-sm btn-danger" onclick="return confirm('Yakin ingin menghapus?')">Hapus</a>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="5" class="text-center">Belum ada data pegawai.</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block content_main_row2 %}{% endblock %}
+{% block content_main_row3 %}{% endblock %}
