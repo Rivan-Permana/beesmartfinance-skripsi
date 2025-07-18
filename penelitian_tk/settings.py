@@ -25,8 +25,8 @@ import os
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'fallback-key-jangan-pakai-ini-di-prod')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-# DEBUG = True
-DEBUG = False
+DEBUG = True
+# DEBUG = False
 
 ALLOWED_HOSTS = [
     'beesmartfinance.online',
@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'jemputan',
     'keuangan',
     'pegawai',
+    'lainnya',
 ]
 
 MIDDLEWARE = [
