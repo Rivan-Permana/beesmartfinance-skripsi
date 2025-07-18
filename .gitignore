@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual env
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Editor/IDE
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Django specific
+*.sqlite3
+db.sqlite3
+*.log
+media/
+staticfiles/
+.env
+.env.*
+
+# Node (if used)
+node_modules/
+
+# Test
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Git
+*.orig
+
