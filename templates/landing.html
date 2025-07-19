@@ -1,154 +1,964 @@
 {% load static %}
-
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
+
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <link rel="icon" type="image/x-icon" href="{% static '3rd_party/lebahmadu/sekolahlebahmadu.com/favicon.ico' %}">
-  <title>Login | Sekolah Lebah Madu</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
-  <style>
-    body {
-      padding-top: 70px;
-      background-color: #fffdee;
-    }
-
-    .navbar {
-      background-color: #fff176 !important;
-    }
-
-    .navbar .nav-link {
-      color: #444 !important;
-      font-weight: 500;
-    }
-
-    .navbar .nav-link:hover {
-      color: #000;
-    }
-
-    section {
-      padding: 80px 0;
-    }
-
-    h2, .navbar-brand {
-      font-weight: bold;
-    }
-
-    .btn-primary {
-      background-color: #fdd835;
-      border-color: #fbc02d;
-      color: #000;
-    }
-
-    .btn-primary:hover {
-      background-color: #fbc02d;
-      border-color: #f9a825;
-      color: #000;
-    }
-
-    footer {
-      background-color: #fdd835;
-      color: #333;
-    }
-  </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+  <meta name="description" content="" />
+  <meta name="author" content="" />
+  <title>Sekolah Lebah Madu</title>
+  <!-- Favicon-->
+  <link rel="icon" type="image/x-icon" href="{% static '3rd_party/lebahmadu/sekolahlebahmadu.com/favicon.ico'%}" />
+  <!-- Font Awesome icons (free version)-->
+  <script src="https://use.fontawesome.com/releases/v6.3.0/js/all.js" crossorigin="anonymous"></script>
+  <!-- Google fonts-->
+  <link href="https://fonts.googleapis.com/css?family=Montserrat:400,700" rel="stylesheet" type="text/css" />
+  <link href="https://fonts.googleapis.com/css?family=Roboto+Slab:400,100,300,700" rel="stylesheet" type="text/css" />
+  <!-- Core theme CSS (includes Bootstrap)-->
+  <link href="{% static '3rd_party/startbootstrap-agency-gh-pages/css/styles.css'%}" rel="stylesheet" />
 </head>
-<body>
 
-<!-- Navbar -->
-<nav class="navbar navbar-expand-lg fixed-top shadow">
+<body id="page-top">
+  <!-- Navigation-->
+  <nav class="navbar navbar-expand-lg navbar-light bg-white fixed-top shadow-sm" id="mainNav">
   <div class="container">
-    <a class="navbar-brand fw-bold text-dark" href="#">
-      <img src="{% static '3rd_party/lebahmadu/sekolahlebahmadu.com/templates/frontend/img/logo.png' %}" 
-           alt="Logo Lebah Madu" 
-           style="height: 32px; margin-right: 8px;">
-      Lebah Madu
+    <!-- Logo -->
+    <a class="navbar-brand fw-bold text-dark" href="#page-top">
+      <img src="{% static '3rd_party/lebahmadu/sekolahlebahmadu.com/templates/frontend/img/logo.png' %}"
+        alt="Logo Lebah Madu" class="img-fluid" style="width: 150px; height: auto;" />
     </a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain">
-      <span class="navbar-toggler-icon"></span>
+
+    <!-- Button untuk collapse di mobile -->
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarResponsive"
+      aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="text-dark">Menu</span>
+      <i class="fas fa-bars ms-1 text-dark"></i>
     </button>
-    <div class="collapse navbar-collapse" id="navbarMain">
-      <ul class="navbar-nav me-auto">
-        <li class="nav-item"><a class="nav-link" href="#beranda">Beranda</a></li>
-        <li class="nav-item"><a class="nav-link" href="#about">Tentang</a></li>
-      </ul>
-      <ul class="navbar-nav ms-auto">
-        <li class="nav-item"><a class="nav-link" href="#login">Login</a></li>
+
+    <!-- Menu -->
+    <div class="collapse navbar-collapse" id="navbarResponsive">
+      <ul class="navbar-nav text-uppercase ms-auto py-4 py-lg-0">
+        <li class="nav-item"><a class="nav-link text-dark fw-semibold" href="#services">Tentang</a></li>
+        <li class="nav-item"><a class="nav-link text-dark fw-semibold" href="#portfolio">Aktivitas</a></li>
+        <li class="nav-item"><a class="nav-link text-dark fw-semibold" href="#about">Biaya</a></li>
+        <li class="nav-item"><a class="nav-link text-dark fw-semibold" href="#team">Team</a></li>
+        <li class="nav-item"><a class="nav-link text-dark fw-semibold" href="#contact">Contact</a></li>
+        <li class="nav-item"><a class="nav-link text-dark fw-semibold" href="#login">Login</a></li>
       </ul>
     </div>
   </div>
 </nav>
 
+  <!-- Masthead-->
+  <header class="masthead">
+    <div class="container">
+      <div class="masthead-subheading">Welcome to Lebah Madu!</div>
+      <div class="masthead-heading text-uppercase">It's Nice To Meet You</div>
+      <a class="btn btn-primary btn-xl text-uppercase text-dark" href="https://sekolahlebahmadu.com/" target="_blank"
+        rel="noopener noreferrer">
+        Main Website
+      </a>
 
-<!-- Beranda -->
-<section id="beranda" class="text-center bg-light">
-  <div class="container">
-    <h1 class="display-4 fw-bold text-warning">Selamat Datang di Sekolah Lebah Madu</h1>
-    <p class="lead">Tempat belajar yang menyenangkan dan penuh cinta.</p>
-  </div>
-</section>
+    </div>
+  </header>
+  <!-- Services-->
+  <section class="page-section" id="services">
+    <div class="container">
+      <div class="text-center">
+        <h2 class="section-heading text-uppercase fw-bold">Tentang Kami</h2>
+        <div class="section-subheading text-muted text-start mx-auto" style="max-width: 800px;">
+          <h4 class="text-warning fw-bold">Visi</h4>
+          <p>
+            Membentuk generasi muslim yang memiliki <strong>aqidah salimah</strong> dan <strong>akhlaq karimah</strong>
+            serta
+            mengembangkan <strong>kecerdasan majemuk</strong> anak dan keterampilan hidup secara holistik, terpadu, dan
+            berkesinambungan melalui proses pendidikan yang bernuansa islami dan alami.
+          </p>
 
-<!-- Tentang -->
-<section id="about">
-  <div class="container">
-    <h2 class="text-center text-warning">Tentang Aplikasi</h2>
-    <p class="text-center">
-      Aplikasi ini dirancang khusus untuk mendukung kegiatan backoffice pegawai <strong>Sekolah Lebah Madu</strong>. 
-      Sistem ini membantu mempermudah pengelolaan data pegawai, administrasi internal, dan koordinasi operasional sekolah 
-      secara lebih efisien, cepat, dan terpusat. Dengan antarmuka yang modern dan ramah pengguna, aplikasi ini mendukung produktivitas 
-      dan kolaborasi tim di lingkungan sekolah berbasis digital.
-    </p>
-  </div>
-</section>
+          <h4 class="text-warning fw-bold mt-4">Misi</h4>
+          <ul class="text-muted text-start">
+            <li>Memberikan pendidikan aqidah dan akhlak terpuji melalui berbagai aktivitas belajar yang menyenangkan dan
+              dinamis.</li>
+            <li>Mengembangkan berbagai dimensi kecerdasan majemuk anak secara holistik, terpadu, seimbang, dan
+              berkelanjutan.</li>
+            <li>Mengembangkan proses pendidikan yang memberi kesempatan luas bereksplorasi bagi anak untuk menggali
+              potensi, minat, dan bakatnya serta melakukan aktivitas bermain sambil belajar.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="container" style="max-width: 800px;">
+        <div class="row text-center">
+          <!-- Gambar 1 -->
+          <div class="col-md-4 mb-5">
+            <img
+              src="{% static '3rd_party/lebahmadu/sekolahlebahmadu.com/uploads/gal/534/pn820/f3984328aa0b102c0f404294c25d8a27.jpg' %}"
+              class="rounded-circle mb-3 img-fluid" alt="Aktivitas Bermain"
+              style="border: 5px solid #ffc107; width: 200px; height: 200px; object-fit: cover; cursor: pointer;"
+              data-bs-toggle="modal" data-bs-target="#modalGambar1" />
+            <h4 class="my-3">Aktivitas Bermain</h4>
+            <p class="text-muted">Anak-anak belajar sambil bermain untuk mengembangkan kreativitas dan kepercayaan diri
+              mereka.</p>
+          </div>
 
-<!-- Login -->
-<section id="login" class="bg-light">
-  <div class="container">
-    <div class="row justify-content-center">
-      <div class="col-md-6">
-        <div class="bg-white p-4 p-md-5 border rounded shadow">
-          <h2 class="text-center mb-4 fw-bold text-warning">Login</h2>
+          <!-- Gambar 2 -->
+          <div class="col-md-4 mb-5">
+            <img
+              src="{% static '3rd_party/lebahmadu/sekolahlebahmadu.com/uploads/gal/535/pn820/1c8d0af2375c46ccd2a36ae9db93a11a.jpg' %}"
+              class="rounded-circle mb-3 img-fluid" alt="Pembelajaran Islami"
+              style="border: 5px solid #ffc107; width: 200px; height: 200px; object-fit: cover; cursor: pointer;"
+              data-bs-toggle="modal" data-bs-target="#modalGambar2" />
+            <h4 class="my-3">Pembelajaran Islami</h4>
+            <p class="text-muted">Mengenalkan nilai-nilai keislaman sejak dini melalui kegiatan rutin harian yang
+              menyenangkan.</p>
+          </div>
 
-          {% if form.errors %}
-            <div class="alert alert-danger">Username atau password salah.</div>
-          {% endif %}
+          <!-- Gambar 3 -->
+          <div class="col-md-4 mb-5">
+            <img
+              src="{% static '3rd_party/lebahmadu/sekolahlebahmadu.com/uploads/gal/541/31877874694de9892890231d7a0557d8.jpeg' %}"
+              class="rounded-circle mb-3 img-fluid" alt="Pendekatan Holistik"
+              style="border: 5px solid #ffc107; width: 200px; height: 200px; object-fit: cover; cursor: pointer;"
+              data-bs-toggle="modal" data-bs-target="#modalGambar3" />
+            <h4 class="my-3">Pendekatan Holistik</h4>
+            <p class="text-muted">Mengembangkan seluruh potensi anak melalui pendekatan menyeluruh: intelektual,
+              emosional, dan sosial.</p>
+          </div>
+        </div>
 
-          <form method="post" action="{% url 'login' %}">
-            {% csrf_token %}
-
-            <div class="mb-3">
-              <label for="id_username" class="form-label">Username</label>
-              <input type="text" name="username" class="form-control" id="id_username" required>
+        <!-- Modal Gambar 1 -->
+        <div class="modal fade" id="modalGambar1" tabindex="-1" aria-labelledby="modalLabel1" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content bg-white">
+              <div class="modal-header border-0">
+                <h5 class="modal-title" id="modalLabel1">Aktivitas Bermain</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+              </div>
+              <div class="modal-body text-center">
+                <img
+                  src="{% static '3rd_party/lebahmadu/sekolahlebahmadu.com/uploads/gal/534/pn820/f3984328aa0b102c0f404294c25d8a27.jpg' %}"
+                  class="img-fluid rounded" alt="Aktivitas Bermain" />
+              </div>
             </div>
+          </div>
+        </div>
 
-            <div class="mb-3">
-              <label for="id_password" class="form-label">Password</label>
-              <input type="password" name="password" class="form-control" id="id_password" required>
+        <!-- Modal Gambar 2 -->
+        <div class="modal fade" id="modalGambar2" tabindex="-1" aria-labelledby="modalLabel2" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content bg-white">
+              <div class="modal-header border-0">
+                <h5 class="modal-title" id="modalLabel2">Pembelajaran Islami</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+              </div>
+              <div class="modal-body text-center">
+                <img
+                  src="{% static '3rd_party/lebahmadu/sekolahlebahmadu.com/uploads/gal/535/pn820/1c8d0af2375c46ccd2a36ae9db93a11a.jpg' %}"
+                  class="img-fluid rounded" alt="Pembelajaran Islami" />
+              </div>
             </div>
+          </div>
+        </div>
 
-            <div class="mb-3 form-check">
-              <input type="checkbox" class="form-check-input" id="remember">
-              <label class="form-check-label" for="remember">Remember Me</label>
+        <!-- Modal Gambar 3 -->
+        <div class="modal fade" id="modalGambar3" tabindex="-1" aria-labelledby="modalLabel3" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content bg-white">
+              <div class="modal-header border-0">
+                <h5 class="modal-title" id="modalLabel3">Pendekatan Holistik</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+              </div>
+              <div class="modal-body text-center">
+                <img
+                  src="{% static '3rd_party/lebahmadu/sekolahlebahmadu.com/uploads/gal/541/31877874694de9892890231d7a0557d8.jpeg' %}"
+                  class="img-fluid rounded" alt="Pendekatan Holistik" />
+              </div>
             </div>
+          </div>
+        </div>
 
-            <div class="d-grid">
-              <button type="submit" class="btn btn-primary">Masuk</button>
+      </div>
+
+
+    </div>
+  </section>
+  <!-- Portfolio Grid-->
+  <!-- SECTION AKTIVITAS -->
+  <section class="page-section" id="portfolio" style="background-color: #f8eecf;">
+    <div class="container">
+      <div class="text-center">
+        <h2 class="section-heading text-uppercase">Aktivitas</h2>
+        <h3 class="section-subheading text-muted">Kegiatan harian dan bulanan Playgroup & TK</h3>
+      </div>
+      <div class="row justify-content-center">
+
+        <div class="row text-center">
+          <!-- Kegiatan Playgroup -->
+          <!-- Kegiatan Playgroup -->
+          <div class="col-lg-6 col-sm-12 mb-4">
+            <div class="card h-100 text-center border shadow-sm p-3">
+              <a class="portfolio-link" data-bs-toggle="modal" href="#modalPlaygroup">
+                <div
+                  style="width: 380px; height: 280px; margin: 0 auto; overflow: hidden; border-radius: 140px; border: 4px solid #ffc107;">
+                  <img
+                    src="{% static '3rd_party/lebahmadu/sekolahlebahmadu.com/uploads/images/254/pn640/70e75a3bec0cc0eb0e67dfd01b7d432a.jpg' %}"
+                    alt="Playgroup" style="width: 100%; height: 100%; object-fit: cover;">
+                </div>
+              </a>
+              <div class="portfolio-caption mt-3">
+                <h5 class="portfolio-caption-heading">Playgroup</h5>
+                <p class="portfolio-caption-subheading text-muted">Aktivitas Harian & Bulanan</p>
+                <a class="btn btn-warning btn-sm mt-2" data-bs-toggle="modal" href="#modalPlaygroup">Lihat Detail</a>
+              </div>
             </div>
-          </form>
+          </div>
 
+          <!-- Kegiatan TK -->
+          <div class="col-lg-6 col-sm-12 mb-4">
+            <div class="card h-100 text-center border shadow-sm p-3">
+              <a class="portfolio-link" data-bs-toggle="modal" href="#modalTK">
+                <div
+                  style="width: 380px; height: 280px; margin: 0 auto; overflow: hidden; border-radius: 140px; border: 4px solid #ffc107;">
+                  <img
+                    src="{% static '3rd_party/lebahmadu/sekolahlebahmadu.com/uploads/gal/538/pn820/0cd827342195d36696dcfd78d30be855.jpg' %}"
+                    alt="TK" style="width: 100%; height: 100%; object-fit: cover;">
+                </div>
+              </a>
+              <div class="portfolio-caption mt-3">
+                <h5 class="portfolio-caption-heading">Taman Kanak-Kanak</h5>
+                <p class="portfolio-caption-subheading text-muted">Kegiatan Rutin & Periodik</p>
+                <a class="btn btn-warning btn-sm mt-2" data-bs-toggle="modal" href="#modalTK">Lihat Detail</a>
+              </div>
+            </div>
+          </div>
+
+
+
+
+        </div>
+      </div>
+  </section>
+
+  <!-- MODAL PLAYGROUP -->
+  <div class="modal fade" id="modalPlaygroup" tabindex="-1" aria-labelledby="playgroupLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="playgroupLabel">Kegiatan Playgroup</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+        </div>
+        <div class="modal-body">
+          <h6><strong>Kegiatan Harian</strong></h6>
+          <ul>
+            <li>08.00 – 08.15: Bermain bebas</li>
+            <li>08.15 – 08.30: Sholat dhuha / membaca buku / bercerita</li>
+            <li>08.30 – 08.45: Motorik kasar / kegiatan pagi</li>
+            <li>08.45 – 09.00: Circle time</li>
+            <li>09.00 – 09.30: Snack time & berdoa</li>
+            <li>09.30 – 10.30: Kegiatan sentra / bermain</li>
+            <li>10.30 – 10.45: Berdoa & pulang</li>
+          </ul>
+          <h6><strong>Kegiatan Bulanan</strong></h6>
+          <ul>
+            <li>Fun Cooking</li>
+            <li>Berenang</li>
+            <li>Hari Bersama</li>
+            <li>Outing edukatif (2x per semester)</li>
+            <li>Pemeriksaan Kesehatan</li>
+            <li>Kunjungan sosial</li>
+            <li>Makan sehat, menonton CD edukatif</li>
+          </ul>
         </div>
       </div>
     </div>
   </div>
-</section>
 
-<!-- Footer -->
-<footer class="text-center py-4">
-  <div class="container">
-    <p class="mb-0">&copy; 2025 Sekolah Lebah Madu. All rights reserved.</p>
+  <!-- MODAL TK -->
+  <div class="modal fade" id="modalTK" tabindex="-1" aria-labelledby="tkLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="tkLabel">Kegiatan TK</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+        </div>
+        <div class="modal-body">
+          <h6><strong>Kegiatan Harian</strong></h6>
+          <ul>
+            <li>07.30 – 08.00: Pembacaan utsmani, bermain bebas</li>
+            <li>08.00 – 08.45: Olahraga pagi</li>
+            <li>08.45 – 09.00: Snack time</li>
+            <li>09.00 – 09.15: Sholat dhuha & doa</li>
+            <li>09.15 – 10.30: Circle time, MSQ, hafalan</li>
+            <li>10.30 – 11.00: Bermain bebas</li>
+            <li>11.00 – 12.00: Sentra / kegiatan inti</li>
+            <li>12.00 – 12.30: Sholat dzuhur & evaluasi</li>
+            <li>12.30 – 13.00: Makan, sikat gigi, pulang</li>
+          </ul>
+          <h6><strong>Kegiatan Periodik</strong></h6>
+          <ul>
+            <li>Outing edukatif (4x setahun)</li>
+            <li>Assembly / Performance</li>
+            <li>Pemeriksaan kesehatan umum & gigi</li>
+            <li>Perayaan hari besar: Idul Fitri, Idul Adha, Hari Kemerdekaan</li>
+            <li>Special Day: Art Attack, Math & Language Olympic</li>
+            <li>Inagurasi (camping TK B)</li>
+          </ul>
+        </div>
+      </div>
+    </div>
   </div>
-</footer>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- About-->
+  <section class="page-section" id="about">
+    <div class="container">
+      <div class="text-center mb-5">
+        <h2 class="section-heading text-uppercase">Biaya Pendidikan</h2>
+        <h3 class="section-subheading text-muted">Biaya Pendidikan & Perjalanan Kami</h3>
+      </div>
+
+      <!-- Kotak Biaya Pendidikan -->
+      <div class="row justify-content-center">
+
+        <!-- Semester Pertama -->
+        <div class="col-lg-4 col-md-6 col-sm-12 mb-4">
+          <div class="card h-100 border shadow-sm">
+            <div class="card-body text-center">
+              <div class="pricing-deco mb-3">
+                <div class="pricing-price display-5 fw-bold mb-2">
+                  <span class="pricing-currency">Rp</span>5,375
+                  <span class="pricing-period">Juta</span>
+                </div>
+                <h5 class="pricing-title">6 Bulan Pertama</h5>
+              </div>
+              <table class="pricing-feature-list table table-bordered table-striped table-hover text-start">
+                <tbody>
+                  <tr>
+                    <td colspan="2"><strong>PENDAFTARAN</strong></td>
+                  </tr>
+                  <tr>
+                    <td>Formulir</td>
+                    <td>Rp. 50.000</td>
+                  </tr>
+                  <tr>
+                    <td>Observasi</td>
+                    <td>Rp. 250.000</td>
+                  </tr>
+                  <tr>
+                    <td colspan="2"><strong>BIAYA PENDIDIKAN PER SEMESTER</strong></td>
+                  </tr>
+                  <tr>
+                    <td>Uang Masuk</td>
+                    <td>Rp. 700.000</td>
+                  </tr>
+                  <tr>
+                    <td>Uang Kegiatan Ananda</td>
+                    <td>Rp. 2.600.000</td>
+                  </tr>
+                  <tr>
+                    <td>Uang Pengembangan</td>
+                    <td>Rp. 900.000</td>
+                  </tr>
+                  <tr>
+                    <td colspan="2"><strong>BIAYA PENDUKUNG</strong></td>
+                  </tr>
+                  <tr>
+                    <td>Seragam sekolah 1 stel</td>
+                    <td>Rp. 200.000</td>
+                  </tr>
+                  <tr>
+                    <td>Portofolio, report & buku komunikasi</td>
+                    <td>Rp. 300.000</td>
+                  </tr>
+                  <tr>
+                    <td>Iuran Komite (6 Bulan)</td>
+                    <td>Rp. 375.000</td>
+                  </tr>
+                  <tr>
+                    <td><strong>TOTAL</strong></td>
+                    <td><strong>Rp. 5.375.000</strong></td>
+                  </tr>
+                </tbody>
+              </table>
+              <a class="btn btn-outline-primary mt-2" href="#contact">Kontak Kami</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Semester Berikutnya -->
+        <div class="col-lg-4 col-md-6 col-sm-12 mb-4">
+          <div class="card h-100 border shadow-sm">
+            <div class="card-body text-center">
+              <div class="pricing-deco mb-3">
+                <div class="pricing-price display-5 fw-bold mb-2">
+                  <span class="pricing-currency">Rp</span>4,075
+                  <span class="pricing-period">Juta</span>
+                </div>
+                <h5 class="pricing-title">Semester 2 dan Selanjutnya</h5>
+              </div>
+              <table class="pricing-feature-list table table-bordered table-striped table-hover text-start">
+                <tbody>
+                  <tr>
+                    <td colspan="2"><strong>BIAYA PENDIDIKAN PER SEMESTER</strong></td>
+                  </tr>
+                  <tr>
+                    <td>Uang Kegiatan Ananda</td>
+                    <td>Rp. 2.500.000</td>
+                  </tr>
+                  <tr>
+                    <td>Uang Pengembangan</td>
+                    <td>Rp. 1.000.000</td>
+                  </tr>
+                  <tr>
+                    <td colspan="2"><strong>BIAYA PENDUKUNG</strong></td>
+                  </tr>
+                  <tr>
+                    <td>Portofolio, report & buku komunikasi</td>
+                    <td>Rp. 200.000</td>
+                  </tr>
+                  <tr>
+                    <td>Iuran Komite (6 Bulan)</td>
+                    <td>Rp. 375.000</td>
+                  </tr>
+                  <tr>
+                    <td><strong>TOTAL</strong></td>
+                    <td><strong>Rp. 4.075.000</strong></td>
+                  </tr>
+                </tbody>
+              </table>
+              <a class="btn btn-outline-primary mt-2" href="#contact">Kontak Kami</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- SPP Bulanan -->
+        <div class="col-lg-4 col-md-6 col-sm-12 mb-4">
+          <div class="card h-100 border shadow-sm">
+            <div class="card-body text-center">
+              <div class="pricing-deco mb-3">
+
+                <div class="pricing-price display-5 fw-bold mb-2">
+                  <span class="pricing-currency">*</span>SPP
+                  <span class="pricing-period">Bulanan</span>
+                </div>
+                <h5 class="pricing-title">Bulanan</h5>
+              </div>
+              <table class="pricing-feature-list table table-bordered table-striped table-hover text-start">
+                <tbody>
+                  <tr>
+                    <td>SPP Kelas Orange (usia 2-3 thn)</td>
+                  </tr>
+                  <tr>
+                    <td>Rp. 900.000</td>
+                  </tr>
+                  <tr>
+                    <td>SPP Kelas Ungu (usia 3-4 thn)</td>
+                  </tr>
+                  <tr>
+                    <td>Rp. 800.000</td>
+                  </tr>
+                  <tr>
+                    <td colspan="2"><strong>* OPTIONAL:</strong> Biaya antar jemput hubungi administrasi</td>
+                  </tr>
+                </tbody>
+              </table>
+              <a class="btn btn-outline-primary mt-2" href="#contact">Kontak Kami</a>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <!-- /row -->
+    </div>
+  </section>
+
+
+  <!-- Team-->
+  <section class="page-section" id="team" style="background-color: #f8eecf;">
+    <div class="container">
+      <div class="text-center mb-5">
+        <h2 class="section-heading text-uppercase">Tim Kami</h2>
+        <h3 class="section-subheading text-muted">Yuk, ketemu dengan pengajar kami</h3>
+      </div>
+
+      <div class="row justify-content-center">
+        <div class="col-lg-8">
+          <div class="card border-0 shadow text-center p-4">
+            <div class="card-body">
+              <!-- Gambar Persegi Panjang -->
+              <a href="#" data-bs-toggle="modal" data-bs-target="#teamModal">
+                <img src="{% static '3rd_party/lebahmadu/sekolahlebahmadu.com/templates/frontend/img/teammain.jpeg' %}"
+                  alt="Tim Pengajar"
+                  style="width: 100%; max-width: 600px; height: 300px; object-fit: cover; border: 5px solid #ffc107;"
+                  class="mb-4 rounded">
+              </a>
+
+              <!-- <h4 class="fw-bold">Nama Pengajar</h4>
+            <p class="text-muted">Jabatan / Peran</p> -->
+
+              <!-- <div class="mb-3">
+              <a class="btn btn-dark btn-social mx-1" href="#"><i class="fab fa-twitter"></i></a>
+              <a class="btn btn-dark btn-social mx-1" href="#"><i class="fab fa-facebook-f"></i></a>
+              <a class="btn btn-dark btn-social mx-1" href="#"><i class="fab fa-linkedin-in"></i></a>
+            </div> -->
+
+              <p class="text-muted">
+                Alhamdulillah, sampai saat ini tim kami yang terdiri dari Kepala Sekolah, Kepala Program, Guru dan Staff
+                adalah tim yang mengedepankan keramahan kepada anak-anak. Dengan hampir setiap guru memiliki latar
+                belakang Pendidikan Anak Usia Dini, menjadikan tim kami sangat memahami kebutuhan anak usia dini.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal Gambar Besar -->
+    <div class="modal fade" id="teamModal" tabindex="-1" aria-labelledby="teamModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content bg-white">
+          <div class="modal-header border-0">
+            <h5 class="modal-title" id="teamModalLabel">Tim Pengajar</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Tutup"></button>
+          </div>
+          <div class="modal-body text-center">
+            <img src="{% static '3rd_party/lebahmadu/sekolahlebahmadu.com/templates/frontend/img/teammain.jpeg' %}"
+              class="img-fluid shadow"
+              style="width: 100%; max-width: 800px; border: 5px solid #ffc107; object-fit: cover;" alt="Foto Tim">
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Clients-->
+  <!-- <div class="py-5">
+    <div class="container">
+      <div class="row align-items-center">
+        <div class="col-md-3 col-sm-6 my-3">
+          <a href="#!"><img class="img-fluid img-brand d-block mx-auto"
+              src="{% static '3rd_party/startbootstrap-agency-gh-pages/assets/img/logos/microsoft.svg'%}" alt="..."
+              aria-label="Microsoft Logo" /></a>
+        </div>
+        <div class="col-md-3 col-sm-6 my-3">
+          <a href="#!"><img class="img-fluid img-brand d-block mx-auto"
+              src="{% static '3rd_party/startbootstrap-agency-gh-pages/assets/img/logos/google.svg'%}" alt="..."
+              aria-label="Google Logo" /></a>
+        </div>
+        <div class="col-md-3 col-sm-6 my-3">
+          <a href="#!"><img class="img-fluid img-brand d-block mx-auto"
+              src="{% static '3rd_party/startbootstrap-agency-gh-pages/assets/img/logos/facebook.svg'%}" alt="..."
+              aria-label="Facebook Logo" /></a>
+        </div>
+        <div class="col-md-3 col-sm-6 my-3">
+          <a href="#!"><img class="img-fluid img-brand d-block mx-auto"
+              src="{% static '3rd_party/startbootstrap-agency-gh-pages/assets/img/logos/ibm.svg'%}" alt="..."
+              aria-label="IBM Logo" /></a>
+        </div>
+      </div>
+    </div>
+  </div> -->
+  <!-- Contact-->
+  <section class="page-section bg-light" id="contact">
+    <div class="container">
+      <div class="text-center mb-5">
+        <h2 class="section-heading text-uppercase">Hubungi Kami</h2>
+        <h3 class="section-subheading text-muted">Informasi kontak dan lokasi Sekolah Lebah Madu</h3>
+      </div>
+
+      <div class="row">
+
+        <!-- Kolom 1: Logo & Alamat -->
+        <div class="col-lg-4 col-md-6 mb-4 text-center">
+          <a href="#page-top">
+            <img src="https://sekolahlebahmadu.com/templates/frontend/img/logo.png" alt="Logo Sekolah"
+              class="img-fluid mb-3" style="max-width: 150px;">
+          </a>
+          <p><strong>Alamat:</strong><br>Jl. Kenigayo No.99 RT 4/5, Kel. Setu, Kec. Cipayung<br>Jakarta Timur, DKI
+            Jakarta 13880</p>
+
+          <div class="social-media mt-3">
+            <a href="https://www.youtube.com/c/SekolahLebahMadu" class="btn btn-dark btn-social mx-1" title="YouTube"><i
+                class="fa fa-youtube"></i></a>
+            <a href="https://www.facebook.com/tkislam.lebahmadu" class="btn btn-dark btn-social mx-1"
+              title="Facebook"><i class="fa fa-facebook"></i></a>
+            <a href="https://www.instagram.com/sekolahlebahmadu/" class="btn btn-dark btn-social mx-1"
+              title="Instagram"><i class="fa fa-instagram"></i></a>
+          </div>
+        </div>
+
+        <!-- Kolom 2: Jam Operasional & WhatsApp -->
+        <div class="col-lg-4 col-md-6 mb-4 text-center">
+          <h5 class="mb-3">Jam Operasional</h5>
+          <table class="table table-bordered text-left">
+            <tbody>
+              <tr>
+                <td>Senin s/d Jumat</td>
+                <td class="text-right">07.30 - 13.00</td>
+              </tr>
+              <tr>
+                <td>Ahad</td>
+                <td class="text-right"><span class="badge bg-danger">Tutup</span></td>
+              </tr>
+            </tbody>
+          </table>
+          <p class="mt-4" style="font-size: 18px;">
+            Hubungi Kami via <br>
+            <a href="https://wa.me/6281111815369?text=Assalamu'alaykum%20Saya%20Ingin%20tanya%20tentang%20Lebah%20Madu"
+              target="_blank" class="btn btn-success mt-2">
+              <i class="fa fa-whatsapp"></i> WhatsApp
+            </a>
+          </p>
+        </div>
+
+        <!-- Kolom 3: Google Maps -->
+        <div class="col-lg-4 col-md-12 mb-4 text-center">
+          <h5 class="mb-3">Lokasi Sekolah</h5>
+          <div class="mapouter">
+            <div class="gmap_canvas">
+              <iframe width="100%" height="300" id="gmap_canvas"
+                src="https://maps.google.com/maps?q=TKIT%20Lebah%20madu%20haji%20karim&t=&z=13&ie=UTF8&iwloc=&output=embed"
+                frameborder="0" scrolling="no" marginheight="0" marginwidth="0"></iframe>
+            </div>
+            <style>
+              .mapouter {
+                position: relative;
+                height: 300px;
+                width: 100%;
+              }
+
+              .gmap_canvas {
+                overflow: hidden;
+                background: none !important;
+                height: 300px;
+                width: 100%;
+              }
+            </style>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Login -->
+  <section class="page-section" id="login" style="background-color: #f8eecf;">
+    <div class="container">
+      <div class="row justify-content-center">
+        <div class="col-md-6">
+          <div class="card shadow border-dark">
+            <div class="card-header bg-dark text-white text-center">
+              <h2 class="mb-0 fw-bold">Login</h2>
+            </div>
+            <div class="card-body">
+
+              <p class="text-muted text-center">Silakan login untuk mengakses sistem backoffice.</p>
+
+              {% if form.errors %}
+              <div class="alert alert-danger text-center">Username atau password salah.</div>
+              {% endif %}
+
+              <form method="post" action="{% url 'login' %}">
+                {% csrf_token %}
+
+                <div class="mb-3">
+                  <label for="username" class="form-label">Username</label>
+                  <input class="form-control" name="username" id="username" type="text" required>
+                </div>
+
+                <div class="mb-3">
+                  <label for="password" class="form-label">Password</label>
+                  <input class="form-control" name="password" id="password" type="password" required>
+                </div>
+
+                <div class="form-check mb-3">
+                  <input class="form-check-input" type="checkbox" id="remember">
+                  <label class="form-check-label" for="remember">Remember Me</label>
+                </div>
+
+                <div class="d-grid">
+                  <button class="btn btn-dark text-white fw-bold" type="submit">Masuk</button>
+                </div>
+              </form>
+
+            </div>
+          </div>
+        </div>
+      </div>
+      <a href="#page-top" class="btn btn-sm btn-outline-secondary mt-2">
+          <i class="fa fa-angle-up"></i> Kembali ke Atas
+        </a>
+    </div>
+    
+  </section>
+
+  <!-- Footer-->
+  <footer class="footer py-4">
+    <div class="container">
+      <div class="row align-items-center">
+        <div class="col-lg-4 text-lg-start">Copyright &copy; pnj-sekolahlebahmadu</div>
+        <div class="col-lg-4 my-3 my-lg-0">
+          <!-- <a class="btn btn-dark btn-social mx-2" href="#!" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+          <a class="btn btn-dark btn-social mx-2" href="#!" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
+          <a class="btn btn-dark btn-social mx-2" href="#!" aria-label="LinkedIn"><i class="fab fa-linkedin-in"></i></a> -->
+        </div>
+        <div class="col-lg-4 text-lg-end">
+          <a class="link-dark text-decoration-none me-3" href="#!">Privacy Policy</a>
+          <a class="link-dark text-decoration-none" href="#!">Terms of Use</a>
+        </div>
+      </div>
+    </div>
+  </footer>
+  <!-- Portfolio Modals-->
+  <!-- Portfolio item 1 modal popup-->
+  <div class="portfolio-modal modal fade" id="portfolioModal1" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="close-modal" data-bs-dismiss="modal"><img
+            src="{% static '3rd_party/startbootstrap-agency-gh-pages/assets/img/close-icon.svg'%}" alt="Close modal" />
+        </div>
+        <div class="container">
+          <div class="row justify-content-center">
+            <div class="col-lg-8">
+              <div class="modal-body">
+                <!-- Project details-->
+                <h2 class="text-uppercase">Project Name</h2>
+                <p class="item-intro text-muted">Lorem ipsum dolor sit amet consectetur.</p>
+                <img class="img-fluid d-block mx-auto"
+                  src="{% static '3rd_party/startbootstrap-agency-gh-pages/assets/img/portfolio/1.jpg'%}" alt="..." />
+                <p>Use this area to describe your project. Lorem ipsum dolor sit amet, consectetur adipisicing elit. Est
+                  blanditiis dolorem culpa incidunt minus dignissimos deserunt repellat aperiam quasi sunt officia
+                  expedita beatae cupiditate, maiores repudiandae, nostrum, reiciendis facere nemo!</p>
+                <ul class="list-inline">
+                  <li>
+                    <strong>Client:</strong>
+                    Threads
+                  </li>
+                  <li>
+                    <strong>Category:</strong>
+                    Illustration
+                  </li>
+                </ul>
+                <button class="btn btn-primary btn-xl text-uppercase" data-bs-dismiss="modal" type="button">
+                  <i class="fas fa-xmark me-1"></i>
+                  Close Project
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Portfolio item 2 modal popup-->
+  <div class="portfolio-modal modal fade" id="portfolioModal2" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="close-modal" data-bs-dismiss="modal"><img
+            src="{% static '3rd_party/startbootstrap-agency-gh-pages/assets/img/close-icon.svg'%}" alt="Close modal" />
+        </div>
+        <div class="container">
+          <div class="row justify-content-center">
+            <div class="col-lg-8">
+              <div class="modal-body">
+                <!-- Project details-->
+                <h2 class="text-uppercase">Project Name</h2>
+                <p class="item-intro text-muted">Lorem ipsum dolor sit amet consectetur.</p>
+                <img class="img-fluid d-block mx-auto"
+                  src="{% static '3rd_party/startbootstrap-agency-gh-pages/assets/img/portfolio/2.jpg'%}" alt="..." />
+                <p>Use this area to describe your project. Lorem ipsum dolor sit amet, consectetur adipisicing elit. Est
+                  blanditiis dolorem culpa incidunt minus dignissimos deserunt repellat aperiam quasi sunt officia
+                  expedita beatae cupiditate, maiores repudiandae, nostrum, reiciendis facere nemo!</p>
+                <ul class="list-inline">
+                  <li>
+                    <strong>Client:</strong>
+                    Explore
+                  </li>
+                  <li>
+                    <strong>Category:</strong>
+                    Graphic Design
+                  </li>
+                </ul>
+                <button class="btn btn-primary btn-xl text-uppercase" data-bs-dismiss="modal" type="button">
+                  <i class="fas fa-xmark me-1"></i>
+                  Close Project
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Portfolio item 3 modal popup-->
+  <div class="portfolio-modal modal fade" id="portfolioModal3" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="close-modal" data-bs-dismiss="modal"><img
+            src="{% static '3rd_party/startbootstrap-agency-gh-pages/assets/img/close-icon.svg'%}" alt="Close modal" />
+        </div>
+        <div class="container">
+          <div class="row justify-content-center">
+            <div class="col-lg-8">
+              <div class="modal-body">
+                <!-- Project details-->
+                <h2 class="text-uppercase">Project Name</h2>
+                <p class="item-intro text-muted">Lorem ipsum dolor sit amet consectetur.</p>
+                <img class="img-fluid d-block mx-auto"
+                  src="{% static '3rd_party/startbootstrap-agency-gh-pages/assets/img/portfolio/3.jpg'%}" alt="..." />
+                <p>Use this area to describe your project. Lorem ipsum dolor sit amet, consectetur adipisicing elit. Est
+                  blanditiis dolorem culpa incidunt minus dignissimos deserunt repellat aperiam quasi sunt officia
+                  expedita beatae cupiditate, maiores repudiandae, nostrum, reiciendis facere nemo!</p>
+                <ul class="list-inline">
+                  <li>
+                    <strong>Client:</strong>
+                    Finish
+                  </li>
+                  <li>
+                    <strong>Category:</strong>
+                    Identity
+                  </li>
+                </ul>
+                <button class="btn btn-primary btn-xl text-uppercase" data-bs-dismiss="modal" type="button">
+                  <i class="fas fa-xmark me-1"></i>
+                  Close Project
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Portfolio item 4 modal popup-->
+  <div class="portfolio-modal modal fade" id="portfolioModal4" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="close-modal" data-bs-dismiss="modal"><img
+            src="{% static '3rd_party/startbootstrap-agency-gh-pages/assets/img/close-icon.svg'%}" alt="Close modal" />
+        </div>
+        <div class="container">
+          <div class="row justify-content-center">
+            <div class="col-lg-8">
+              <div class="modal-body">
+                <!-- Project details-->
+                <h2 class="text-uppercase">Project Name</h2>
+                <p class="item-intro text-muted">Lorem ipsum dolor sit amet consectetur.</p>
+                <img class="img-fluid d-block mx-auto"
+                  src="{% static '3rd_party/startbootstrap-agency-gh-pages/assets/img/portfolio/4.jpg'%}" alt="..." />
+                <p>Use this area to describe your project. Lorem ipsum dolor sit amet, consectetur adipisicing elit. Est
+                  blanditiis dolorem culpa incidunt minus dignissimos deserunt repellat aperiam quasi sunt officia
+                  expedita beatae cupiditate, maiores repudiandae, nostrum, reiciendis facere nemo!</p>
+                <ul class="list-inline">
+                  <li>
+                    <strong>Client:</strong>
+                    Lines
+                  </li>
+                  <li>
+                    <strong>Category:</strong>
+                    Branding
+                  </li>
+                </ul>
+                <button class="btn btn-primary btn-xl text-uppercase" data-bs-dismiss="modal" type="button">
+                  <i class="fas fa-xmark me-1"></i>
+                  Close Project
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Portfolio item 5 modal popup-->
+  <div class="portfolio-modal modal fade" id="portfolioModal5" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="close-modal" data-bs-dismiss="modal"><img
+            src="{% static '3rd_party/startbootstrap-agency-gh-pages/assets/img/close-icon.svg'%}" alt="Close modal" />
+        </div>
+        <div class="container">
+          <div class="row justify-content-center">
+            <div class="col-lg-8">
+              <div class="modal-body">
+                <!-- Project details-->
+                <h2 class="text-uppercase">Project Name</h2>
+                <p class="item-intro text-muted">Lorem ipsum dolor sit amet consectetur.</p>
+                <img class="img-fluid d-block mx-auto"
+                  src="{% static '3rd_party/startbootstrap-agency-gh-pages/assets/img/portfolio/5.jpg'%}" alt="..." />
+                <p>Use this area to describe your project. Lorem ipsum dolor sit amet, consectetur adipisicing elit. Est
+                  blanditiis dolorem culpa incidunt minus dignissimos deserunt repellat aperiam quasi sunt officia
+                  expedita beatae cupiditate, maiores repudiandae, nostrum, reiciendis facere nemo!</p>
+                <ul class="list-inline">
+                  <li>
+                    <strong>Client:</strong>
+                    Southwest
+                  </li>
+                  <li>
+                    <strong>Category:</strong>
+                    Website Design
+                  </li>
+                </ul>
+                <button class="btn btn-primary btn-xl text-uppercase" data-bs-dismiss="modal" type="button">
+                  <i class="fas fa-xmark me-1"></i>
+                  Close Project
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Portfolio item 6 modal popup-->
+  <div class="portfolio-modal modal fade" id="portfolioModal6" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="close-modal" data-bs-dismiss="modal"><img
+            src="{% static '3rd_party/startbootstrap-agency-gh-pages/assets/img/close-icon.svg'%}" alt="Close modal" />
+        </div>
+        <div class="container">
+          <div class="row justify-content-center">
+            <div class="col-lg-8">
+              <div class="modal-body">
+                <!-- Project details-->
+                <h2 class="text-uppercase">Project Name</h2>
+                <p class="item-intro text-muted">Lorem ipsum dolor sit amet consectetur.</p>
+                <img class="img-fluid d-block mx-auto"
+                  src="{% static '3rd_party/startbootstrap-agency-gh-pages/assets/img/portfolio/6.jpg'%}" alt="..." />
+                <p>Use this area to describe your project. Lorem ipsum dolor sit amet, consectetur adipisicing elit. Est
+                  blanditiis dolorem culpa incidunt minus dignissimos deserunt repellat aperiam quasi sunt officia
+                  expedita beatae cupiditate, maiores repudiandae, nostrum, reiciendis facere nemo!</p>
+                <ul class="list-inline">
+                  <li>
+                    <strong>Client:</strong>
+                    Window
+                  </li>
+                  <li>
+                    <strong>Category:</strong>
+                    Photography
+                  </li>
+                </ul>
+                <button class="btn btn-primary btn-xl text-uppercase" data-bs-dismiss="modal" type="button">
+                  <i class="fas fa-xmark me-1"></i>
+                  Close Project
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- modal -->
+
+  <!-- Bootstrap core JS-->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Core theme JS-->
+  <script src="js/scripts.js"></script>
+  <!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *-->
+  <!-- * *                               SB Forms JS                               * *-->
+  <!-- * * Activate your form at https://startbootstrap.com/solution/contact-forms * *-->
+  <!-- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *-->
+  <script src="https://cdn.startbootstrap.com/sb-forms-latest.js"></script>
 </body>
+
 </html>
