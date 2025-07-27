@@ -75,7 +75,6 @@
                 </tr>
             </thead>
             <tbody>
-                {% if tanggal_dari and tanggal_sampai and kelompok and periode %}
     {% for data in rekap_list %}
         <tr>
             <td>{{ forloop.counter }}</td>
@@ -93,11 +92,6 @@
             <td colspan="9">Tidak ada data kehadiran dalam rentang tanggal tersebut.</td>
         </tr>
     {% endfor %}
-{% else %}
-    <tr>
-        <td colspan="9">Silakan pilih tanggal, kelompok, dan periode terlebih dahulu.</td>
-    </tr>
-{% endif %}
 
             </tbody>
         </table>

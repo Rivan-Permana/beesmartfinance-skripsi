@@ -71,7 +71,7 @@
                     <th>Jemput Pulang</th>
                 </tr>
             </thead>
-                {% if tanggal and kelompok and periode %}
+            
             <tbody>
 
                 {% for siswa in semua_siswa %}
@@ -91,11 +91,7 @@
                         {% endif %}
                     </tr>
                 {% endfor %}
-                        {% else %}
-                        <tr>
-                            <td colspan="9"><em>Silakan pilih tanggal, kelompok, dan periode terlebih dahulu.</em></td></tr>
             </tbody>
-                        {% endif %}
         </table>
     </div>
 
