@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     'keuangan',
     'pegawai',
     'lainnya',
+    'django.contrib.humanize',
 ]
 
 MIDDLEWARE = [

@@ -1,0 +1,132 @@
+{% extends "backend/base.html" %}
+
+{% block content_main_row1 %}
+<style>
+    .form-inline .form-control {
+        width: auto;
+        display: inline-block;
+    }
+
+    .form-inline label {
+        margin-right: 5px;
+    }
+</style>
+
+<div class="mb-3">
+    <form id="filterForm" method="get" class="form-inline">
+        <label for="tanggal" class="mr-2"><strong>Tanggal:</strong></label>
+        <input type="date" id="tanggal" name="tanggal" class="form-control mr-2" value="{{ tanggal|date:'Y-m-d' }}">
+
+        <label for="kelompok" class="mr-2"><strong>Kelompok:</strong></label>
+        <select name="kelompok" id="kelompok" class="form-control mr-2">
+            <option value="">-- Pilih Kelompok --</option>
+            {% for k in semua_kelompok %}
+                <option value="{{ k.id }}" {% if k.id == kelompok_id %}selected{% endif %}>
+                    {{ k.nama }}
+                </option>
+            {% endfor %}
+        </select>
+
+        <label for="periode" class="mr-2"><strong>Periode:</strong></label>
+        <select name="periode" id="periode" class="form-control mr-2">
+            <option value="">-- Pilih Periode --</option>
+            {% for p in semua_periode %}
+                <option value="{{ p.id }}" {% if p.id == periode_id %}selected{% endif %}>
+                    {{ p.nama }}
+                </option>
+            {% endfor %}
+        </select>
+
+        <button type="submit" class="btn btn-primary">
+            <i class="fas fa-search"></i> Tampilkan
+        </button>
+    </form>
+</div>
+
+<div class="mb-3">
+    <strong>Tanggal:</strong> {{ tanggal|date:"l, d F Y" }} <br>
+    <strong>Total Siswa Aktif:</strong> {{ semua_siswa|length }}
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">Rekap Kehadiran Siswa</h3>
+    </div>
+
+    <div class="card-body table-responsive p-0">
+        <table class="table table-bordered table-sm text-center" style="min-width: 1400px;">
+            <thead class="thead-light">
+                <tr>
+                    <th>No</th>
+                    <th>Jenjang</th>
+                    <th>Kelompok</th>
+                    <th>Nama Siswa</th>
+                    <th>Tanggal</th>
+                    <th>Kehadiran</th>
+                    <th>Katering</th>
+                    <th>Jemput Datang</th>
+                    <th>Jemput Pulang</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for siswa in semua_siswa %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ siswa.kelompok.jenjang.nama }}</td>
+                        <td>{{ siswa.kelompok.nama }}</td>
+                        <td>{{ siswa.nama }}</td>
+                        <td>{{ tanggal|date:"d-m-Y" }}</td>
+                        {% if siswa.kehadiran_data %}
+                            <td>{{ siswa.kehadiran_data.kehadiran }}</td>
+                            <td>{{ siswa.kehadiran_data.katering|yesno:"Ikut,Tidak Ikut" }}</td>
+                            <td>{{ siswa.kehadiran_data.jemput_datang|yesno:"Ya,Tidak" }}</td>
+                            <td>{{ siswa.kehadiran_data.jemput_pulang|yesno:"Ya,Tidak" }}</td>
+                        {% else %}
+                            <td colspan="4"><em>Belum diinput</em></td>
+                        {% endif %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="card-footer text-right">
+        <a href="{% url 'tambah_kehadiran_siswa' %}?tanggal={{ tanggal|date:'Y-m-d' }}&kelompok={{ kelompok_id }}&periode={{ periode_id }}" class="btn btn-primary">
+    Ubah Kehadiran
+</a>
+    </div>
+</div>
+
+<!-- SCRIPT VALIDASI -->
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('filterForm');
+    const kelompokSelect = document.getElementById('kelompok');
+    const periodeSelect = document.getElementById('periode');
+
+    form.addEventListener('submit', function (e) {
+      const kelompok = kelompokSelect.value.trim();
+      const periode = periodeSelect.value.trim();
+
+      if (!kelompok || !periode) {
+        e.preventDefault();
+
+        let pesan = "Harap pilih: ";
+        if (!kelompok && !periode) {
+          pesan += "Kelompok dan Periode.";
+        } else if (!kelompok) {
+          pesan += "Kelompok.";
+        } else if (!periode) {
+          pesan += "Periode.";
+        }
+
+        alert(pesan);
+      }
+    });
+  });
+</script>
+
+{% endblock %}
+
+{% block content_main_row2 %}{% endblock %}
+{% block content_main_row3 %}{% endblock %}

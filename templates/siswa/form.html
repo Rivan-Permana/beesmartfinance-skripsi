@@ -1,11 +1,37 @@
 {% extends "backend/base.html" %}
 
 {% block content_main_row1 %}
+<style>
+  input.form-control,
+  textarea.form-control,
+  select.form-control {
+    background-color: #2c2f33;
+    color: #ffffff;
+    border-color: #555;
+  }
+
+  input.form-control:focus,
+  textarea.form-control:focus,
+  select.form-control:focus {
+    background-color: #2c2f33;
+    color: #ffffff;
+    border-color: #888;
+  }
+
+  /* Autofill background fix */
+  input.form-control:-webkit-autofill,
+  textarea.form-control:-webkit-autofill,
+  select.form-control:-webkit-autofill {
+    -webkit-box-shadow: 0 0 0px 1000px #2c2f33 inset !important;
+    -webkit-text-fill-color: #ffffff !important;
+    transition: background-color 5000s ease-in-out 0s;
+  }
+  </style>
 <div class="row">
   <div class="col-md-8 offset-md-2">
     <div class="card card-primary">
       <div class="card-header">
-        <h3 class="card-title">Formulir Siswa</h3>
+        <h3 class="card-title">Formulir Sasdfiswa</h3>
       </div>
 
       <form method="post" novalidate>
@@ -45,6 +71,7 @@
   </div>
 </div>
 {% endblock %}
+
 
 {% block content_main_row2 %}{% endblock %}
 {% block content_main_row3 %}{% endblock %}
