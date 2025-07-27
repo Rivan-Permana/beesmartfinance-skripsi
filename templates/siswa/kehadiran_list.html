@@ -1,6 +1,9 @@
 {% extends "backend/base.html" %}
 
 {% block content_main_row1 %}
+ {%block current_menu%}
+                                Home / Siswa /Kehadiran
+                                {%endblock%}
 <style>
     .form-inline .form-control {
         width: auto;
@@ -43,10 +46,10 @@
     </form>
 </div>
 
-<div class="mb-3">
+<!-- <div class="mb-3">
     <strong>Tanggal:</strong> {{ tanggal|date:"l, d F Y" }} <br>
     <strong>Total Siswa Aktif:</strong> {{ semua_siswa|length }}
-</div>
+</div> -->
 
 <div class="card">
     <div class="card-header">
@@ -68,7 +71,9 @@
                     <th>Jemput Pulang</th>
                 </tr>
             </thead>
+                {% if tanggal and kelompok and periode %}
             <tbody>
+
                 {% for siswa in semua_siswa %}
                     <tr>
                         <td>{{ forloop.counter }}</td>
@@ -86,7 +91,11 @@
                         {% endif %}
                     </tr>
                 {% endfor %}
+                        {% else %}
+                        <tr>
+                            <td colspan="9"><em>Silakan pilih tanggal, kelompok, dan periode terlebih dahulu.</em></td></tr>
             </tbody>
+                        {% endif %}
         </table>
     </div>
 

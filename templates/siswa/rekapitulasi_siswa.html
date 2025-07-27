@@ -1,6 +1,9 @@
 {% extends "backend/base.html" %}
 
 {% block content_main_row1 %}
+ {%block current_menu%}
+                                Home / Siswa /Rekapitulasi
+                                {%endblock%}
 <style>
     .form-inline .form-control {
         width: auto;
@@ -72,23 +75,30 @@
                 </tr>
             </thead>
             <tbody>
-                {% for data in rekap_list %}
-                <tr>
-                    <td>{{ forloop.counter }}</td>
-                    <td>{{ data.jenjang }}</td>
-                    <td>{{ data.kelompok }}</td>
-                    <td>{{ data.nama }}</td>
-                    <td>{{ data.hadir }}</td>
-                    <td>{{ data.tidak_hadir }}</td>
-                    <td>{{ data.izin }}</td>
-                    <td>{{ data.sakit }}</td>
-                    <td>{{ data.total }}</td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="9">Tidak ada data kehadiran dalam rentang tanggal tersebut.</td>
-                </tr>
-                {% endfor %}
+                {% if tanggal_dari and tanggal_sampai and kelompok and periode %}
+    {% for data in rekap_list %}
+        <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ data.jenjang }}</td>
+            <td>{{ data.kelompok }}</td>
+            <td>{{ data.nama }}</td>
+            <td>{{ data.hadir }}</td>
+            <td>{{ data.tidak_hadir }}</td>
+            <td>{{ data.izin }}</td>
+            <td>{{ data.sakit }}</td>
+            <td>{{ data.total }}</td>
+        </tr>
+    {% empty %}
+        <tr>
+            <td colspan="9">Tidak ada data kehadiran dalam rentang tanggal tersebut.</td>
+        </tr>
+    {% endfor %}
+{% else %}
+    <tr>
+        <td colspan="9">Silakan pilih tanggal, kelompok, dan periode terlebih dahulu.</td>
+    </tr>
+{% endif %}
+
             </tbody>
         </table>
     </div>
