@@ -1,0 +1,79 @@
+{% extends "backend/base.html" %}
+{% load humanize %}
+
+{% block current_menu %}
+Home / Data Absensi Pegawai
+{% endblock %}
+
+{% block content_main_row1 %}
+<div class="row">
+  <div class="col-12">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title">Data Absensi Pegawai</h3>
+        <form method="get" class="form-inline">
+          <label for="tanggal">Tanggal:</label>
+          <input type="date" name="tanggal" class="form-control ml-2" value="{{ tanggal_filter }}">
+          <button type="submit" class="btn btn-sm btn-primary ml-2">Filter</button>
+        </form>
+      </div>
+
+      <div class="card-body table-responsive p-0">
+        <table class="table table-bordered table-striped m-0">
+          <thead class="thead-light">
+            <tr>
+              <th>NIK</th>
+              <th>NIP</th>
+              <th>Nama</th>
+              <th>Hadir</th>
+              <th>Terlambat</th>
+              <th>Tidak Hadir</th>
+              <th>Izin</th>
+              <th>Sakit</th>
+            </tr>
+          </thead>
+          <tbody>
+            {%if tgl%}
+            {% for absen in data_absen %}
+            <tr>
+              <td>{{ absen.pegawai.nik }}</td>
+              <td>{{ absen.pegawai.nip }}</td>
+              <td>{{ absen.pegawai.nama }}</td>
+              <td>{{ absen.hadir }}</td>
+              <td>{{ absen.terlambat }}</td>
+              <td>{{ absen.tidak_hadir }}</td>
+              <td>{{ absen.izin }}</td>
+              <td>{{ absen.sakit }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+              <td colspan="10" class="text-center">Tidak ada data absen pada tanggal tersebut.</td>
+            </tr>
+            {% endfor %}
+            {% else %}
+            
+            {% for absen in data_absen %}
+            <tr>
+              <td>{{ absen.pegawai.nik }}</td>
+              <td>{{ absen.pegawai.nip }}</td>
+              <td>{{ absen.pegawai.nama }}</td>
+              <td colspan="7" class="text-center">Pilih tanggal untuk menampilkan data</td>
+            </tr>
+            {% endfor %}
+            {%endif%}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card-footer text-right">
+        <a href="{% url 'absen_pegawai_tambah' %}?tanggal={{ tgl }}" class="btn btn-primary">
+          Ubah Kehadiran Pegawai
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block content_main_row2 %}{% endblock %}
+{% block content_main_row3 %}{% endblock %}

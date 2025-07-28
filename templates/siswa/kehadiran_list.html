@@ -53,7 +53,7 @@
 
 <div class="card">
     <div class="card-header">
-        <h3 class="card-title">Rekap Kehadiran Siswa</h3>
+        <h3 class="card-title">Rekap Kehadiran Siswa {{jenjang}} - {{kelompok_id}}</h3>
     </div>
 
     <div class="card-body table-responsive p-0">
@@ -73,7 +73,7 @@
             </thead>
             
             <tbody>
-
+                {%if tanggal and kelompok_id and periode_id%}
                 {% for siswa in semua_siswa %}
                     <tr>
                         <td>{{ forloop.counter }}</td>
@@ -91,6 +91,9 @@
                         {% endif %}
                     </tr>
                 {% endfor %}
+                {%else%}
+                            <td colspan="9"><em>Pilih Tanggal, Kelompok dan Periode untuk menampilkan data</em></td>
+                {%endif%}
             </tbody>
         </table>
     </div>

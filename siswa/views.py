@@ -269,6 +269,7 @@ def tampilkan_kehadiran(request):
     
     kelompok_id = request.GET.get('kelompok')
     periode_id = request.GET.get('periode')
+    jenjang = ""
 
     # Konversi ke integer (jika ada)
     try:
@@ -304,6 +305,7 @@ def tampilkan_kehadiran(request):
         )
         kehadiran_map = {k.siswa: k for k in kehadiran_qs}
         semua_siswa = semua_siswa.filter(kelompok_id=kelompok_id_int, periode_id=periode_id_int)
+        jenjang = semua_siswa.first().kelompok.jenjang.nama if semua_siswa.exists() else ""
     else:
         kehadiran_map = {}
 
@@ -319,6 +321,7 @@ def tampilkan_kehadiran(request):
         'periode_id': periode_id,
         'kelompok_id_int': kelompok_id_int,
         'periode_id_int': periode_id_int,
+        "jenjang": jenjang,
     }
 
     return render(request, 'siswa/kehadiran_list.html', context)
@@ -328,6 +331,8 @@ def rekapitulasi_siswa(request):
     tanggal_sampai = request.GET.get('tanggal_sampai')
     kelompok_id = request.GET.get('kelompok')
     periode_id = request.GET.get('periode')
+    jenjang =""
+    kemlompok = ""
 
     semua_siswa = Siswa.objects.select_related("kelompok__jenjang").all()
     semua_kelompok = Kelompok.objects.all()
@@ -363,7 +368,14 @@ def rekapitulasi_siswa(request):
                 "izin": 0,
                 "sakit": 0,
                 "total": 0,
+                "tanggal_dari": tanggal_dari,
+                "tanggal_sampai": tanggal_sampai,   
+                "kelompok_id": kelompok_id,
+                "periode_id": periode_id,
             }
+            jenjang = siswa.kelompok.jenjang.nama if siswa.kelompok and siswa.kelompok.jenjang else "-"
+            kelompok = siswa.kelompok.nama if siswa.kelompok else "-"
+
 
         status = kehadiran.kehadiran.lower()
         if status in rekap_per_siswa[siswa.id]:
@@ -379,6 +391,8 @@ def rekapitulasi_siswa(request):
         "tanggal_dari": tanggal_dari,
         "tanggal_sampai": tanggal_sampai,
         "rekap_list": rekap_per_siswa.values(),
+        "jenjang": jenjang,
+        "kelompok": kelompok,
     }
     return render(request, "siswa/rekapitulasi_siswa.html", context)
 

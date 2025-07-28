@@ -57,15 +57,13 @@
 
 <div class="card">
     <div class="card-header">
-        <h3 class="card-title">Rekap Kehadiran Siswa</h3>
+        <h3 class="card-title">Rekap Kehadiran Siswa {{ jenjang }} - {{ kelompok }}</h3>
     </div>
     <div class="card-body table-responsive p-0">
         <table class="table table-bordered table-sm text-center" style="min-width: 1400px;">
             <thead class="thead-light">
                 <tr>
                     <th>No</th>
-                    <th>Jenjang</th>
-                    <th>Kelompok</th>
                     <th>Nama Siswa</th>
                     <th>Hadir</th>
                     <th>Tidak Hadir</th>
@@ -75,23 +73,27 @@
                 </tr>
             </thead>
             <tbody>
-    {% for data in rekap_list %}
-        <tr>
-            <td>{{ forloop.counter }}</td>
-            <td>{{ data.jenjang }}</td>
-            <td>{{ data.kelompok }}</td>
-            <td>{{ data.nama }}</td>
-            <td>{{ data.hadir }}</td>
-            <td>{{ data.tidak_hadir }}</td>
-            <td>{{ data.izin }}</td>
-            <td>{{ data.sakit }}</td>
-            <td>{{ data.total }}</td>
-        </tr>
-    {% empty %}
-        <tr>
-            <td colspan="9">Tidak ada data kehadiran dalam rentang tanggal tersebut.</td>
-        </tr>
-    {% endfor %}
+            {% if tanggal_dari and tanggal_sampai and kelompok_id and periode_id %}
+                {% for data in rekap_list %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>{{ data.nama }}</td>
+                        <td>{{ data.hadir }}</td>
+                        <td>{{ data.tidak_hadir }}</td>
+                        <td>{{ data.izin }}</td>
+                        <td>{{ data.sakit }}</td>
+                        <td>{{ data.total }}</td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="9">Tidak ada data kehadiran dalam rentang tanggal tersebut.</td>
+                    </tr>
+                {% endfor %}
+            {% else %}
+                <tr>
+                    <td colspan="9">Silakan pilih filter untuk menampilkan data.</td>
+                </tr>
+            {% endif %}
 
             </tbody>
         </table>

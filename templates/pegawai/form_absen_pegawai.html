@@ -1,0 +1,93 @@
+{% extends "backend/base.html" %}
+
+{% block content_main_row1 %}
+<style>
+  .rotate-text {
+    writing-mode: vertical-lr;
+    transform: rotate(180deg);
+  }
+</style>
+
+<!-- Info Tanggal -->
+<div class="mb-3">
+  <strong>Tanggal:</strong> {{ tanggal}}
+</div>
+
+<div class="card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <h3 class="card-title">Form Input Kehadiran Pegawai</h3>
+  </div>
+
+  <form method="POST" action="{% url 'absen_pegawai_tambah' %}">
+    {% csrf_token %}
+
+    <input type="hidden" name="tanggal" value="{{ tanggal|date:'Y-m-d' }}">
+    <input type="hidden" name="kelompok" value="{{ kelompok_id }}">
+    <input type="hidden" name="periode" value="{{ periode_id }}">
+    <div class="card-body table-responsive p-0">
+      <table class="table table-bordered table-sm text-center" style="min-width: 1400px;">
+        <thead class="thead-light">
+          <tr>
+            <th rowspan="2">No</th>
+            <th rowspan="2">NIK</th>
+            <th rowspan="2">NIP</th>
+            <th rowspan="2">Nama Pegawai</th>
+            <th rowspan="2">Tanggal</th>
+            <th colspan="5">Kehadiran</th>
+          </tr>
+          <tr>
+            <th rowspan="2">Hadir</th>
+            <th rowspan="2">Terlambat </th>
+            <th rowspan="2">Tidak Hadir</th>
+            <th rowspan="2">Izin</th>
+            <th rowspan="2">Sakit</th>
+          </tr>
+        </thead>
+        <tbody>
+          
+          {% for data in pegawai_list %}
+          
+          <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ data.nik }}</td>
+            <td>{{ data.nip }}</td>
+            <td>{{ data.nama }}</td>
+            <td>{{ tanggal }}</td>
+
+            <!-- Kehadiran --><!-- Kehadiran -->
+
+  <td>
+    <input type="radio" name="kehadiran_{{ data.id }}" value="hadir"
+      {% if data.kehadiran_data and data.kehadiran_data.kehadiran == 'hadir' %}checked{% endif %}> Hadir
+  </td>
+  <td>
+    <input type="radio" name="kehadiran_{{ data.id }}" value="terlambat"
+      {% if data.kehadiran_data and data.kehadiran_data.kehadiran == 'terlambat' %}checked{% endif %}> Terlambat
+  </td>
+  <td>
+    <input type="radio" name="kehadiran_{{ data.id }}" value="tidak_hadir"
+      {% if data.kehadiran_data and data.kehadiran_data.kehadiran == 'tidak_hadir' %}checked{% endif %}> Tidak Hadir
+  </td>
+  <td>
+    <input type="radio" name="kehadiran_{{ data.id }}" value="izin"
+      {% if data.kehadiran_data and data.kehadiran_data.kehadiran == 'izin' %}checked{% endif %}> Izin
+  </td>
+  <td>
+    <input type="radio" name="kehadiran_{{ data.id }}" value="sakit"
+      {% if data.kehadiran_data and data.kehadiran_data.kehadiran == 'sakit' %}checked{% endif %}> Sakit
+  </td>
+</tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="card-footer text-right">
+      <a href="{% url 'absen_pegawai' %}" class="btn btn-sm btn-primary">Lihat Data Kehadiran</a>
+      <button type="submit" class="btn btn-sm btn-success">Simpan Kehadiran</button>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block content_main_row2 %}{% endblock %}
+{% block content_main_row3 %}{% endblock %}
