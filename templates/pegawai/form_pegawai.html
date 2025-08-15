@@ -1,60 +1,105 @@
 {% extends "backend/base.html" %}
-{% load humanize %}
+{% load static %}
 
 {% block current_menu %}
-Home / Absen Pegawai
+Home / Pegawai / Tambah
 {% endblock %}
 
 {% block content_main_row1 %}
-<form method="post">
-  {% csrf_token %}
-  <div class="row">
-    <div class="col-12">
-      <div class="card">
-        <div class="card-header">
-          <h3 class="card-title">Absen Guru dan Staf</h3>
-        </div>
-        <div class="card-body table-responsive p-0">
-          <table class="table table-bordered table-striped m-0">
-            <thead class="thead-light">
-              <tr>
-                <th>NIK</th>
-                <th>NIP</th>
-                <th>Nama</th>
-                <th>Hadir</th>
-                <th>Tidak Hadir</th>
-                <th>Izin</th>
-                <th>Sakit</th>
-                <th>Insentif</th>
-                <th>Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for pegawai in pegawai_list %}
-              <tr>
-                <td>{{ pegawai.nik }}</td>
-                <td>{{ pegawai.nip }}</td>
-                <td>{{ pegawai.nama }}</td>
-                <td><input type="number" name="hadir_{{ pegawai.id }}" class="form-control" value="0" min="0"></td>
-                <td><input type="number" name="tidak_hadir_{{ pegawai.id }}" class="form-control" value="0" min="0"></td>
-                <td><input type="number" name="izin_{{ pegawai.id }}" class="form-control" value="0" min="0"></td>
-                <td><input type="number" name="sakit_{{ pegawai.id }}" class="form-control" value="0" min="0"></td>
-                <td><input type="number" name="insentif_{{ pegawai.id }}" class="form-control" value="0" min="0" step="1000"></td>
-                <td>otomatis</td>
-              </tr>
-              {% empty %}
-              <tr>
-                <td colspan="9" class="text-center">Belum ada data pegawai.</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-        <div class="card-footer">
-          <button type="submit" class="btn btn-success">Simpan Absensi</button>
+<div class="row">
+  <div class="col-12 col-lg-8">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title m-0">{{ title|default:"Tambah Pegawai" }}</h3>
+        <div class="card-tools">
         </div>
       </div>
+
+      <form method="post" novalidate>
+        {% csrf_token %}
+        <div class="card-body">
+          {% if messages %}
+            {% for message in messages %}
+              <div class="alert alert-{{ message.tags }} mb-3">{{ message }}</div>
+            {% endfor %}
+          {% endif %}
+
+          <div class="form-row">
+            <div class="form-group col-md-6">
+              <label for="{{ form.nik.id_for_label }}">NIK</label>
+              {{ form.nik }}
+              {% if form.nik.errors %}<div class="text-danger small">{{ form.nik.errors|striptags }}</div>{% endif %}
+            </div>
+            <div class="form-group col-md-6">
+              <label for="{{ form.nip.id_for_label }}">NIP</label>
+              {{ form.nip }}
+              {% if form.nip.errors %}<div class="text-danger small">{{ form.nip.errors|striptags }}</div>{% endif %}
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group col-md-6">
+              <label for="{{ form.nama.id_for_label }}">Nama</label>
+              {{ form.nama }}
+              {% if form.nama.errors %}<div class="text-danger small">{{ form.nama.errors|striptags }}</div>{% endif %}
+            </div>
+            <div class="form-group col-md-6">
+              <label for="{{ form.jabatan.id_for_label }}">Jabatan</label>
+              {{ form.jabatan }}
+              {% if form.jabatan.errors %}<div class="text-danger small">{{ form.jabatan.errors|striptags }}</div>{% endif %}
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group col-md-6">
+              <label for="{{ form.work_periode_bulan.id_for_label }}">Periode Kerja (Bulan)</label>
+              {{ form.work_periode_bulan }}
+              {% if form.work_periode_bulan.errors %}<div class="text-danger small">{{ form.work_periode_bulan.errors|striptags }}</div>{% endif %}
+            </div>
+            <div class="form-group col-md-6">
+              <label for="{{ form.work_periode_tahun.id_for_label }}">Periode Kerja (Tahun)</label>
+              {{ form.work_periode_tahun }}
+              {% if form.work_periode_tahun.errors %}<div class="text-danger small">{{ form.work_periode_tahun.errors|striptags }}</div>{% endif %}
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group col-md-6">
+              <label for="{{ form.nomor_hp.id_for_label }}">Nomor HP</label>
+              {{ form.nomor_hp }}
+              {% if form.nomor_hp.errors %}<div class="text-danger small">{{ form.nomor_hp.errors|striptags }}</div>{% endif %}
+            </div>
+            <div class="form-group col-md-6">
+              <label for="{{ form.uang_transport.id_for_label }}">Uang Transport</label>
+              {{ form.uang_transport }}
+              {% if form.uang_transport.errors %}<div class="text-danger small">{{ form.uang_transport.errors|striptags }}</div>{% endif %}
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="{{ form.alamat.id_for_label }}">Alamat</label>
+            {{ form.alamat }}
+            {% if form.alamat.errors %}<div class="text-danger small">{{ form.alamat.errors|striptags }}</div>{% endif %}
+          </div>
+
+          <div class="form-group">
+            <label for="{{ form.status.id_for_label }}">Status</label>
+            {{ form.status }}
+            {% if form.status.errors %}<div class="text-danger small">{{ form.status.errors|striptags }}</div>{% endif %}
+          </div>
+
+        </div>
+        <div class="card-footer d-flex justify-content-end gap-2">
+          <a href="{% url 'daftar_pegawai' %}" class="btn btn-sm btn-warning">Kembali</a> &nbsp;
+          <a href="{% url 'daftar_pegawai' %}" class="btn btn-secondary">Batal</a> &nbsp;
+          <button type="submit" class="btn btn-primary">Simpan</button>
+        </div>
+      </form>
+
     </div>
   </div>
-</form>
+</div>
 {% endblock %}
+
+{% block content_main_row2 %}{% endblock %}
+{% block content_main_row3 %}{% endblock %}

@@ -30,7 +30,6 @@
                 <th>Kontak Ibu</th>
                 <th>SPP</th>
                 <th>Status</th>
-                <th>Katering</th>
                 <th>Aksi</th>
               </tr>
             </thead>
@@ -50,7 +49,6 @@
                 <td>{{ siswa.kontak_ibu }}</td>
                 <td>{{ siswa.spp|intcomma|default:"0" }}</td>
                 <td>{{ siswa.get_status_display }}</td>
-                <td>{{ siswa.katering }}</td>
                 <td>
                   <a href="{% url 'edit_siswa' siswa.pk %}" class="btn btn-sm btn-warning">Edit</a>
                   <a href="{% url 'hapus_siswa' siswa.pk %}" class="btn btn-sm btn-danger" onclick="return confirm('Yakin ingin menghapus?')">Hapus</a>

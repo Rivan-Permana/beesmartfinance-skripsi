@@ -198,7 +198,7 @@ def tambah_kehadiran_siswa(request):
         return redirect('kehadiran_list')
 
     siswa_list = Siswa.objects.select_related('kelompok__jenjang') \
-                              .filter(status='aktif', kelompok_id=kelompok) \
+                              .filter(status='aktif', kelompok_id=kelompok, periode_id = periode) \
                               .order_by('kelompok__jenjang__nama', 'kelompok__nama', 'nama')
 
     kehadiran_qs = Kehadiran.objects.filter(tanggal=tanggal_obj)

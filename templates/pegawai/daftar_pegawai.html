@@ -29,6 +29,7 @@ Home / Pegawai
                 <th>Nomor HP</th>
                 <th>Alamat</th>
                 <th>Uang Transport</th>
+                <th>Status</th>
                 <th>Aksi</th>
               </tr>
             </thead>
@@ -43,6 +44,7 @@ Home / Pegawai
                 <td>{{ pegawai.nomor_hp }}</td>
                 <td>{{ pegawai.alamat }}</td>
                 <td>Rp {{ pegawai.uang_transport|floatformat:0|intcomma }}</td>
+                <td>{{ pegawai.status }}</td>
                 <td>
                   <a href="{% url 'edit_pegawai' pegawai.pk %}" class="btn btn-sm btn-warning">Edit</a>
                   <a href="{% url 'hapus_pegawai' pegawai.pk %}" class="btn btn-sm btn-danger" onclick="return confirm('Yakin ingin menghapus?')">Hapus</a>

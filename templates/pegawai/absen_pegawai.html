@@ -6,6 +6,10 @@ Home / Data Absensi Pegawai
 {% endblock %}
 
 {% block content_main_row1 %}
+<style>
+  .btn.disabled { pointer-events: none; opacity: .65; }
+</style>
+
 <div class="row">
   <div class="col-12">
     <div class="card">
@@ -13,7 +17,9 @@ Home / Data Absensi Pegawai
         <h3 class="card-title">Data Absensi Pegawai</h3>
         <form method="get" class="form-inline">
           <label for="tanggal">Tanggal:</label>
-          <input type="date" name="tanggal" class="form-control ml-2" value="{{ tanggal_filter }}">
+          <!-- input tanggal: tambah id -->
+          <input type="date" id="tanggalFilter" name="tanggal" class="form-control ml-2" value="{{ tanggal_filter }}">
+
           <button type="submit" class="btn btn-sm btn-primary ml-2">Filter</button>
         </form>
       </div>
@@ -51,7 +57,7 @@ Home / Data Absensi Pegawai
             </tr>
             {% endfor %}
             {% else %}
-            
+
             {% for absen in data_absen %}
             <tr>
               <td>{{ absen.pegawai.nik }}</td>
@@ -66,14 +72,58 @@ Home / Data Absensi Pegawai
       </div>
 
       <div class="card-footer text-right">
-        <a href="{% url 'absen_pegawai_tambah' %}?tanggal={{ tgl }}" class="btn btn-primary">
+        <a id="btnUbahKehadiran" href="{% url 'absen_pegawai_tambah' %}?tanggal={{ tgl }}" class="btn btn-primary">
           Ubah Kehadiran Pegawai
         </a>
       </div>
     </div>
   </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  const tanggal = document.getElementById('tanggalFilter');
+  const ubahBtn = document.getElementById('btnUbahKehadiran');
+
+  function isFilled() {
+    return Boolean((tanggal.value || '').trim());
+  }
+
+  function toggleButtonState() {
+    const disabled = !isFilled();
+    // gaya nonaktif untuk <a>
+    ubahBtn.classList.toggle('disabled', disabled);
+    ubahBtn.setAttribute('aria-disabled', disabled);
+  }
+
+  // Cegah klik & beri alert jika kosong
+  if (ubahBtn) {
+    ubahBtn.addEventListener('click', function (e) {
+      if (!isFilled()) {
+        e.preventDefault();
+        alert('Harap pilih Tanggal terlebih dahulu untuk mengubah kehadiran pegawai.');
+        tanggal.focus();
+        return;
+      }
+      // opsional: sinkronkan URL dengan nilai terbaru dari input tanggal
+      try {
+        const url = new URL(ubahBtn.href, window.location.origin);
+        url.searchParams.set('tanggal', tanggal.value);
+        ubahBtn.href = url.toString();
+      } catch (_) { /* abaikan jika href relatif tidak bisa diparse */ }
+    });
+  }
+
+  if (tanggal) {
+    ['change','input'].forEach(ev => tanggal.addEventListener(ev, toggleButtonState));
+  }
+
+  toggleButtonState();
+});
+</script>
+
 {% endblock %}
+
 
 {% block content_main_row2 %}{% endblock %}
 {% block content_main_row3 %}{% endblock %}

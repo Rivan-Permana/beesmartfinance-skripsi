@@ -1,0 +1,82 @@
+{% extends "backend/base.html" %}
+
+{% load humanize %}
+{% block current_menu %}Home / Pinjaman Pegawai / {{ title }}{% endblock %}
+
+{% block content_main_row1 %}
+<div class="row">
+  <div class="col-12 col-lg-8">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title m-0">{{ title }}</h3>
+        <a href="{% url 'pinjaman_list' %}" class="btn btn-sm btn-secondary">Kembali</a>
+      </div>
+
+      <form method="post" novalidate>
+        {% csrf_token %}
+        <div class="card-body">
+          {% if messages %}
+            {% for message in messages %}
+              <div class="alert alert-{{ message.tags }} mb-3">{{ message }}</div>
+            {% endfor %}
+          {% endif %}
+
+          <div class="form-group">
+            <label for="{{ form.pegawai.id_for_label }}">Pegawai</label>
+            {{ form.pegawai }}
+            {% for err in form.pegawai.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}
+          </div>
+
+          <div class="form-row">
+            <div class="form-group col-md-6">
+              <label for="{{ form.tanggal_pinjaman.id_for_label }}">Tanggal Pinjaman</label>
+              {{ form.tanggal_pinjaman }}
+              {% for err in form.tanggal_pinjaman.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}
+            </div>
+            <div class="form-group col-md-6">
+              <label for="{{ form.tenor_cicilan.id_for_label }}">Tenor Cicilan (bulan)</label>
+              {{ form.tenor_cicilan }}
+              {% for err in form.tenor_cicilan.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group col-md-6">
+              <label for="{{ form.jumlah_pinjaman.id_for_label }}">Jumlah Pinjaman</label>
+              {{ form.jumlah_pinjaman }}
+              {% for err in form.jumlah_pinjaman.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}
+            </div>
+            <div class="form-group col-md-6">
+              <label for="{{ form.angsuran_per_bulan.id_for_label }}">Angsuran per Bulan</label>
+              {{ form.angsuran_per_bulan }}
+              {% for err in form.angsuran_per_bulan.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group col-md-6">
+              <label for="{{ form.sudah_terbayar.id_for_label }}">Sudah Terbayar</label>
+              {{ form.sudah_terbayar }}
+              {% for err in form.sudah_terbayar.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}
+            </div>
+            <div class="form-group col-md-6">
+              <label for="{{ form.tanggal_pelunasan.id_for_label }}">Tanggal Pelunasan (opsional)</label>
+              {{ form.tanggal_pelunasan }}
+              {% for err in form.tanggal_pelunasan.errors %}<div class="text-danger small">{{ err }}</div>{% endfor %}
+            </div>
+          </div>
+        </div>
+
+        <div class="card-footer d-flex justify-content-end gap-2">
+          <a href="{% url 'pinjaman_list' %}" class="btn btn-secondary">Batal</a>
+          <button type="submit" class="btn btn-primary">Simpan</button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block content_main_row2 %}{% endblock %}
+{% block content_main_row3 %}{% endblock %}

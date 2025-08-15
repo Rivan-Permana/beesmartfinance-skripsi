@@ -25,7 +25,9 @@
     <input type="hidden" name="tanggal" value="{{ tanggal|date:'Y-m-d' }}">
     <input type="hidden" name="kelompok" value="{{ kelompok_id }}">
     <input type="hidden" name="periode" value="{{ periode_id }}">
-    <div class="card-body table-responsive p-0">
+
+    <!-- Container scroll -->
+    <div class="card-body" style="overflow:auto; max-height:500px;">
       <table class="table table-bordered table-sm text-center" style="min-width: 1400px;">
         <thead class="thead-light">
           <tr>
@@ -82,7 +84,7 @@
                 {% if siswa.kehadiran_data and siswa.kehadiran_data.katering == "ikut" %}checked{% endif %}>
             </td>
             <td>
-              <input type="radio" name="katering_{{ siswa.id }}_tidak" value="tidak_ikut"
+              <input type="radio" name="katering_{{ siswa.id }}" value="tidak_ikut"
                 {% if siswa.kehadiran_data and siswa.kehadiran_data.katering == "tidak_ikut" %}checked{% endif %}>
             </td>
 
@@ -100,12 +102,14 @@
         </tbody>
       </table>
     </div>
+
     <div class="card-footer text-right">
       <a href="{% url 'kehadiran_list' %}" class="btn btn-sm btn-primary">Lihat Data Kehadiran</a>
       <button type="submit" class="btn btn-sm btn-success">Simpan Kehadiran</button>
     </div>
   </form>
 </div>
+
 {% endblock %}
 
 {% block content_main_row2 %}{% endblock %}
