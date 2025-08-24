@@ -1,0 +1,116 @@
+{% extends "backend/base.html" %}
+{% load humanize %}
+
+{% block content_main_row1 %}
+<div class="container-fluid">
+  <h4 class="mb-3">{{ title }}</h4>
+
+  <!-- Filter: Bulanan + Nama Siswa -->
+  <form id="filterForm" method="get" class="card mb-3">
+    <div class="card-body">
+      <div class="row g-3 align-items-end">
+        <div class="col-md-3">
+          <label class="form-label mb-1">Bulan</label>
+          <input type="month" id="bulan" class="form-control"
+                 value="{% if days %}{{ days.0|date:'Y-m' }}{% endif %}">
+          <input type="hidden" name="tanggal_awal" id="tanggal_awal"
+                 value="{% if days %}{{ days.0|date:'Y-m-d' }}{% endif %}">
+          <input type="hidden" name="tanggal_akhir" id="tanggal_akhir"
+                 value="{% if days %}{{ days|last|date:'Y-m-d' }}{% endif %}">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label mb-1">Nama Siswa</label>
+          <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Cari nama siswa">
+        </div>
+        <div class="col-md-3">
+          <button class="btn btn-primary"><i class="fa fa-search"></i> Tampilkan</button>
+        </div>
+      </div>
+    </div>
+  </form>
+
+  <!-- Tabel grid harian -->
+  <div class="card">
+    <div class="card-header d-flex justify-content-between">
+      <strong>Rekap Jemputan Bulanan</strong>
+      <div>Total Ikut Jemputan: <strong>{{ summary_total_ikut }}</strong></div>
+    </div>
+
+    <div class="card-body table-responsive p-0">
+      <table class="table table-bordered table-sm align-middle">
+        <thead class="table-dark text-light">
+          <tr class="text-center">
+            <th style="width:100px;">NIS</th>
+            <th style="min-width:220px;">Nama Siswa</th>
+            <th style="width:140px;">Jenjang</th>
+            {% for d in days %}
+              <th style="width:38px;">{{ d|date:"j" }}</th>
+            {% empty %}
+              <!-- jika days kosong, tetap render kolom statis saja -->
+            {% endfor %}
+            <th style="width:110px;">Total Ikut</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in rows %}
+          <tr class="text-center">
+            <td>{{ r.nis }}</td>
+            <td class="text-start">{{ r.siswa.nama }}</td>
+            <td>{{ r.jenjang }}</td>
+            {% for mark in r.harian %}
+              <td>{% if mark == "v" %}v{% elif mark == "x" %}x{% else %}&nbsp;{% endif %}</td>
+            {% empty %}
+              <!-- jika tidak ada days, tidak ada kolom harian -->
+            {% endfor %}
+            <td>{{ r.total_ikut }}</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="{{ days|length|add:'4' }}" class="text-center text-muted">
+              Tidak ada data sesuai filter.
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- JS: sinkronkan tanggal_awal/akhir dari input month -->
+<script>
+  (function () {
+    const form = document.getElementById('filterForm');
+    const bulan = document.getElementById('bulan');
+    const tAwal = document.getElementById('tanggal_awal');
+    const tAkhir = document.getElementById('tanggal_akhir');
+
+    function setRangeFromMonth(ym) {
+      if (!ym) return;
+      const [y, m] = ym.split('-').map(Number);
+      const first = new Date(y, m - 1, 1);
+      const last  = new Date(y, m, 0);
+      const z = n => String(n).padStart(2, '0');
+      const fmt = d => `${d.getFullYear()}-${z(d.getMonth()+1)}-${z(d.getDate())}`;
+      tAwal.value = fmt(first);
+      tAkhir.value = fmt(last);
+    }
+
+    if (bulan && bulan.value && (!tAwal.value || !tAkhir.value)) {
+      setRangeFromMonth(bulan.value);
+    }
+
+    if (form) {
+      form.addEventListener('submit', function () {
+        if (bulan && bulan.value) setRangeFromMonth(bulan.value);
+      });
+    }
+  })();
+</script>
+{% endblock %}
+{% block content_main_row2 %}
+
+{%endblock%}
+{% block content_main_row3 %}
+
+{%endblock%}

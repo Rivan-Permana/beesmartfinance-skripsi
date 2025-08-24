@@ -21,8 +21,6 @@ class SiswaForm(forms.ModelForm):
             'spp': forms.NumberInput(attrs={'class': 'form-control'}),
             'status': forms.Select(attrs={'class': 'form-control'}),
             'periode': forms.Select(attrs={'class': 'form-control'}),  # <-- diperbaiki di sini
-            
-            'katering': forms.Select(attrs={'class': 'form-control'}),
         }
 
 class SiswaKateringForm(forms.ModelForm):

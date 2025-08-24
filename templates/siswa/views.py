@@ -241,6 +241,8 @@ def simpan_kehadiran(request):
             jemput_datang = request.POST.get(f'jemput_datang_{siswa.id}') == 'ya'
             jemput_pulang = request.POST.get(f'jemput_pulang_{siswa.id}') == 'ya'
 
+            print("simpan_kehadiran2",kehadiran,katering_ikut,katering_tidak,jemput_datang,jemput_pulang    )
+
             katering_status = ''
             if katering_ikut:
                 katering_status = 'ikut'
@@ -282,7 +284,7 @@ def tampilkan_kehadiran(request):
     except ValueError:
         periode_id = None
 
-    print(tanggal_str,kelompok_id,periode_id)
+    # print(tanggal_str,kelompok_id,periode_id)
 
     if tanggal_str:
         tanggal_obj = timezone.datetime.strptime(tanggal_str, "%Y-%m-%d").date()

@@ -48,8 +48,6 @@ class Siswa(models.Model):
     spp = models.IntegerField(null=True, blank=True, help_text="Nominal SPP dalam rupiah")
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='aktif')
     periode = models.ForeignKey(Periode, on_delete=models.SET_NULL, null=True, blank=True)
-
-    katering = models.ForeignKey('catering.Katering', on_delete=models.SET_NULL, null=True, blank=True)
     
 
     def __str__(self):
@@ -96,6 +94,8 @@ class Kehadiran(models.Model):
     katering = models.CharField(max_length=20, blank=True, null=True)  # ikut / tidak_ikut
     jemput_datang = models.BooleanField(default=False)
     jemput_pulang = models.BooleanField(default=False)
+    # ⬇️ Tambahan: pendamping jemputan harian
+    pendamping = models.CharField(max_length=100, blank=True, null=True)
 
     class Meta:
         unique_together = ('siswa', 'tanggal')

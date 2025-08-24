@@ -1,0 +1,26 @@
+{% extends "backend/base.html" %}
+
+{% block content_main_row1 %}
+<div class="container-fluid">
+  <h4 class="mb-3">{{ title }}</h4>
+  <div class="card">
+    <div class="card-body">
+      <p>Yakin ingin menghapus akun berikut?</p>
+      <ul>
+        <li><strong>Nomor:</strong> {{ obj.nomor_akun }}</li>
+        <li><strong>Nama:</strong> {{ obj.nama_akun }}</li>
+        <li><strong>Tipe:</strong> {{ obj.tipe_akun }}</li>
+      </ul>
+
+      <form method="post">
+        {% csrf_token %}
+        <button class="btn btn-danger" type="submit">Hapus</button>
+        <a class="btn btn-secondary" href="{% url 'coa_list' slug %}">Batal</a>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block content_main_row2 %}{% endblock %}
+{% block content_main_row3 %}{% endblock %}

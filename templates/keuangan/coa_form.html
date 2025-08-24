@@ -1,0 +1,73 @@
+{% extends "backend/base.html" %}
+
+{% block content_main_row1 %}
+<div class="container-fluid">
+  <h4 class="mb-3">{{ title }}</h4>
+
+  <div class="card">
+    <div class="card-body">
+      <form method="post" novalidate>
+        {% csrf_token %}
+
+        <div class="table-responsive">
+          <table class="table table-bordered align-middle">
+            <thead class="table-dark text-light">
+              <tr class="text-center">
+                <th style="width: 150px;">Nomor Akun</th>
+                <th style="width: 200px;">Tipe Akun</th>
+                <th>Nama Akun</th>
+                <th style="width: 80px;">Aktif</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <!-- Nomor Akun -->
+                <td>
+                  {{ form.nomor_akun }}
+                  {% for e in form.nomor_akun.errors %}
+                    <div class="text-danger small">{{ e }}</div>
+                  {% endfor %}
+                </td>
+
+                <!-- Tipe Akun -->
+                <td>
+                  {{ form.tipe_akun }}
+                  {% for e in form.tipe_akun.errors %}
+                    <div class="text-danger small">{{ e }}</div>
+                  {% endfor %}
+                </td>
+
+                <!-- Nama Akun -->
+                <td>
+                  {{ form.nama_akun }}
+                  {% for e in form.nama_akun.errors %}
+                    <div class="text-danger small">{{ e }}</div>
+                  {% endfor %}
+                </td>
+
+                <!-- Aktif -->
+                <td class="text-center">
+                  {{ form.is_active }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="mt-3 d-flex gap-2">
+          <button class="btn btn-primary" type="submit">
+            <i class="fa fa-save"></i> Simpan
+          </button>
+          <a class="btn btn-secondary" href="{% url 'coa_list' slug %}">
+            <i class="fa fa-arrow-left"></i> Kembali
+          </a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+
+{% block content_main_row2 %}{% endblock %}
+{% block content_main_row3 %}{% endblock %}

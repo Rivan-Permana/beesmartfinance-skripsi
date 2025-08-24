@@ -1,0 +1,108 @@
+{% extends "backend/base.html" %}
+{% load humanize %}
+
+{% block content_main_row1 %}
+<div class="container-fluid">
+  <h4 class="mb-3">{{ title }}</h4>
+
+  <!-- Filter -->
+  <form id="filterForm" method="get" class="card mb-3">
+    <div class="card-body">
+      <div class="row g-3 align-items-end">
+        <div class="col-md-3">
+          <label class="form-label mb-1">Bulan</label>
+          {{ form.bulan }}
+        </div>
+        <div class="col-md-3">
+          <label class="form-label mb-1">Kelompok</label>
+          {{ form.kelompok }}
+        </div>
+        <div class="col-md-3">
+          <label class="form-label mb-1">Periode</label>
+          {{ form.periode }}
+        </div>
+        <div class="col-md-3">
+          <label class="form-label mb-1">Nama Siswa</label>
+          {{ form.q }}
+        </div>
+      </div>
+      <div class="mt-3">
+        <button class="btn btn-primary" type="submit"><i class="fa fa-search"></i> Tampilkan</button>
+      </div>
+      <div class="mt-2 text-muted small">
+        Periode: {{ first_day }} s.d. {{ last_day }}
+      </div>
+    </div>
+  </form>
+
+  <!-- Listing per Jenjang -->
+  {% for j in data %}
+  <div class="card mb-4">
+    <div class="card-header">
+      <strong>{{ j.jenjang.kode }} — {{ j.jenjang.nama }}</strong>
+    </div>
+    <div class="card-body">
+      {% for blk in j.kelompok %}
+      <div class="mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h6 class="mb-0">Kelompok: <span class="text-uppercase">{{ blk.kelompok.nama }}</span></h6>
+          <div class="small text-muted">
+            Total Ikut Jemputan: <strong>{{ blk.subtotal.ikut }}</strong>
+          </div>
+        </div>
+
+        <div class="table-responsive">
+          <table class="table table-bordered table-sm align-middle">
+            <thead class="table-dark text-light">
+              <tr class="text-center">
+                <th style="width:120px;">NIS</th>
+                <th style="min-width:240px;">Daftar nama siswa</th>
+                <th style="min-width:240px;">Periode</th>
+                {% for d in days %}
+                  <th style="width:34px;">{{ d|date:"j" }}</th>
+                {% endfor %}
+                <th style="width:110px;">Total Ikut</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in blk.siswa_rows %}
+              <tr class="text-center">
+                <td>{{ row.nis }}</td>
+                <td class="text-start">{{ row.siswa.nama }}</td>
+                <td class="text-start">{{ row.siswa.periode }}</td>
+                {% for mark in row.harian %}
+                  <td>{% if mark == "v" %}v{% elif mark == "x" %}x{% else %}&nbsp;{% endif %}</td>
+                {% endfor %}
+                <td>{{ row.total_ikut }}</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="{{ days|length|add:'3' }}" class="text-center text-muted">Belum ada siswa di kelompok ini.</td></tr>
+              {% endfor %}
+            </tbody>
+            <tfoot>
+              <tr class="fw-bold">
+                <td colspan="{{ days|length|add:'3' }}" class="text-end">Subtotal Ikut</td>
+                <td class="text-center">{{ blk.subtotal.ikut }}</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% empty %}
+    <div class="alert alert-info">Tidak ada data sesuai filter.</div>
+  {% endfor %}
+
+  <div class="alert alert-secondary">
+    <strong>Total Ikut Jemputan (semua kelompok):</strong> {{ summary_total_ikut }}
+  </div>
+</div>
+{% endblock %}
+{% block content_main_row2 %}
+
+{%endblock%}
+{% block content_main_row3 %}
+
+{%endblock%}
