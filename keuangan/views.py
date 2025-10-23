@@ -8,12 +8,19 @@ from .models import Keuangan
 from .forms import KeuanganForm
 import math
 import re
+from django.contrib.auth.decorators import user_passes_test
+
 
 # Helper: map slug kategori ke enum model
 
 CATEGORY_SLUGS = {"tk": COA.Category.TK, "playgroup": COA.Category.PLAYGROUP}
+
+def is_keuangan(user):
+    return user.groups.filter(name='keuangan').exists()
+
 def _category_from_slug(slug): return CATEGORY_SLUGS[slug.lower()]
 
+@user_passes_test(is_keuangan)
 def daftar_keuangan(request):
     keuangan_list = Keuangan.objects.all().order_by('-tanggal')
     return render(request, 'keuangan/daftar_keuangan.html', {'keuangan_list': keuangan_list})
