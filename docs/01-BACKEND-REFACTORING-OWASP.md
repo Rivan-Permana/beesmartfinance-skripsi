@@ -1,21 +1,19 @@
 # 🔒 Backend Refactoring - OWASP Top 10 Security
 
-> Panduan implementasi keamanan berdasarkan OWASP Top 10 2021
+> Panduan implementasi keamanan berdasarkan OWASP Top 10 2025
 
 ## 📑 Table of Contents
 
 - [A01: Broken Access Control](#a01-broken-access-control)
-- [A02: Cryptographic Failures](#a02-cryptographic-failures)
-- [A03: Injection](#a03-injection)
-- [A04: Insecure Design](#a04-insecure-design)
-- [A05: Security Misconfiguration](#a05-security-misconfiguration)
-- [A06: Vulnerable and Outdated Components](#a06-vulnerable-and-outdated-components)
-- [A07: Identification and Authentication Failures](#a07-identification-and-authentication-failures)
-- [A08: Software and Data Integrity Failures](#a08-software-and-data-integrity-failures)
-- [A09: Security Logging and Monitoring Failures](#a09-security-logging-and-monitoring-failures)
-- [A10: Server-Side Request Forgery (SSRF)](#a10-server-side-request-forgery-ssrf)
-
----
+- [A02: Security Misconfiguration](#a02-security-misconfiguration)
+- [A03: Software Supply Chain Failures](#a03-software-supply-chain-failures)
+- [A04: Cryptographic Failures](#a04-cryptographic-failures)
+- [A05: Injection](#a05-injection)
+- [A06: Insecure Design](#a06-insecure-design)
+- [A07: Authentication Failures](#a07-authentication-failures)
+- [A08: Software or Data Integrity Failures](#a08-software-or-data-integrity-failures)
+- [A09: Security Logging and Alerting Failures](#a09-security-logging-and-alerting-failures)
+- [A10: Mishandling of Exceptional Conditions](#a10-mishandling-of-exceptional-conditions)
 
 ## A01: Broken Access Control
 
@@ -326,7 +324,200 @@ class SiswaViewSet(AuditMixin, viewsets.ModelViewSet):
 
 ---
 
-## A02: Cryptographic Failures
+## A02: Security Misconfiguration
+
+### Vulnerability
+Missing security headers, default configurations, verbose error messages.
+
+### Current Issues
+1. ❌ DEBUG = True in production
+2. ❌ Missing security headers
+3. ❌ Default admin URL
+
+### Implementation
+
+#### 1. Production Settings
+
+```python
+# settings.py
+from decouple import config
+
+# ✅ DEBUG from environment
+DEBUG = config('DEBUG', default=False, cast=bool)
+
+# ✅ Specific allowed hosts
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=lambda v: [s.strip() for s in v.split(',')])
+
+# ✅ Security headers
+if not DEBUG:
+    SECURE_SSL_REDIRECT = True
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+    SESSION_COOKIE_SECURE = True
+    SESSION_COOKIE_HTTPONLY = True
+    SESSION_COOKIE_SAMESITE = 'Strict'
+    SESSION_COOKIE_AGE = 3600  # 1 hour
+
+    CSRF_COOKIE_SECURE = True
+    CSRF_COOKIE_HTTPONLY = True
+    CSRF_COOKIE_SAMESITE = 'Strict'
+
+    SECURE_HSTS_SECONDS = 31536000  # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    SECURE_BROWSER_XSS_FILTER = True
+    X_FRAME_OPTIONS = 'DENY'
+
+# ✅ Custom admin URL
+ADMIN_URL = config('ADMIN_URL', default='admin/')
+
+# urls.py
+from django.conf import settings
+
+urlpatterns = [
+    path(settings.ADMIN_URL, admin.site.urls),  # Not /admin/
+    # ...
+]
+```
+
+#### 2. Security Middleware
+
+```python
+# settings.py
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',  # First!
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'core.middleware.rbac.SecureRBACMiddleware',  # Custom
+    'core.middleware.security_headers.SecurityHeadersMiddleware',  # Custom
+]
+
+# core/middleware/security_headers.py
+class SecurityHeadersMiddleware:
+    """Add additional security headers"""
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        response = self.get_response(request)
+
+        # Content Security Policy
+        response['Content-Security-Policy'] = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; "
+            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+            "img-src 'self' data: https:; "
+            "font-src 'self' https://cdn.jsdelivr.net; "
+            "connect-src 'self'; "
+            "frame-ancestors 'none';"
+        )
+
+        # Referrer Policy
+        response['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+
+        # Permissions Policy
+        response['Permissions-Policy'] = (
+            "geolocation=(), "
+            "microphone=(), "
+            "camera=()"
+        )
+
+        return response
+```
+
+---
+
+## A03: Software Supply Chain Failures
+
+### Vulnerability
+Compromises in software dependencies, build systems, and distribution infrastructure.
+
+### Implementation
+
+#### 1. Dependency Management
+
+```bash
+# Install safety to check for known vulnerabilities
+pip install safety
+
+# Check for vulnerabilities
+safety check
+
+# requirements.txt - Pin versions
+Django==5.1.5
+djangorestframework==3.14.0
+psycopg2-binary==2.9.9
+
+# Use pip-audit (newer alternative)
+pip install pip-audit
+pip-audit
+```
+
+#### 2. Regular Updates
+
+```bash
+# Check outdated packages
+pip list --outdated
+
+# Update specific package
+pip install --upgrade django
+
+# Freeze updated requirements
+pip freeze > requirements.txt
+```
+
+#### 3. Automated Vulnerability Scanning
+
+```yaml
+# .github/workflows/security-scan.yml
+name: Security Scan
+
+on:
+  push:
+    branches: [main, develop]
+  schedule:
+    - cron: '0 0 * * 1'  # Weekly on Monday
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install safety bandit
+
+      - name: Run safety check
+        run: safety check
+
+      - name: Run bandit
+        run: bandit -r . -f json -o bandit-report.json
+
+      - name: Upload security reports
+        uses: actions/upload-artifact@v2
+        with:
+          name: security-reports
+          path: |
+            bandit-report.json
+```
+
+---
+
+## A04: Cryptographic Failures
 
 ### Vulnerability
 Sensitive data exposed due to lack of encryption or weak encryption.
@@ -467,7 +658,7 @@ class RemovePasswordsFilter:
 
 ---
 
-## A03: Injection
+## A05: Injection
 
 ### Vulnerability
 SQL Injection, NoSQL Injection, Command Injection, etc.
@@ -552,7 +743,7 @@ def render_safe(request):
 
 ---
 
-## A04: Insecure Design
+## A06: Insecure Design
 
 ### Vulnerability
 Flaws in design and architecture.
@@ -709,200 +900,7 @@ class Siswa(models.Model):
 
 ---
 
-## A05: Security Misconfiguration
-
-### Vulnerability
-Missing security headers, default configurations, verbose error messages.
-
-### Current Issues
-1. ❌ DEBUG = True in production
-2. ❌ Missing security headers
-3. ❌ Default admin URL
-
-### Implementation
-
-#### 1. Production Settings
-
-```python
-# settings.py
-from decouple import config
-
-# ✅ DEBUG from environment
-DEBUG = config('DEBUG', default=False, cast=bool)
-
-# ✅ Specific allowed hosts
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', cast=lambda v: [s.strip() for s in v.split(',')])
-
-# ✅ Security headers
-if not DEBUG:
-    SECURE_SSL_REDIRECT = True
-    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-
-    SESSION_COOKIE_SECURE = True
-    SESSION_COOKIE_HTTPONLY = True
-    SESSION_COOKIE_SAMESITE = 'Strict'
-    SESSION_COOKIE_AGE = 3600  # 1 hour
-
-    CSRF_COOKIE_SECURE = True
-    CSRF_COOKIE_HTTPONLY = True
-    CSRF_COOKIE_SAMESITE = 'Strict'
-
-    SECURE_HSTS_SECONDS = 31536000  # 1 year
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_HSTS_PRELOAD = True
-
-    SECURE_CONTENT_TYPE_NOSNIFF = True
-    SECURE_BROWSER_XSS_FILTER = True
-    X_FRAME_OPTIONS = 'DENY'
-
-# ✅ Custom admin URL
-ADMIN_URL = config('ADMIN_URL', default='admin/')
-
-# urls.py
-from django.conf import settings
-
-urlpatterns = [
-    path(settings.ADMIN_URL, admin.site.urls),  # Not /admin/
-    # ...
-]
-```
-
-#### 2. Security Middleware
-
-```python
-# settings.py
-MIDDLEWARE = [
-    'django.middleware.security.SecurityMiddleware',  # First!
-    'django.contrib.sessions.middleware.SessionMiddleware',
-    'django.middleware.common.CommonMiddleware',
-    'django.middleware.csrf.CsrfViewMiddleware',
-    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
-    'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'core.middleware.rbac.SecureRBACMiddleware',  # Custom
-    'core.middleware.security_headers.SecurityHeadersMiddleware',  # Custom
-]
-
-# core/middleware/security_headers.py
-class SecurityHeadersMiddleware:
-    """Add additional security headers"""
-
-    def __init__(self, get_response):
-        self.get_response = get_response
-
-    def __call__(self, request):
-        response = self.get_response(request)
-
-        # Content Security Policy
-        response['Content-Security-Policy'] = (
-            "default-src 'self'; "
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; "
-            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
-            "img-src 'self' data: https:; "
-            "font-src 'self' https://cdn.jsdelivr.net; "
-            "connect-src 'self'; "
-            "frame-ancestors 'none';"
-        )
-
-        # Referrer Policy
-        response['Referrer-Policy'] = 'strict-origin-when-cross-origin'
-
-        # Permissions Policy
-        response['Permissions-Policy'] = (
-            "geolocation=(), "
-            "microphone=(), "
-            "camera=()"
-        )
-
-        return response
-```
-
----
-
-## A06: Vulnerable and Outdated Components
-
-### Vulnerability
-Using libraries with known vulnerabilities.
-
-### Implementation
-
-#### 1. Dependency Management
-
-```bash
-# Install safety to check for known vulnerabilities
-pip install safety
-
-# Check for vulnerabilities
-safety check
-
-# requirements.txt - Pin versions
-Django==5.1.5
-djangorestframework==3.14.0
-psycopg2-binary==2.9.9
-
-# Use pip-audit (newer alternative)
-pip install pip-audit
-pip-audit
-```
-
-#### 2. Regular Updates
-
-```bash
-# Check outdated packages
-pip list --outdated
-
-# Update specific package
-pip install --upgrade django
-
-# Freeze updated requirements
-pip freeze > requirements.txt
-```
-
-#### 3. Automated Vulnerability Scanning
-
-```yaml
-# .github/workflows/security-scan.yml
-name: Security Scan
-
-on:
-  push:
-    branches: [main, develop]
-  schedule:
-    - cron: '0 0 * * 1'  # Weekly on Monday
-
-jobs:
-  security:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-
-      - name: Set up Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.11'
-
-      - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
-          pip install safety bandit
-
-      - name: Run safety check
-        run: safety check
-
-      - name: Run bandit
-        run: bandit -r . -f json -o bandit-report.json
-
-      - name: Upload security reports
-        uses: actions/upload-artifact@v2
-        with:
-          name: security-reports
-          path: |
-            bandit-report.json
-```
-
----
-
-## A07: Identification and Authentication Failures
+## A07: Authentication Failures
 
 ### Vulnerability
 Weak authentication, session management issues.
@@ -1140,7 +1138,7 @@ class SessionTimeoutMiddleware:
 
 ---
 
-## A08: Software and Data Integrity Failures
+## A08: Software or Data Integrity Failures
 
 ### Vulnerability
 Code/infrastructure without integrity verification.
@@ -1258,10 +1256,10 @@ class Command(BaseCommand):
 
 ---
 
-## A09: Security Logging and Monitoring Failures
+## A09: Security Logging and Alerting Failures
 
 ### Vulnerability
-Insufficient logging and monitoring.
+Insufficient logging, alerting, and monitoring.
 
 ### Implementation
 
@@ -1437,128 +1435,233 @@ class SecurityMonitor:
 
 ---
 
-## A10: Server-Side Request Forgery (SSRF)
+## A10: Mishandling of Exceptional Conditions
 
 ### Vulnerability
-Application fetching remote resources without validation.
+Improper error handling, logical errors, failing open, and abnormal conditions that systems may encounter.
+
+### Current Issues
+1. ⚠️ Bare except clauses in error handling
+2. ⚠️ No proper exception logging
+3. ⚠️ Fail-open approach in some critical paths
 
 ### Implementation
 
-#### 1. Safe URL Fetching
+#### 1. Proper Exception Handling
 
 ```python
-# core/utils.py
-import requests
-from urllib.parse import urlparse
+# ❌ DANGEROUS - Bare except
+def process_payment(amount):
+    try:
+        # Process payment
+        payment_gateway.charge(amount)
+    except:  # DANGER: Catches everything including SystemExit!
+        pass
+
+# ✅ CORRECT - Specific exception handling
+def process_payment_safe(amount):
+    try:
+        payment_gateway.charge(amount)
+        logger.info(f"Payment processed successfully: {amount}")
+        return True
+    except PaymentGatewayError as e:
+        # Handle expected payment errors
+        logger.error(f"Payment failed: {e}", exc_info=True)
+        return False
+    except ConnectionError as e:
+        # Handle network errors
+        logger.critical(f"Payment gateway unreachable: {e}", exc_info=True)
+        raise
+    except Exception as e:
+        # Last resort - still log unknown errors
+        logger.critical(f"Unexpected payment error: {e}", exc_info=True, extra={
+            'amount': amount,
+            'traceback': traceback.format_exc()
+        })
+        raise
+```
+
+#### 2. Fail-Closed Approach
+
+```python
+# ❌ DANGEROUS - Fails open (grants access on error)
+def check_permission_unsafe(user, resource):
+    try:
+        return user.has_permission(resource)
+    except:
+        return True  # DANGER: Grants access on error!
+
+# ✅ CORRECT - Fail closed (denies access on error)
+def check_permission_safe(user, resource):
+    try:
+        has_access = user.has_permission(resource)
+        logger.debug(f"Permission check: {user.username} -> {resource}: {has_access}")
+        return has_access
+    except Exception as e:
+        logger.error(
+            f"Permission check failed for {user.username} on {resource}: {e}",
+            exc_info=True,
+            extra={'user_id': user.id, 'resource': resource}
+        )
+        # Fail closed - deny access on error
+        return False
+```
+
+#### 3. Input Validation with Proper Error Handling
+
+```python
+# ❌ DANGEROUS - Allows invalid data to pass through
+def create_student_unsafe(data):
+    try:
+        nis = int(data.get('nis'))
+        spp = int(data.get('spp'))
+    except:
+        nis = 0  # DANGER: Silent failure with invalid default
+        spp = 0
+
+    return Siswa.objects.create(nis=nis, spp=spp)
+
+# ✅ CORRECT - Explicit validation and error handling
 from django.core.exceptions import ValidationError
 
-class SafeURLFetcher:
-    """Safely fetch remote URLs with SSRF protection"""
+def create_student_safe(data):
+    errors = []
 
-    ALLOWED_SCHEMES = ['http', 'https']
-    BLOCKED_IPS = [
-        '127.0.0.1',
-        'localhost',
-        '0.0.0.0',
-    ]
-    BLOCKED_NETWORKS = [
-        '10.0.0.0/8',      # Private network
-        '172.16.0.0/12',   # Private network
-        '192.168.0.0/16',  # Private network
-        '169.254.0.0/16',  # Link-local
-    ]
+    # Validate NIS
+    try:
+        nis = int(data.get('nis', ''))
+        if nis <= 0:
+            errors.append('NIS must be positive')
+    except (ValueError, TypeError) as e:
+        errors.append(f'Invalid NIS format: {data.get("nis")}')
+        logger.warning(f"Invalid NIS in student creation: {e}")
+        nis = None
 
-    def __init__(self, timeout=5, max_size=1024*1024):  # 1MB max
-        self.timeout = timeout
-        self.max_size = max_size
+    # Validate SPP
+    try:
+        spp = int(data.get('spp', ''))
+        if spp < 0:
+            errors.append('SPP cannot be negative')
+    except (ValueError, TypeError) as e:
+        errors.append(f'Invalid SPP format: {data.get("spp")}')
+        logger.warning(f"Invalid SPP in student creation: {e}")
+        spp = None
 
-    def fetch(self, url, allowed_domains=None):
-        """
-        Safely fetch URL with SSRF protection.
-
-        Args:
-            url: URL to fetch
-            allowed_domains: List of allowed domains (whitelist)
-
-        Returns:
-            Response content
-
-        Raises:
-            ValidationError: If URL is not safe
-        """
-        # Parse URL
-        parsed = urlparse(url)
-
-        # Check scheme
-        if parsed.scheme not in self.ALLOWED_SCHEMES:
-            raise ValidationError(f"Scheme not allowed: {parsed.scheme}")
-
-        # Check domain whitelist
-        if allowed_domains and parsed.netloc not in allowed_domains:
-            raise ValidationError(f"Domain not allowed: {parsed.netloc}")
-
-        # Resolve hostname to IP
-        import socket
-        try:
-            ip = socket.gethostbyname(parsed.hostname)
-        except socket.gaierror:
-            raise ValidationError("Cannot resolve hostname")
-
-        # Check if IP is blocked
-        if ip in self.BLOCKED_IPS:
-            raise ValidationError(f"IP address blocked: {ip}")
-
-        # Check if IP is in blocked network
-        from ipaddress import ip_address, ip_network
-        for network in self.BLOCKED_NETWORKS:
-            if ip_address(ip) in ip_network(network):
-                raise ValidationError(f"IP in blocked network: {ip}")
-
-        # Fetch with timeout and size limit
-        try:
-            response = requests.get(
-                url,
-                timeout=self.timeout,
-                stream=True,
-                allow_redirects=False,  # Don't follow redirects automatically
-            )
-
-            # Check content length
-            content_length = response.headers.get('Content-Length')
-            if content_length and int(content_length) > self.max_size:
-                raise ValidationError("Response too large")
-
-            # Read content with size limit
-            content = b''
-            for chunk in response.iter_content(chunk_size=8192):
-                content += chunk
-                if len(content) > self.max_size:
-                    raise ValidationError("Response too large")
-
-            return content
-
-        except requests.RequestException as e:
-            raise ValidationError(f"Request failed: {e}")
-
-
-# Usage
-def fetch_external_data(request):
-    """Fetch data from external URL (e.g., gold prices)"""
-    url = request.GET.get('url')
-
-    fetcher = SafeURLFetcher()
+    # Fail if any validation errors
+    if errors or nis is None or spp is None:
+        raise ValidationError('; '.join(errors))
 
     try:
-        # Only allow specific domains
-        content = fetcher.fetch(
-            url,
-            allowed_domains=['api.example.com', 'data.goldprice.org']
+        student = Siswa.objects.create(nis=nis, spp=spp)
+        logger.info(f"Student created successfully: {student.nis}")
+        return student
+    except Exception as e:
+        logger.error(f"Failed to create student: {e}", exc_info=True)
+        raise
+```
+
+#### 4. Database Error Handling
+
+```python
+# ❌ DANGEROUS - Ignores database errors
+def save_transaction_unsafe(transaction_data):
+    try:
+        transaction = Transaction.objects.create(**transaction_data)
+        return transaction
+    except:
+        return None  # DANGER: Silent failure
+
+# ✅ CORRECT - Proper error handling and logging
+from django.db import IntegrityError, DatabaseError
+
+def save_transaction_safe(transaction_data):
+    try:
+        transaction = Transaction.objects.create(**transaction_data)
+        logger.info(
+            f"Transaction saved: {transaction.id}",
+            extra={'transaction_id': transaction.id, 'amount': transaction.amount}
+        )
+        return transaction
+
+    except IntegrityError as e:
+        # Handle constraint violations (duplicate, foreign key, etc.)
+        logger.warning(
+            f"Transaction integrity error: {e}",
+            extra={'data': transaction_data}
+        )
+        raise ValidationError("Transaction validation failed: duplicate or invalid reference")
+
+    except DatabaseError as e:
+        # Handle database errors (connection, query errors, etc.)
+        logger.critical(
+            f"Database error saving transaction: {e}",
+            exc_info=True,
+            extra={'data': transaction_data}
+        )
+        raise
+
+    except Exception as e:
+        # Catch unexpected errors
+        logger.critical(
+            f"Unexpected error saving transaction: {e}",
+            exc_info=True,
+            extra={'data': transaction_data}
+        )
+        raise
+```
+
+#### 5. API Error Responses
+
+```python
+# core/exception_handlers.py
+from rest_framework.views import exception_handler
+from rest_framework.response import Response
+import logging
+
+logger = logging.getLogger('api')
+
+def custom_exception_handler(exc, context):
+    # Custom exception handler for DRF
+
+    # Get the standard error response
+    response = exception_handler(exc, context)
+
+    # Log the exception
+    logger.error(
+        f"API Exception: {exc.__class__.__name__}",
+        exc_info=True,
+        extra={
+            'view': context.get('view').__class__.__name__,
+            'request_path': context.get('request').path,
+            'request_method': context.get('request').method,
+        }
+    )
+
+    # Customize error response
+    if response is not None:
+        response.data['status_code'] = response.status_code
+        response.data['error_type'] = exc.__class__.__name__
+    else:
+        # Handle unexpected exceptions
+        logger.critical(
+            f"Unhandled exception in API: {exc}",
+            exc_info=True
+        )
+        response = Response(
+            {
+                'detail': 'Internal server error',
+                'status_code': 500,
+                'error_type': 'InternalServerError'
+            },
+            status=500
         )
 
-        return JsonResponse({'data': content.decode('utf-8')})
+    return response
 
-    except ValidationError as e:
-        return JsonResponse({'error': str(e)}, status=400)
+# settings.py
+REST_FRAMEWORK = {
+    'EXCEPTION_HANDLER': 'core.exception_handlers.custom_exception_handler',
+}
 ```
 
 ---
@@ -1573,31 +1676,31 @@ def fetch_external_data(request):
   - [ ] Implement audit logging
   - [ ] Clear cache on permission changes
 
-- [ ] **A02: Cryptographic Failures**
+- [ ] **A04: Cryptographic Failures**
   - [ ] Remove secret key fallback
   - [ ] Implement field-level encryption for sensitive data
   - [ ] Use Argon2 password hasher
   - [ ] Filter passwords from logs
 
-- [ ] **A03: Injection**
+- [ ] **A05: Injection**
   - [ ] Audit all raw SQL queries
   - [ ] Validate all user inputs
   - [ ] Use parameterized queries
   - [ ] Whitelist allowed values
 
-- [ ] **A04: Insecure Design**
+- [ ] **A06: Insecure Design**
   - [ ] Implement secure password reset flow
   - [ ] Add file upload validation
   - [ ] Use tokens with expiry
   - [ ] Prevent user enumeration
 
-- [ ] **A05: Security Misconfiguration**
+- [ ] **A02: Security Misconfiguration**
   - [ ] Set DEBUG=False in production
   - [ ] Add all security headers
   - [ ] Change default admin URL
   - [ ] Configure CSP
 
-- [ ] **A06: Vulnerable Components**
+- [ ] **A03: Software Supply Chain Failures**
   - [ ] Run `safety check` regularly
   - [ ] Pin dependency versions
   - [ ] Setup automated vulnerability scanning
@@ -1610,23 +1713,23 @@ def fetch_external_data(request):
   - [ ] Add session timeout
   - [ ] Consider MFA
 
-- [ ] **A08: Integrity Failures**
+- [ ] **A08: Software or Data Integrity Failures**
   - [ ] Use signed URLs for downloads
   - [ ] Implement database integrity checks
   - [ ] Verify file uploads
   - [ ] Use checksums
 
-- [ ] **A09: Logging Failures**
+- [ ] **A09: Security Logging and Alerting Failures**
   - [ ] Log all security events
   - [ ] Setup real-time monitoring
   - [ ] Alert on critical events
   - [ ] Regular log review
 
-- [ ] **A10: SSRF**
-  - [ ] Validate all URLs
-  - [ ] Use domain whitelist
-  - [ ] Block private IP ranges
-  - [ ] Limit response size
+- [ ] **A10: Mishandling of Exceptional Conditions**
+  - [ ] Use specific exception handling
+  - [ ] Implement fail-closed approach
+  - [ ] Validate inputs properly
+  - [ ] Log all exceptions
 
 ---
 
@@ -1698,7 +1801,9 @@ class SecurityTest(TestCase):
 
 ---
 
-**Last Updated**: 2025-12-28
-**Version**: 1.0.0
-**OWASP Version**: 2021
 
+---
+
+**Last Updated**: 2026-01-02
+**Version**: 2.0.0
+**OWASP Version**: 2025
