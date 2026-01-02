@@ -142,7 +142,7 @@ Roadmap implementasi bertahap:
 ┌─────────────────────────────────────┐
 │         Django Monolith             │
 ├─────────────────────────────────────┤
-│  Browser  →  Django Views  →  DB   │
+│  Browser  →  Django Views  →  DB    │
 │            (Templates)              │
 │  jQuery + AdminLTE + Bootstrap      │
 │  Server-Side Rendering              │
