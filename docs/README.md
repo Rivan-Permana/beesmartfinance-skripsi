@@ -24,6 +24,14 @@ Panduan lengkap refactoring backend:
 - Error handling & logging
 - Database optimization
 
+### 2.1 [OWASP Top 10 Security Guide](./01-BACKEND-REFACTORING-OWASP.md)
+Panduan implementasi keamanan berdasarkan OWASP Top 10 2025:
+- A01: Broken Access Control
+- A02: Security Misconfiguration
+- A03: Software Supply Chain Failures
+- A04: Cryptographic Failures
+- A05-A10: Injection, Insecure Design, Authentication, Integrity, Logging, Exception Handling
+
 ### 3. [Frontend Migration Guide](./02-FRONTEND-MIGRATION.md)
 Panduan migrasi dari AdminLTE ke modern frontend:
 - Pemilihan tech stack (Vue.js 3 + Vuetify)
@@ -269,7 +277,7 @@ Project ini menggunakan lisensi [MIT License](../LICENSE)
 
 ### Best Practices
 - [12 Factor App](https://12factor.net/)
-- [OWASP Top 10](https://owasp.org/www-project-top-ten/)
+- [OWASP Top 10 2025](https://owasp.org/Top10/2025/) - See our [internal implementation guide](./01-BACKEND-REFACTORING-OWASP.md)
 - [Clean Code Principles](https://clean-code-developer.com/)
 
 ---
