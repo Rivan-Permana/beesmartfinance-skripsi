@@ -7,6 +7,7 @@ requires-python = ">=3.13"
 dependencies = [
     "django>=5.2,<5.3",
     "django-environ>=0.13.0",
+    "django-simple-history>=3.11.0",
     "pandas>=2.3.3",
     "psycopg2-binary>=2.9.11",
     "python-dotenv>=1.2.2",
