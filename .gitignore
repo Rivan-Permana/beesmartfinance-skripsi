@@ -27,6 +27,7 @@ media/
 staticfiles/
 .env
 .env.*
+!.env.example
 
 # Node (if used)
 node_modules/
