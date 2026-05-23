@@ -176,3 +176,167 @@ class TagihanDetail(models.Model):
         related_name="tagihan_detail", db_column="akun_pendapatan",
     )
     nominal = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+
+
+# --------------------------------------------------------------------------
+# Absensi
+# --------------------------------------------------------------------------
+class KehadiranSiswa(models.Model):
+    STATUS = [
+        ("hadir", "Hadir"), ("izin", "Izin"), ("sakit", "Sakit"),
+        ("tidak_hadir", "Tidak Hadir"),
+    ]
+    siswa = models.ForeignKey(Siswa, on_delete=models.CASCADE, related_name="kehadiran")
+    tanggal = models.DateField()
+    status = models.CharField(max_length=15, choices=STATUS)
+    ikut_katering = models.BooleanField(default=False)
+    jemput_datang = models.BooleanField(default=False)
+    jemput_pulang = models.BooleanField(default=False)
+
+    class Meta:
+        unique_together = ("siswa", "tanggal")
+
+
+class AbsenPegawai(models.Model):
+    pegawai = models.ForeignKey(Pegawai, on_delete=models.CASCADE, related_name="absen")
+    tanggal = models.DateField()
+    hadir = models.PositiveIntegerField(default=0)
+    izin = models.PositiveIntegerField(default=0)
+    sakit = models.PositiveIntegerField(default=0)
+    terlambat = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        unique_together = ("pegawai", "tanggal")
+
+
+# --------------------------------------------------------------------------
+# Layanan: katering & jemputan
+# --------------------------------------------------------------------------
+class MenuKatering(models.Model):
+    tanggal = models.DateField()
+    gambar = models.ImageField(upload_to="katering/", blank=True, null=True)
+    keterangan = models.CharField(max_length=255, blank=True, default="")
+
+    class Meta:
+        unique_together = ("tanggal",)
+
+
+class ArmadaJemputan(models.Model):
+    nama_supir = models.CharField(max_length=100)
+    jenis_mobil = models.CharField(max_length=50, blank=True, default="")
+    kapasitas = models.PositiveIntegerField(default=0)
+    keterangan = models.CharField(max_length=255, blank=True, default="")
+
+    def __str__(self):
+        return f"{self.nama_supir} ({self.jenis_mobil})"
+
+
+class PendaftaranJemputan(SoftDeleteModel, TimeStampedModel):
+    siswa = models.ForeignKey(Siswa, on_delete=models.CASCADE, related_name="jemputan")
+    armada = models.ForeignKey(
+        ArmadaJemputan, on_delete=models.SET_NULL, blank=True, null=True, related_name="penumpang"
+    )
+    harga = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+
+    class Meta:
+        unique_together = ("siswa", "armada")
+
+
+# --------------------------------------------------------------------------
+# Kepegawaian: kasbon (pinjaman) & payroll
+# --------------------------------------------------------------------------
+class PinjamanPegawai(SoftDeleteModel, TimeStampedModel):
+    pegawai = models.ForeignKey(Pegawai, on_delete=models.PROTECT, related_name="pinjaman")
+    tanggal_pinjaman = models.DateField()
+    jumlah_pinjaman = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+    tenor_bulan = models.PositiveIntegerField(default=1)
+    angsuran_per_bulan = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+    sudah_terbayar = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+    jurnal = models.ForeignKey(
+        "accounting.TrJurnal", on_delete=models.SET_NULL, db_constraint=False,
+        blank=True, null=True, related_name="pinjaman",
+    )
+
+    history = HistoricalRecords()
+
+    @property
+    def sisa_pinjaman(self):
+        return max(self.jumlah_pinjaman - self.sudah_terbayar, self.jumlah_pinjaman.__class__(0))
+
+
+class GajiPegawai(SoftDeleteModel, TimeStampedModel):
+    pegawai = models.ForeignKey(Pegawai, on_delete=models.PROTECT, related_name="gaji")
+    periode_bulan = models.PositiveSmallIntegerField()
+    periode_tahun = models.PositiveIntegerField()
+
+    gaji_pokok = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+    tunjangan_jabatan = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+    tunjangan_pengabdian = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+    transport = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+    bonus_insentif = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+    thr = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+
+    potongan_pinjaman = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+    potongan_asuransi = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+
+    jurnal = models.ForeignKey(
+        "accounting.TrJurnal", on_delete=models.SET_NULL, db_constraint=False,
+        blank=True, null=True, related_name="gaji",
+    )
+
+    history = HistoricalRecords()
+
+    class Meta:
+        unique_together = ("pegawai", "periode_bulan", "periode_tahun")
+
+    @property
+    def total_bruto(self):
+        return (
+            self.gaji_pokok + self.tunjangan_jabatan + self.tunjangan_pengabdian
+            + self.transport + self.bonus_insentif + self.thr
+        )
+
+    @property
+    def total_potongan(self):
+        return self.potongan_pinjaman + self.potongan_asuransi
+
+    @property
+    def total_netto(self):
+        return self.total_bruto - self.total_potongan
+
+
+# --------------------------------------------------------------------------
+# Aset tetap & penyusutan
+# --------------------------------------------------------------------------
+class FixedAsset(SoftDeleteModel, TimeStampedModel):
+    METODE = [("garis_lurus", "Garis Lurus")]
+    nama = models.CharField(max_length=150)
+    akun_aset = models.ForeignKey(
+        "accounting.MsCoa", on_delete=models.DO_NOTHING, db_constraint=False,
+        related_name="aset", db_column="akun_aset",
+    )
+    akun_akumulasi = models.ForeignKey(
+        "accounting.MsCoa", on_delete=models.DO_NOTHING, db_constraint=False,
+        related_name="aset_akumulasi", db_column="akun_akumulasi",
+    )
+    akun_beban_depr = models.ForeignKey(
+        "accounting.MsCoa", on_delete=models.DO_NOTHING, db_constraint=False,
+        related_name="aset_beban", db_column="akun_beban_depr",
+    )
+    tanggal_perolehan = models.DateField()
+    harga_perolehan = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+    umur_manfaat_bulan = models.PositiveIntegerField(default=1)
+    metode = models.CharField(max_length=20, choices=METODE, default="garis_lurus")
+    akumulasi_penyusutan = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+
+    history = HistoricalRecords()
+
+    @property
+    def penyusutan_per_bulan(self):
+        if self.umur_manfaat_bulan <= 0:
+            return self.harga_perolehan.__class__(0)
+        return self.harga_perolehan / self.umur_manfaat_bulan
+
+    def __str__(self):
+        return self.nama
+
