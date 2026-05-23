@@ -5,15 +5,23 @@ import psycopg2
 import uuid
 import os
 from datetime import datetime
+from dotenv import load_dotenv
 
-# === KONFIGURASI DATABASE ===
+load_dotenv()
+
+# === KONFIGURASI DATABASE (dibaca dari .env) ===
 DB_CONFIG = {
-    "dbname": "db_lebah_madu",
-    "user": "postgres",
-    "password": "BeeSF1007",  # <--- GANTI INI
-    "host": "localhost",
-    "port": "5432"
+    "dbname": os.getenv("DB_NAME", "db_lebah_madu"),
+    "user": os.getenv("DB_USER", "postgres"),
+    "password": os.getenv("DB_PASSWORD"),
+    "host": os.getenv("DB_HOST", "localhost"),
+    "port": os.getenv("DB_PORT", "5432"),
 }
+
+if not DB_CONFIG["password"]:
+    raise SystemExit(
+        "DB_PASSWORD belum di-set. Salin .env.example menjadi .env lalu isi kredensialnya."
+    )
 
 # === SETUP PATH FOLDER ===
 # Script ini ada di beesmartfinance/database/seeds/
