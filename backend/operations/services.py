@@ -6,26 +6,13 @@ service ini menyusun jurnal yang benar lalu menyerahkan ke core sebagai DRAFT
 """
 
 import uuid
-from contextlib import contextmanager
 from datetime import date
 from decimal import Decimal
 
-from django.db import connection, transaction
+from django.db import transaction
 
 from accounting.models import TrJurnal, TrJurnalDetail
-
-
-@contextmanager
-def audit_user(user):
-    """Kirim user aplikasi ke sesi DB agar trigger audit mencatat pelakunya.
-
-    Memakai set_config(..., is_local=true) = SET LOCAL, valid hanya dalam
-    transaksi berjalan.
-    """
-    user_id = "" if user is None else str(user.pk)
-    with connection.cursor() as cur:
-        cur.execute("SELECT set_config('app.current_user_id', %s, true)", [user_id])
-    yield
+from accounting.utils import audit_user
 
 
 def post_pembayaran_tagihan(tagihan, user=None, akun_kas_kode="1101"):
