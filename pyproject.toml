@@ -9,6 +9,7 @@ dependencies = [
     "django-environ>=0.13.0",
     "django-simple-history>=3.11.0",
     "pandas>=2.3.3",
+    "pillow>=12.2.0",
     "psycopg2-binary>=2.9.11",
     "python-dotenv>=1.2.2",
 ]
