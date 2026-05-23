@@ -1,0 +1,215 @@
+,,COA Gabungan,
+,,,
+NOMOR AKUN,TIPE AKUN,NAMA AKUN,JENIS  
+1,ASET ,,
+1.1,ASET LANCAR,,
+1.1.01,,Kas di Tangan,
+1.1.02,,Kas di Bank,
+1.1.03,,Perlengkapan Sekolah,
+1.2,ASET TETAP,,
+1.2.01,,Aset Tetap Lainnya,
+2,LIABILITAS,,
+2.1,LIABILITAS JANGKA PENDEK,,
+2.1.01,,Utang Gaji Pegawai,
+2.1.02,,Utang Usaha,
+3,EKUITAS,,Akumulasi dari surplus pendapatan setelah dikurangi Beban
+3.1,MODAL,,
+3.1.01,,Modal,Uang Masuk Anak
+3.1.02,,Laba Ditahan,Dana Umroh
+4,PENDAPATAN,,
+4.1,PENDAPATAN USAHA,,
+4.1.01,,SPP (Sumbangan Pembinaan Pendidikan),
+4.1.02,,Uang Masuk,
+4.1.03,,Uang Pengembangan,
+4.1.04,,,
+4.1.05,,Uang Komite,
+4.1.06,,Pendapatan Formulir,
+4.1.07,,Pendapatan Sit In/Observasi,
+4.1.08,,Pendapatan Lain-lain,"misal: sewa les,dll"
+5,BEBAN,,
+5.1,BEBAN OPERASIONAL KEGIATAN,,
+5.1.1,BEBAN KEGIATAN SEKOLAH - TK,,
+5.1.1.01,,TK-Beban Operasional-Outing,Outing
+5.1.1.02,,TK-Beban Operasional-Assambly,Assambly
+5.1.1.03,,TK-Beban Operasional-Pemeriksaan dokter umum dan gigi,Pemeriksaan dokter umum dan gigi
+5.1.1.04,,TK-Beban Operasional-Perayaan Hari Besar,Perayaan Hari Besar
+5.1.1.05,,TK-Beban Operasional-Special Day,Special Day
+5.1.1.06,,TK-Beban Operasional-Manasik Haji,Manasik Haji
+5.1.1.07,,TK-Beban Operasional-Aksera,Aksera
+5.1.1.08,,TK-Beban Operasional-Inagurasi,Inagurasi
+5.1.1.09,,TK-Beban Operasional-Congraduation,Congraduation
+5.1.1.10,,TK-Beban Operasional-Home Visit,Home Visit
+5.1.1.11,,TK-Beban Operasional-Raport,Raport
+5.1.1.12,,TK-Beban Operasional-AB3,AB3
+5.1.1.13,,TK-Beban Operasional-Ta'jil On The Road,Ta'jil On The Road
+5.1.1.14,,TK-Beban Operasional-Futsal,Futsal
+5.1.1.15,,TK-Beban Operasional-Berenang,Berenang
+5.1.1.16,,TK-Beban Operasional-Fun Cooking,Fun Cooking
+5.1.1.17,,TK-Beban Operasional-Menggambar,Menggambar
+5.1.1.18,,TK-Beban Operasional-Olah raga bela diri,Olah raga bela diri
+5.1.1.19,,TK-Beban Operasional-MSQ,Morning Spiritual Questions
+5.1.1.20,,"TK-Beban Operasional-Ayah, Main Yuk!","Ayah, Main Yuk!"
+5.1.1.21,,TK-Beban Operasional-Parents Back to School,Parents Back to School
+5.1.1.22,,TK-Beban Operasional-Hari Ayah dan Ananda/outing,Hari Ayah dan Ananda/outing
+5.1.1.23,,TK-Beban Operasional-Hari Bunda dan Ananda/outing,Hari Bunda dan Ananda/outing
+5.1.1.24,,TK-Beban Operasional-Temu Konsultan Pendidikan (Parenting),Parenting
+5.1.1.25,,TK-Beban Operasional-Konsultasi orang tua,Konsultasi orang tua
+5.1.1.26,,TK-Beban Operasional-Buka puasa bersama di sekolah,Buka puasa bersama
+5.1.1.27,,TK-Beban Operasional-Foto Buku Tahunan,Foto Buku Tahunan
+5.1.1.28,,TK-Beban Operasional-Cetak Ijazah,Cetak Ijazah
+5.1.1.29,,TK-Beban Operasional-Sentra Sains,Sentra Sains (SS)
+5.1.1.30,,TK-Beban Operasional-Sentra Bahan Alam,Sentra Bahan Alam (SBA)
+5.1.1.31,,TK-Beban Operasional-Sentra Main Peran,Sentra Main Peran (SMP)
+5.1.1.32,,TK-Beban Operasional-Sentra Persiapan,Sentra Persiapan (SP)
+5.1.1.33,,TK-Beban Operasional-Sentra Balok,Sentra Balok (SB)
+5.1.2,ANGGARAN KEGIATAN SEKOLAH - PG,,
+5.1.2.01,,PG-Beban Operasional-Outing,Outing
+5.1.2.02,,PG-Beban Operasional-Assambly,Assambly
+5.1.2.03,,PG-Beban Operasional-Pemeriksaan dokter umum dan gigi,Pemeriksaan dokter umum dan gigi
+5.1.2.04,,PG-Beban Operasional-Perayaan Hari Besar,Perayaan Hari Besar
+5.1.2.05,,PG-Beban Operasional-Special Day,Special Day
+5.1.2.06,,PG-Beban Operasional-Santunan Yatim,Special Day
+5.1.2.07,,PG-Beban Operasional-Aksera,Aksera
+5.1.2.08,,PG-Beban Operasional-Inagurasi,Inagurasi
+5.1.2.09,,PG-Beban Operasional-Congraduation,Congraduation
+5.1.2.10,,PG-Beban Operasional-Home Visit,Home Visit
+5.1.2.11,,PG-Beban Operasional-Raport,Raport
+5.1.2.12,,PG-Beban Operasional-AB3,AB3
+5.1.2.13,,PG-Beban Operasional-Sparkling Ramadhan,Sparkling Ramadhan
+5.1.2.14,,PG-Beban Operasional-Futsal,Futsal
+5.1.2.15,,PG-Beban Operasional-Berenang,Berenang
+5.1.2.16,,PG-Beban Operasional-Fun Cooking,Fun Cooking
+5.1.2.17,,PG-Beban Operasional-Menggambar,Menggambar
+5.1.2.18,,PG-Beban Operasional-Splash Day,Splash Day
+5.1.2.19,,PG-Beban Operasional-MSQ,Morning Spiritual Questions
+5.1.2.20,,"PG-Beban Operasional-Ayah, Main Yuk!","Ayah, Main Yuk!"
+5.1.2.21,,PG-Beban Operasional-Parents Back to School,Parents Back to School
+5.1.2.22,,PG-Beban Operasional-Hari Ayah dan Ananda/outing,Hari Ayah dan Ananda/outing
+5.1.2.23,,PG-Beban Operasional-Hari Bunda dan Ananda/outing,Hari Bunda dan Ananda/outing
+5.1.2.24,,PG-Beban Operasional-Temu Konsultan Pendidikan (Parenting),Parenting
+5.1.2.25,,PG-Beban Operasional-Konsultasi orang tua,Konsultasi orang tua
+5.1.2.26,,PG-Beban Operasional-Buka puasa bersama di sekolah,Buka puasa bersama
+5.1.2.27,,PG-Beban Operasional-Lomba IGRA Murid,Lomba IGRA Murid
+5.1.2.28,,PG-Beban Operasional-Makan Sehat,Makan Sehat
+5.1.2.29,,PG-Beban Operasional-Sentra Sains,Sentra Sains (SS)
+5.1.2.30,,PG-Beban Operasional-Sentra Bahan Alam,Sentra Bahan Alam (SBA)
+5.1.2.31,,PG-Beban Operasional-Sentra Main Peran,Sentra Main Peran (SMP)
+5.1.2.32,,PG-Beban Operasional-Sentra Persiapan,Sentra Persiapan (SP)
+5.1.2.33,,PG-Beban Operasional-Sentra Balok,Sentra Balok (SB)
+5.2,BEBAN OPERASIONAL KEPEGAWAIAN,,
+5.2.01,,Beban Gaji Pegawai,Gaji untuk Pegawai
+5.2.02,,Beban Konsumsi Pegawai,Konsumsi untuk Pegawai
+5.2.03,,Beban Perjalanan Dinas,Biaya perjalanan dinas
+5.2.04,,Beban Insentif,Insentif untuk pegawai
+5.2.05,,Beban Pengembangan dan Pelatihan Guru-Pelatihan Guru,Pelatihan Guru
+5.2.06,,Beban Pengembangan dan Pelatihan Guru-Rapat Kerja,Rapat Kerja
+5.2.07,,Beban Pengembangan dan Pelatihan Guru-Lomba Guru,Lomba Guru
+5.2.08,,"Beban Pengembangan dan Pelatihan Guru-Bingkisan
+",Bingkisan
+5.2.09,,Beban Belanja-Seragam Guru,Seragam Guru
+5.3,BEBAN OPERASIONAL SEKOLAH,,
+5.3.01,,Beban Administrasi dan Umum,Biaya 
+5.3.02,,Beban Pemeliharaan dan Perawatan Gedung-Cat Sekolah,Cat Sekolah
+5.3.03,,Beban Pemeliharaan dan Perawatan Gedung-Rapi-rapi sekolah,Rapi-rapi sekolah
+5.3.04,,Beban Sewa Kendaraan,Biaya bayar kendaraan/jemputan
+5.3.05,,Beban Utilitas-Air,Air
+5.3.06,,Beban Utilitas-Listrik,Listrik
+5.3.07,,Beban Utilitas-Internet,Internet
+5.3.08,,Beban Administrasi Bank,Membayar administrasi bank
+5.4,BEBAN NON OPERASIONAL,,
+5.4.01,,Beban Non-Operasional-Biaya Display,Qurban
+5.4.02,,Beban Non-Operasional-Qurban,Biaya Display
+5.4.03,,Beban Lain-lain,Lain-lain
+9,ANGGARAN,,
+9.1,ANGGARAN KEGIATAN SEKOLAH,,
+9.1.1,ANGGARAN KEGIATAN SEKOLAH - TK,,
+9.1.1.01,,TK-Anggaran Operasional-Outing,Outing
+9.1.1.02,,TK-Anggaran Operasional-Assambly,Assambly
+9.1.1.03,,TK-Anggaran Operasional-Pemeriksaan dokter umum dan gigi,Pemeriksaan dokter umum dan gigi
+9.1.1.04,,TK-Anggaran Operasional-Perayaan Hari Besar,Perayaan Hari Besar
+9.1.1.05,,TK-Anggaran Operasional-Special Day,Special Day
+9.1.1.06,,TK-Anggaran Operasional-Manasik Haji,Manasik Haji
+9.1.1.07,,TK-Anggaran Operasional-Aksera,Aksera
+9.1.1.08,,TK-Anggaran Operasional-Inagurasi,Inagurasi
+9.1.1.09,,TK-Anggaran Operasional-Congraduation,Congraduation
+9.1.1.10,,TK-Anggaran Operasional-Home Visit,Home Visit
+9.1.1.11,,TK-Anggaran Operasional-Raport,Raport
+9.1.1.12,,TK-Anggaran Operasional-AB3,AB3
+9.1.1.13,,TK-Anggaran Operasional-Ta'jil On The Road,Ta'jil On The Road
+9.1.1.14,,TK-Anggaran Operasional-Futsal,Futsal
+9.1.1.15,,TK-Anggaran Operasional-Berenang,Berenang
+9.1.1.16,,TK-Anggaran Operasional-Fun Cooking,Fun Cooking
+9.1.1.17,,TK-Anggaran Operasional-Menggambar,Menggambar
+9.1.1.18,,TK-Anggaran Operasional-Olah raga bela diri,Olah raga bela diri
+9.1.1.19,,TK-Anggaran Operasional-MSQ,Morning Spiritual Questions
+9.1.1.20,,"TK-Anggaran Operasional-Ayah, Main Yuk!","Ayah, Main Yuk!"
+9.1.1.21,,TK-Anggaran Operasional-Parents Back to School,Parents Back to School
+9.1.1.22,,TK-Anggaran Operasional-Hari Ayah dan Ananda/outing,Hari Ayah dan Ananda/outing
+9.1.1.23,,TK-Anggaran Operasional-Hari Bunda dan Ananda/outing,Hari Bunda dan Ananda/outing
+9.1.1.24,,TK-Anggaran Operasional-Temu Konsultan Pendidikan (Parenting),Parenting
+9.1.1.25,,TK-Anggaran Operasional-Konsultasi orang tua,Konsultasi orang tua
+9.1.1.26,,TK-Anggaran Operasional-Buka puasa bersama di sekolah,Buka puasa bersama
+9.1.1.27,,TK-Anggaran Operasional-Foto Buku Tahunan,Foto Buku Tahunan
+9.1.1.28,,TK-Anggaran Operasional-Cetak Ijazah,Cetak Ijazah
+9.1.1.29,,TK-Anggaran Operasional-Sentra Sains,Sentra Sains (SS)
+9.1.1.30,,TK-Anggaran Operasional-Sentra Bahan Alam,Sentra Bahan Alam (SBA)
+9.1.1.31,,TK-Anggaran Operasional-Sentra Main Peran,Sentra Main Peran (SMP)
+9.1.1.32,,TK-Anggaran Operasional-Sentra Persiapan,Sentra Persiapan (SP)
+9.1.1.33,,TK-Anggaran Operasional-Sentra Balok,Sentra Balok (SB)
+9.1.2,ANGGARAN KEGIATAN SEKOLAH - PG,,
+9.1.2.01,,PG-Anggaran Operasional-Outing,Outing
+9.1.2.02,,PG-Anggaran Operasional-Assambly,Assambly
+9.1.2.03,,PG-Anggaran Operasional-Pemeriksaan dokter umum dan gigi,Pemeriksaan dokter umum dan gigi
+9.1.2.04,,PG-Anggaran Operasional-Perayaan Hari Besar,Perayaan Hari Besar
+9.1.2.05,,PG-Anggaran Operasional-Special Day,Special Day
+9.1.2.06,,PG-Anggaran Operasional-Santunan Yatim,Special Day
+9.1.2.07,,PG-Anggaran Operasional-Aksera,Aksera
+9.1.2.08,,PG-Anggaran Operasional-Inagurasi,Inagurasi
+9.1.2.09,,PG-Anggaran Operasional-Congraduation,Congraduation
+9.1.2.10,,PG-Anggaran Operasional-Home Visit,Home Visit
+9.1.2.11,,PG-Anggaran Operasional-Raport,Raport
+9.1.2.12,,PG-Anggaran Operasional-AB3,AB3
+9.1.2.13,,PG-Anggaran Operasional-Sparkling Ramadhan,Sparkling Ramadhan
+9.1.2.14,,PG-Anggaran Operasional-Futsal,Futsal
+9.1.2.15,,PG-Anggaran Operasional-Berenang,Berenang
+9.1.2.16,,PG-Anggaran Operasional-Fun Cooking,Fun Cooking
+9.1.2.17,,PG-Anggaran Operasional-Menggambar,Menggambar
+9.1.2.18,,PG-Anggaran Operasional-Splash Day,Splash Day
+9.1.2.19,,PG-Anggaran Operasional-MSQ,Morning Spiritual Questions
+9.1.2.20,,"PG-Anggaran Operasional-Ayah, Main Yuk!","Ayah, Main Yuk!"
+9.1.2.21,,PG-Anggaran Operasional-Parents Back to School,Parents Back to School
+9.1.2.22,,PG-Anggaran Operasional-Hari Ayah dan Ananda/outing,Hari Ayah dan Ananda/outing
+9.1.2.23,,PG-Anggaran Operasional-Hari Bunda dan Ananda/outing,Hari Bunda dan Ananda/outing
+9.1.2.24,,PG-Anggaran Operasional-Temu Konsultan Pendidikan (Parenting),Parenting
+9.1.2.25,,PG-Anggaran Operasional-Konsultasi orang tua,Konsultasi orang tua
+9.1.2.26,,PG-Anggaran Operasional-Buka puasa bersama di sekolah,Buka puasa bersama
+9.1.2.27,,PG-Anggaran Operasional-Lomba IGRA Murid,Lomba IGRA Murid
+9.1.2.28,,PG-Anggaran Operasional-Makan Sehat,Makan Sehat
+9.1.2.29,,PG-Anggaran Operasional-Sentra Sains,Sentra Sains (SS)
+9.1.2.30,,PG-Anggaran Operasional-Sentra Bahan Alam,Sentra Bahan Alam (SBA)
+9.1.2.31,,PG-Anggaran Operasional-Sentra Main Peran,Sentra Main Peran (SMP)
+9.1.2.32,,PG-Anggaran Operasional-Sentra Persiapan,Sentra Persiapan (SP)
+9.1.2.33,,PG-Beban Operasional-Sentra Balok,Sentra Balok (SB)
+9.2,Anggaran OPERASIONAL KEPEGAWAIAN,,
+9.2.01,,Anggaran Gaji Pegawai,Gaji untuk Pegawai
+9.2.02,,Anggaran Konsumsi Pegawai,Konsumsi untuk Pegawai
+9.2.03,,Anggaran Perjalanan Dinas,Biaya perjalanan dinas
+9.2.04,,Anggaran Insentif,Insentif untuk pegawai
+9.2.09,,Anggaran Pengembangan dan Pelatihan Guru-Pelatihan Guru,Pelatihan Guru
+9.2.06,,Anggaran Pengembangan dan Pelatihan Guru-Rapat Kerja,Rapat Kerja
+9.2.07,,Anggaran Pengembangan dan Pelatihan Guru-Lomba Guru,Lomba Guru
+9.2.08,,Anggaran Pengembangan dan Pelatihan Guru-Bingkisan,Bingkisan
+9.2.09,,Anggaran Belanja-Seragam Guru,Seragam Guru
+9.3,Anggaran OPERASIONAL SEKOLAH,,
+9.3.01,,Anggaran Administrasi dan Umum,Biaya 
+9.3.02,,Anggaran Pemeliharaan dan Perawatan Gedung-Cat Sekolah,Cat Sekolah
+9.3.03,,Anggaran Pemeliharaan dan Perawatan Gedung-Rapi-rapi sekolah,Rapi-rapi sekolah
+9.3.04,,Anggaran Sewa Kendaraan,Biaya bayar kendaraan/jemputan
+9.3.09,,Anggaran Utilitas-Air,Air
+9.3.06,,Anggaran Utilitas-Listrik,Listrik
+9.3.07,,Anggaran Utilitas-Internet,Internet
+9.3.08,,Anggaran Administrasi Bank,Membayar administrasi bank
+9.4,Anggaran NON OPERASIONAL,,
+9.4.01,,Anggaran Non-Operasional-Biaya Display,Qurban
+9.4.02,,Anggaran Non-Operasional-Qurban,Biaya Display
+9.4.03,,Anggaran Lain-lain,Lain-lain
