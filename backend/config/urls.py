@@ -2,7 +2,15 @@ from django.contrib import admin
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from rest_framework.routers import DefaultRouter
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+
+
+class ThrottledTokenObtainPairView(TokenObtainPairView):
+    """Login JWT dgn throttle 'login' (anti brute-force, 5/min)."""
+
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "login"
 
 from accounting.api import (
     MsCoaViewSet,
@@ -66,7 +74,7 @@ router.register("aset", FixedAssetViewSet, basename="aset")
 urlpatterns = [
     path("admin/", admin.site.urls),
     # auth (JWT)
-    path("api/auth/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
+    path("api/auth/token/", ThrottledTokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("api/auth/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     # resources
     path("api/", include(router.urls)),

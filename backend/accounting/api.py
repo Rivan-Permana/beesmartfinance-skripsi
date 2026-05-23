@@ -74,6 +74,9 @@ class TrAnggaranViewSet(viewsets.ModelViewSet):
 
 class TrJurnalViewSet(viewsets.ModelViewSet):
     serializer_class = TrJurnalSerializer
+    filterset_fields = ["status", "tipe_sumber"]
+    search_fields = ["no_bukti", "keterangan"]
+    ordering_fields = ["tanggal", "no_bukti"]
 
     def get_queryset(self):
         return (

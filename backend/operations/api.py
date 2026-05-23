@@ -62,6 +62,8 @@ class SiswaViewSet(viewsets.ModelViewSet):
     queryset = Siswa.objects.all().order_by("nama")
     serializer_class = SiswaSerializer
     permission_classes = [IsAdministration]
+    filterset_fields = ["status", "kelompok"]
+    search_fields = ["nis", "nama"]
 
 
 class KehadiranSiswaViewSet(viewsets.ModelViewSet):
@@ -97,6 +99,7 @@ class PendaftaranJemputanViewSet(viewsets.ModelViewSet):
 class TagihanViewSet(viewsets.ModelViewSet):
     serializer_class = TagihanSerializer
     permission_classes = [IsAdministration]
+    filterset_fields = ["status", "periode_tahun", "siswa"]
 
     def get_queryset(self):
         return Tagihan.objects.select_related("siswa").prefetch_related("detail")
