@@ -76,3 +76,47 @@ class JurnalApiTests(APITestCase):
         r = self.client.post(f"/api/jurnal/{jid}/approve/")
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.data["status"], "POSTED")
+
+    def test_void_membuat_pembalik(self):
+        self.client.force_authenticate(self.finance)
+        jid = self.client.post("/api/jurnal/", self._payload("JV9"), format="json").data["id"]
+        self.client.post(f"/api/jurnal/{jid}/submit/")
+        self.client.force_authenticate(self.principal)
+        self.client.post(f"/api/jurnal/{jid}/approve/")
+        r = self.client.post(f"/api/jurnal/{jid}/void/")
+        self.assertEqual(r.status_code, 201)
+        self.assertEqual(r.data["pembalik"]["tipe_sumber"], "REVERSAL")
+
+    def test_laporan_neraca_saldo(self):
+        self.client.force_authenticate(self.finance)
+        self.assertEqual(self.client.get("/api/laporan/neraca-saldo/").status_code, 200)
+
+
+class ClosingApiTests(APITestCase):
+    def setUp(self):
+        from datetime import date
+        import uuid as _uuid
+
+        from accounting.models import MsPeriodeAkuntansi, TrJurnal, TrJurnalDetail
+
+        self.principal = User.objects.create_user("principal2", password="x")
+        self.principal.groups.add(Group.objects.get(name="SchoolPrincipal"))
+        _coa("4101", "PENDAPATAN", "K")
+        _coa("5101", "BEBAN", "D")
+        _coa("3102", "LABA DITAHAN", "K")
+        self.periode = MsPeriodeAkuntansi.objects.create(
+            kode="2026", tgl_mulai=date(2026, 1, 1), tgl_selesai=date(2026, 12, 31),
+        )
+        j = TrJurnal.objects.create(
+            id=_uuid.uuid4(), no_bukti="OP1", tanggal=date(2026, 3, 1), status="POSTED"
+        )
+        TrJurnalDetail.objects.create(jurnal=j, kode_akun_id="4101", debit=0, kredit=1000000)
+        TrJurnalDetail.objects.create(jurnal=j, kode_akun_id="5101", debit=400000, kredit=0)
+
+    def test_tutup_periode_menghasilkan_jurnal_penutup(self):
+        self.client.force_authenticate(self.principal)
+        r = self.client.post(f"/api/periode/{self.periode.id}/tutup/")
+        self.assertEqual(r.status_code, 200)
+        self.assertIn("jurnal_penutup", r.data)
+        self.periode.refresh_from_db()
+        self.assertEqual(self.periode.status, "CLOSED")

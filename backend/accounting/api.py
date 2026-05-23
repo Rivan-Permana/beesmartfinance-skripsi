@@ -8,18 +8,68 @@ from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from accounts.permissions import IsFinance, IsPrincipal
+from accounts.permissions import IsFinance, IsFinanceOrReadOnly, IsPrincipal
 
-from .models import MsCoa, TrJurnal
-from .serializers import MsCoaSerializer, TrJurnalSerializer
+from .models import (
+    MsCoa,
+    MsGolongan,
+    MsPeriodeAkuntansi,
+    MsSubGolongan,
+    TrAnggaran,
+    TrJurnal,
+)
+from .serializers import (
+    MsCoaSerializer,
+    MsGolonganSerializer,
+    MsPeriodeAkuntansiSerializer,
+    MsSubGolonganSerializer,
+    TrAnggaranSerializer,
+    TrJurnalSerializer,
+)
+from .services import close_period, post_reversal
 from .utils import audit_user
 
 
-class MsCoaViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin,
-                   viewsets.GenericViewSet):
-    queryset = MsCoa.objects.filter(is_active=True).order_by("kode_akun")
+class MsGolonganViewSet(viewsets.ModelViewSet):
+    queryset = MsGolongan.objects.order_by("kode_golongan")
+    serializer_class = MsGolonganSerializer
+    permission_classes = [IsFinanceOrReadOnly]
+
+
+class MsSubGolonganViewSet(viewsets.ModelViewSet):
+    queryset = MsSubGolongan.objects.order_by("kode_sub")
+    serializer_class = MsSubGolonganSerializer
+    permission_classes = [IsFinanceOrReadOnly]
+
+
+class MsCoaViewSet(viewsets.ModelViewSet):
+    queryset = MsCoa.objects.order_by("kode_akun")
     serializer_class = MsCoaSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsFinanceOrReadOnly]
+
+
+class MsPeriodeAkuntansiViewSet(viewsets.ModelViewSet):
+    queryset = MsPeriodeAkuntansi.objects.order_by("-tgl_mulai")
+    serializer_class = MsPeriodeAkuntansiSerializer
+    permission_classes = [IsFinanceOrReadOnly]
+
+    @action(detail=True, methods=["post"], permission_classes=[IsPrincipal])
+    def tutup(self, request, pk=None):
+        """Tutup buku (fiscal year closing) -> jurnal penutup + status CLOSED."""
+        periode = self.get_object()
+        try:
+            jurnal = close_period(periode, user=request.user)
+        except ValueError as exc:
+            raise ValidationError(str(exc))
+        return Response(
+            {"periode": self.get_serializer(periode).data, "jurnal_penutup": str(jurnal.id)}
+        )
+
+
+class TrAnggaranViewSet(viewsets.ModelViewSet):
+    queryset = TrAnggaran.objects.order_by("-tahun_anggaran", "kode_akun")
+    serializer_class = TrAnggaranSerializer
+    permission_classes = [IsFinanceOrReadOnly]
 
 
 class TrJurnalViewSet(viewsets.ModelViewSet):
@@ -77,3 +127,15 @@ class TrJurnalViewSet(viewsets.ModelViewSet):
         except DatabaseError as exc:
             raise ValidationError(str(exc).strip().splitlines()[0])
         return Response(self.get_serializer(jurnal).data, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=["post"], permission_classes=[IsPrincipal])
+    def void(self, request, pk=None):
+        """Batalkan jurnal POSTED via reversing entry (jurnal asli tetap utuh)."""
+        jurnal = self.get_object()
+        try:
+            pembalik = post_reversal(jurnal, user=request.user)
+        except ValueError as exc:
+            raise ValidationError(str(exc))
+        return Response(
+            {"pembalik": self.get_serializer(pembalik).data}, status=status.HTTP_201_CREATED
+        )
