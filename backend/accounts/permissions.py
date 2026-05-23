@@ -46,3 +46,7 @@ class IsFinanceOrReadOnly(BasePermission):
 
 class IsFinanceOrPrincipal(InGroup):
     groups = (FINANCE, PRINCIPAL)
+
+
+class IsTeacherOrPrincipal(InGroup):
+    groups = (TEACHER, PRINCIPAL)

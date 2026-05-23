@@ -7,10 +7,12 @@ from .models import (
     GajiPegawai,
     Jenjang,
     KehadiranSiswa,
+    Kegiatan,
     Kelompok,
     MenuKatering,
     Pegawai,
     PendaftaranJemputan,
+    PendaftaranSiswa,
     PinjamanPegawai,
     Siswa,
     Tagihan,
@@ -108,6 +110,31 @@ class FixedAssetSerializer(serializers.ModelSerializer):
             "metode", "akumulasi_penyusutan", "penyusutan_per_bulan",
         ]
         read_only_fields = ["akumulasi_penyusutan"]
+
+
+class KegiatanSerializer(serializers.ModelSerializer):
+    realisasi = serializers.ReadOnlyField()
+    sisa_pagu = serializers.ReadOnlyField()
+    rasio_utilisasi = serializers.ReadOnlyField()
+
+    class Meta:
+        model = Kegiatan
+        fields = [
+            "id", "nama", "akun_beban", "pagu", "penanggung_jawab",
+            "tanggal_mulai", "tanggal_selesai", "status",
+            "realisasi", "sisa_pagu", "rasio_utilisasi",
+        ]
+
+
+class PendaftaranSiswaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PendaftaranSiswa
+        fields = [
+            "id", "nama_calon", "jenjang", "tanggal_daftar",
+            "biaya_sitin", "biaya_pendaftaran", "status", "siswa",
+            "jurnal_sitin", "jurnal_pendaftaran",
+        ]
+        read_only_fields = ["status", "siswa", "jurnal_sitin", "jurnal_pendaftaran"]
 
 
 class SiswaSerializer(serializers.ModelSerializer):

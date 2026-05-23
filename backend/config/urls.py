@@ -36,11 +36,13 @@ from operations.api import (
     FixedAssetViewSet,
     GajiPegawaiViewSet,
     JenjangViewSet,
+    KegiatanViewSet,
     KehadiranSiswaViewSet,
     KelompokViewSet,
     MenuKateringViewSet,
     PegawaiViewSet,
     PendaftaranJemputanViewSet,
+    PendaftaranSiswaViewSet,
     PinjamanPegawaiViewSet,
     SiswaViewSet,
     TagihanViewSet,
@@ -65,6 +67,8 @@ router.register("menu-katering", MenuKateringViewSet, basename="menu-katering")
 router.register("armada-jemputan", ArmadaJemputanViewSet, basename="armada-jemputan")
 router.register("pendaftaran-jemputan", PendaftaranJemputanViewSet, basename="pendaftaran-jemputan")
 router.register("tagihan", TagihanViewSet, basename="tagihan")
+router.register("pendaftaran-siswa", PendaftaranSiswaViewSet, basename="pendaftaran-siswa")
+router.register("kegiatan", KegiatanViewSet, basename="kegiatan")
 # kepegawaian & aset
 router.register("pegawai", PegawaiViewSet, basename="pegawai")
 router.register("pinjaman", PinjamanPegawaiViewSet, basename="pinjaman")

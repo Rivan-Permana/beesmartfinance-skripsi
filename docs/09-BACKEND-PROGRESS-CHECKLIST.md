@@ -107,13 +107,24 @@ Catatan arsitektur penting (penyimpangan sadar dari draft awal docs):
 
 ---
 
-## 5. Yang masih terbuka (rencana berikutnya)
+## 5. Gap fungsional — STATUS: SELESAI ✅
+
+- ✅ **Auto-rekap tagihan** — `tagihan/generate` (SPP + katering dari absensi + jemputan),
+  akun via `MsPostingRule`
+- ✅ **Cetak struk tagihan** — `tagihan/{id}/struk`
+- ✅ **Modul Kegiatan (Teacher in Charge)** — `kegiatan` CRUD + `realisasi`
+  (auto-journal beban, cek pagu) + `laporan` (rasio utilisasi)
+- ✅ **Registrasi sit-in/trial → admission** — `pendaftaran-siswa` + `bayar-sitin`
+  + `finalisasi` (jurnal admission + buat Siswa)
+- ✅ **CORS + django-filter** (origin via env, filter/search di resource utama)
+- ✅ **Security headers + rate limiting** (HSTS/SSL via `DJANGO_HTTPS`, throttle
+  login 5/min) — A02/A07 tertutup
+
+## 6. Yang masih terbuka (rencana berikutnya)
 
 - ⬜ **Frontend Vue 3** (SPA + Pinia + JWT) — `02-FRONTEND-MIGRATION.md`
-- 🟡 **CORS + django-filter** (diperlukan/berguna saat integrasi frontend)
-- 🟡 **Security headers produksi** + rate limiting (A02/A07)
-- ⬜ **Bersihkan project Django lama di root** (`penelitian_tk` + apps lama) setelah
-  logika selesai diport
+- ✅ ~~Bersihkan project Django lama di root~~ — selesai (root kini hanya `backend/`,
+  `database/`, `docs/`)
 - ⬜ **Deployment**: Docker, Nginx, CI/CD, monitoring (Phase 7)
 
 ---
