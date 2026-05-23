@@ -5,6 +5,8 @@ accounting melalui service layer (lihat operations/services.py).
 Audit pakai django-simple-history; penghapusan memakai soft-delete.
 """
 
+from decimal import Decimal
+
 from django.conf import settings
 from django.db import models
 from django.utils import timezone
@@ -260,7 +262,7 @@ class PinjamanPegawai(SoftDeleteModel, TimeStampedModel):
     history = HistoricalRecords()
 
     @property
-    def sisa_pinjaman(self):
+    def sisa_pinjaman(self) -> Decimal:
         return max(self.jumlah_pinjaman - self.sudah_terbayar, self.jumlah_pinjaman.__class__(0))
 
 
@@ -290,18 +292,18 @@ class GajiPegawai(SoftDeleteModel, TimeStampedModel):
         unique_together = ("pegawai", "periode_bulan", "periode_tahun")
 
     @property
-    def total_bruto(self):
+    def total_bruto(self) -> Decimal:
         return (
             self.gaji_pokok + self.tunjangan_jabatan + self.tunjangan_pengabdian
             + self.transport + self.bonus_insentif + self.thr
         )
 
     @property
-    def total_potongan(self):
+    def total_potongan(self) -> Decimal:
         return self.potongan_pinjaman + self.potongan_asuransi
 
     @property
-    def total_netto(self):
+    def total_netto(self) -> Decimal:
         return self.total_bruto - self.total_potongan
 
 
@@ -332,7 +334,7 @@ class FixedAsset(SoftDeleteModel, TimeStampedModel):
     history = HistoricalRecords()
 
     @property
-    def penyusutan_per_bulan(self):
+    def penyusutan_per_bulan(self) -> Decimal:
         if self.umur_manfaat_bulan <= 0:
             return self.harga_perolehan.__class__(0)
         return self.harga_perolehan / self.umur_manfaat_bulan

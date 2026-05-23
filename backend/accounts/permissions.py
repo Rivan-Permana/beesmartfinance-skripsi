@@ -42,3 +42,7 @@ class IsFinanceOrReadOnly(BasePermission):
         if request.method in ("GET", "HEAD", "OPTIONS"):
             return bool(request.user and request.user.is_authenticated)
         return _in_groups(request.user, (FINANCE,))
+
+
+class IsFinanceOrPrincipal(InGroup):
+    groups = (FINANCE, PRINCIPAL)
