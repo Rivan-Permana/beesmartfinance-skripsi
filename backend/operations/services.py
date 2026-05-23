@@ -10,9 +10,192 @@ from datetime import date
 from decimal import Decimal
 
 from django.db import transaction
+from django.db.models import Sum
 
 from accounting.models import TrJurnal, TrJurnalDetail
 from accounting.utils import audit_user
+
+
+def _akun_rule(komponen):
+    """Ambil akun pendapatan utk komponen tagihan dari MsPostingRule."""
+    from .models import MsPostingRule
+
+    rule = MsPostingRule.objects.filter(komponen=komponen, aktif=True).first()
+    if not rule:
+        raise ValueError(f"MsPostingRule untuk komponen {komponen} belum diset.")
+    return rule.akun_kredit_id
+
+
+def generate_tagihan(siswa, periode_bulan, periode_tahun, tarif_katering=Decimal(0)):
+    """Rekap otomatis komponen tagihan satu siswa untuk satu periode.
+
+    - SPP      : dari siswa.spp_nominal
+    - Katering : jumlah hari ikut katering (absensi) x tarif_katering
+    - Jemputan : total harga pendaftaran jemputan aktif (flat/bulan)
+    Akun pendapatan tiap komponen diambil dari MsPostingRule.
+    """
+    from .models import (
+        KehadiranSiswa,
+        PendaftaranJemputan,
+        Tagihan,
+        TagihanDetail,
+    )
+
+    if Tagihan.objects.filter(
+        siswa=siswa, periode_bulan=periode_bulan, periode_tahun=periode_tahun
+    ).exists():
+        raise ValueError("Tagihan periode ini sudah ada untuk siswa tersebut.")
+
+    tarif_katering = Decimal(tarif_katering or 0)
+    komponen = []
+
+    if siswa.spp_nominal and siswa.spp_nominal > 0:
+        komponen.append(("SPP", _akun_rule("SPP"), Decimal(siswa.spp_nominal)))
+
+    hari_katering = KehadiranSiswa.objects.filter(
+        siswa=siswa, tanggal__year=periode_tahun, tanggal__month=periode_bulan,
+        ikut_katering=True,
+    ).count()
+    if hari_katering and tarif_katering > 0:
+        komponen.append(("KATERING", _akun_rule("KATERING"),
+                         tarif_katering * hari_katering))
+
+    jemput = (
+        PendaftaranJemputan.objects.filter(siswa=siswa)
+        .aggregate(t=Sum("harga"))["t"] or Decimal(0)
+    )
+    if jemput > 0:
+        komponen.append(("JEMPUTAN", _akun_rule("JEMPUTAN"), jemput))
+
+    if not komponen:
+        raise ValueError("Tidak ada komponen tagihan untuk siswa/periode ini.")
+
+    total = sum((k[2] for k in komponen), Decimal(0))
+    with transaction.atomic():
+        tagihan = Tagihan.objects.create(
+            siswa=siswa, periode_bulan=periode_bulan,
+            periode_tahun=periode_tahun, total=total, status="BELUM",
+        )
+        for nama, akun_id, nominal in komponen:
+            TagihanDetail.objects.create(
+                tagihan=tagihan, komponen=nama,
+                akun_pendapatan_id=akun_id, nominal=nominal,
+            )
+    return tagihan
+
+
+def post_realisasi_kegiatan(kegiatan, tanggal, deskripsi, nominal, user=None,
+                            akun_kas="1101"):
+    """Realisasi (pengeluaran) kegiatan -> auto-journal beban.
+
+    Cek pagu kegiatan di service (selain hard-block anggaran akun di trigger DB).
+    """
+    from .models import RealisasiKegiatan
+
+    nominal = Decimal(str(nominal))
+    if nominal <= 0:
+        raise ValueError("Nominal realisasi harus > 0.")
+    if kegiatan.realisasi + nominal > kegiatan.pagu:
+        raise ValueError(
+            f"Melebihi pagu kegiatan (pagu {kegiatan.pagu}, "
+            f"terpakai {kegiatan.realisasi})."
+        )
+
+    with transaction.atomic():
+        with audit_user(user):
+            jurnal = _buat_jurnal(
+                no_bukti=f"KG-{kegiatan.id}-{RealisasiKegiatan.objects.filter(kegiatan=kegiatan).count() + 1}",
+                tanggal=tanggal,
+                keterangan=f"Realisasi {kegiatan.nama}: {deskripsi}",
+                tipe="AUTO_KEGIATAN",
+                baris=[
+                    (kegiatan.akun_beban_id, nominal, Decimal(0)),
+                    (akun_kas, Decimal(0), nominal),
+                ],
+                user=user,
+            )
+            realisasi = RealisasiKegiatan.objects.create(
+                kegiatan=kegiatan, tanggal=tanggal, deskripsi=deskripsi,
+                nominal=nominal, jurnal=jurnal,
+            )
+    return realisasi
+
+
+def post_bayar_sitin(pendaftaran, user=None, akun_kas="1101"):
+    """Pembayaran sit-in/trial -> auto-journal pendapatan."""
+    if pendaftaran.jurnal_sitin_id:
+        raise ValueError("Pembayaran sit-in sudah dijurnal.")
+    if pendaftaran.biaya_sitin <= 0:
+        raise ValueError("Biaya sit-in nol.")
+    akun_pendapatan = _akun_rule("SITIN")
+    with transaction.atomic():
+        with audit_user(user):
+            jurnal = _buat_jurnal(
+                no_bukti=f"SIT-{pendaftaran.id}",
+                tanggal=pendaftaran.tanggal_daftar,
+                keterangan=f"Pembayaran sit-in {pendaftaran.nama_calon}",
+                tipe="AUTO_SITIN",
+                baris=[
+                    (akun_kas, pendaftaran.biaya_sitin, Decimal(0)),
+                    (akun_pendapatan, Decimal(0), pendaftaran.biaya_sitin),
+                ],
+                user=user,
+            )
+            pendaftaran.jurnal_sitin = jurnal
+            pendaftaran.save(update_fields=["jurnal_sitin", "updated_at"])
+    return jurnal
+
+
+def finalisasi_pendaftaran(pendaftaran, user=None, akun_kas="1101", spp_nominal=Decimal(0)):
+    """Calon mendaftar resmi: jurnal admission + buat record Siswa."""
+    from .models import Siswa
+
+    if pendaftaran.status == "REGISTERED":
+        raise ValueError("Pendaftaran sudah difinalisasi.")
+    if pendaftaran.biaya_pendaftaran <= 0:
+        raise ValueError("Biaya pendaftaran nol.")
+    akun_pendapatan = _akun_rule("PENDAFTARAN")
+
+    with transaction.atomic():
+        with audit_user(user):
+            jurnal = _buat_jurnal(
+                no_bukti=f"REG-{pendaftaran.id}",
+                tanggal=pendaftaran.tanggal_daftar,
+                keterangan=f"Biaya pendaftaran {pendaftaran.nama_calon}",
+                tipe="AUTO_PENDAFTARAN",
+                baris=[
+                    (akun_kas, pendaftaran.biaya_pendaftaran, Decimal(0)),
+                    (akun_pendapatan, Decimal(0), pendaftaran.biaya_pendaftaran),
+                ],
+                user=user,
+            )
+            siswa = Siswa.objects.create(
+                nama=pendaftaran.nama_calon, spp_nominal=spp_nominal or Decimal(0),
+            )
+            pendaftaran.siswa = siswa
+            pendaftaran.status = "REGISTERED"
+            pendaftaran.jurnal_pendaftaran = jurnal
+            pendaftaran.save(update_fields=[
+                "siswa", "status", "jurnal_pendaftaran", "updated_at"
+            ])
+    return pendaftaran
+
+
+def struk_tagihan(tagihan):
+    """Data struk/kwitansi tagihan untuk dicetak frontend."""
+    return {
+        "no_tagihan": tagihan.id,
+        "siswa": str(tagihan.siswa),
+        "nis": tagihan.siswa.nis,
+        "periode": f"{tagihan.periode_bulan:02d}/{tagihan.periode_tahun}",
+        "status": tagihan.status,
+        "rincian": [
+            {"komponen": d.komponen, "nominal": d.nominal}
+            for d in tagihan.detail.all()
+        ],
+        "total": tagihan.total,
+        "no_jurnal": str(tagihan.jurnal_id) if tagihan.jurnal_id else None,
+    }
 
 
 def post_pembayaran_tagihan(tagihan, user=None, akun_kas_kode="1101"):

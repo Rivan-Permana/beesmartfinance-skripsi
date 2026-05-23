@@ -5,7 +5,11 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
-from accounts.permissions import IsAdministration, IsFinanceOrReadOnly
+from accounts.permissions import (
+    IsAdministration,
+    IsFinanceOrReadOnly,
+    IsTeacherOrPrincipal,
+)
 
 from .models import (
     AbsenPegawai,
@@ -14,10 +18,12 @@ from .models import (
     GajiPegawai,
     Jenjang,
     KehadiranSiswa,
+    Kegiatan,
     Kelompok,
     MenuKatering,
     Pegawai,
     PendaftaranJemputan,
+    PendaftaranSiswa,
     PinjamanPegawai,
     Siswa,
     Tagihan,
@@ -28,20 +34,27 @@ from .serializers import (
     FixedAssetSerializer,
     GajiPegawaiSerializer,
     JenjangSerializer,
+    KegiatanSerializer,
     KehadiranSiswaSerializer,
     KelompokSerializer,
     MenuKateringSerializer,
     PegawaiSerializer,
     PendaftaranJemputanSerializer,
+    PendaftaranSiswaSerializer,
     PinjamanPegawaiSerializer,
     SiswaSerializer,
     TagihanSerializer,
 )
 from .services import (
+    finalisasi_pendaftaran,
+    generate_tagihan,
+    post_bayar_sitin,
     post_gaji,
     post_pembayaran_tagihan,
     post_pencairan_kasbon,
     post_penyusutan,
+    post_realisasi_kegiatan,
+    struk_tagihan,
 )
 
 
@@ -116,6 +129,30 @@ class TagihanViewSet(viewsets.ModelViewSet):
             {"tagihan": self.get_serializer(tagihan).data, "jurnal_id": str(jurnal.id)}
         )
 
+    @action(detail=False, methods=["post"])
+    def generate(self, request):
+        """Rekap otomatis tagihan satu siswa per periode (SPP+katering+jemputan)."""
+        from decimal import Decimal
+
+        try:
+            siswa = Siswa.objects.get(pk=request.data["siswa"])
+            tagihan = generate_tagihan(
+                siswa,
+                int(request.data["periode_bulan"]),
+                int(request.data["periode_tahun"]),
+                Decimal(str(request.data.get("tarif_katering", 0))),
+            )
+        except Siswa.DoesNotExist:
+            raise ValidationError("Siswa tidak ditemukan.")
+        except (KeyError, ValueError) as exc:
+            raise ValidationError(str(exc))
+        return Response(self.get_serializer(tagihan).data, status=201)
+
+    @action(detail=True, methods=["get"])
+    def struk(self, request, pk=None):
+        """Data struk/kwitansi untuk dicetak."""
+        return Response(struk_tagihan(self.get_object()))
+
 
 # ---- kepegawaian & aset (Finance) ----
 class PegawaiViewSet(viewsets.ModelViewSet):
@@ -170,3 +207,73 @@ class FixedAssetViewSet(viewsets.ModelViewSet):
         except ValueError as exc:
             raise ValidationError(str(exc))
         return Response({"jurnal_id": str(jurnal.id)})
+
+
+# ---- kegiatan sekolah (Teacher in Charge + Principal) ----
+class KegiatanViewSet(viewsets.ModelViewSet):
+    queryset = Kegiatan.objects.select_related("penanggung_jawab")
+    serializer_class = KegiatanSerializer
+    permission_classes = [IsTeacherOrPrincipal]
+    filterset_fields = ["status", "penanggung_jawab"]
+
+    @action(detail=True, methods=["post"])
+    def realisasi(self, request, pk=None):
+        """Catat realisasi/pengeluaran kegiatan -> auto-journal beban (cek pagu)."""
+        from datetime import date as _date
+
+        kegiatan = self.get_object()
+        try:
+            r = post_realisasi_kegiatan(
+                kegiatan,
+                tanggal=request.data.get("tanggal") or _date.today(),
+                deskripsi=request.data.get("deskripsi", ""),
+                nominal=request.data["nominal"],
+                user=request.user,
+            )
+        except (KeyError, ValueError) as exc:
+            raise ValidationError(str(exc))
+        return Response({"realisasi_id": r.id, "jurnal_id": str(r.jurnal_id)}, status=201)
+
+    @action(detail=True, methods=["get"])
+    def laporan(self, request, pk=None):
+        """Laporan utilisasi anggaran kegiatan (activity report)."""
+        k = self.get_object()
+        return Response({
+            "kegiatan": k.nama, "pagu": k.pagu, "realisasi": k.realisasi,
+            "sisa_pagu": k.sisa_pagu, "rasio_utilisasi": k.rasio_utilisasi,
+            "rincian": [
+                {"tanggal": x.tanggal, "deskripsi": x.deskripsi, "nominal": x.nominal}
+                for x in k.realisasi_list.all()
+            ],
+        })
+
+
+# ---- registrasi calon siswa (Administration) ----
+class PendaftaranSiswaViewSet(viewsets.ModelViewSet):
+    queryset = PendaftaranSiswa.objects.select_related("siswa", "jenjang")
+    serializer_class = PendaftaranSiswaSerializer
+    permission_classes = [IsAdministration]
+    filterset_fields = ["status"]
+
+    @action(detail=True, methods=["post"], url_path="bayar-sitin")
+    def bayar_sitin(self, request, pk=None):
+        """Pembayaran sit-in/trial -> auto-journal pendapatan."""
+        try:
+            jurnal = post_bayar_sitin(self.get_object(), user=request.user)
+        except ValueError as exc:
+            raise ValidationError(str(exc))
+        return Response({"jurnal_id": str(jurnal.id)})
+
+    @action(detail=True, methods=["post"])
+    def finalisasi(self, request, pk=None):
+        """Calon mendaftar resmi -> jurnal admission + buat Siswa."""
+        from decimal import Decimal
+
+        try:
+            p = finalisasi_pendaftaran(
+                self.get_object(), user=request.user,
+                spp_nominal=Decimal(str(request.data.get("spp_nominal", 0))),
+            )
+        except ValueError as exc:
+            raise ValidationError(str(exc))
+        return Response(self.get_serializer(p).data)

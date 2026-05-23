@@ -84,3 +84,75 @@ class KeuanganActionApiTests(APITestCase):
         self.assertEqual(r.status_code, 200)
         self.aset.refresh_from_db()
         self.assertEqual(self.aset.akumulasi_penyusutan, Decimal("500000"))
+
+
+class GapFeatureApiTests(APITestCase):
+    def setUp(self):
+        from operations.models import Kegiatan, MsPostingRule, PendaftaranSiswa
+
+        self.admin = User.objects.create_user("adm", password="x")
+        self.admin.groups.add(Group.objects.get(name="Administration"))
+        self.teacher = User.objects.create_user("teach", password="x")
+        self.teacher.groups.add(Group.objects.get(name="TeacherInCharge"))
+
+        _coa("1101", "KAS", "D")
+        _coa("4101", "PEND SPP", "K")
+        _coa("4102", "PEND SITIN", "K")
+        _coa("4103", "PEND DAFTAR", "K")
+        _coa("5101", "BEBAN KEGIATAN", "D")
+        for komp, akun in [("SPP", "4101"), ("SITIN", "4102"), ("PENDAFTARAN", "4103")]:
+            MsPostingRule.objects.create(
+                event_code="TAGIHAN" if komp == "SPP" else komp,
+                komponen=komp, akun_debit_id="1101", akun_kredit_id=akun,
+            )
+        self.MsPostingRule = MsPostingRule
+        self.Kegiatan = Kegiatan
+        self.PendaftaranSiswa = PendaftaranSiswa
+
+    def test_generate_tagihan_dari_spp(self):
+        siswa = Siswa.objects.create(nama="Eka", spp_nominal=Decimal("500000"))
+        self.client.force_authenticate(self.admin)
+        r = self.client.post("/api/tagihan/generate/", {
+            "siswa": siswa.id, "periode_bulan": 2, "periode_tahun": 2026,
+        }, format="json")
+        self.assertEqual(r.status_code, 201)
+        self.assertEqual(r.data["total"], "500000.00")
+
+    def test_struk_tagihan(self):
+        siswa = Siswa.objects.create(nama="Fajar", spp_nominal=Decimal("300000"))
+        self.client.force_authenticate(self.admin)
+        tid = self.client.post("/api/tagihan/generate/", {
+            "siswa": siswa.id, "periode_bulan": 3, "periode_tahun": 2026,
+        }, format="json").data["id"]
+        r = self.client.get(f"/api/tagihan/{tid}/struk/")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(r.data["rincian"]), 1)
+
+    def test_kegiatan_realisasi_dan_pagu(self):
+        self.client.force_authenticate(self.teacher)
+        keg = self.Kegiatan.objects.create(
+            nama="Outing", akun_beban_id="5101", pagu=Decimal("1000000"),
+        )
+        r = self.client.post(f"/api/kegiatan/{keg.id}/realisasi/", {
+            "nominal": "400000", "deskripsi": "sewa bus", "tanggal": "2026-02-10",
+        }, format="json")
+        self.assertEqual(r.status_code, 201)
+        # melebihi pagu -> ditolak
+        r = self.client.post(f"/api/kegiatan/{keg.id}/realisasi/", {
+            "nominal": "700000", "tanggal": "2026-02-11",
+        }, format="json")
+        self.assertEqual(r.status_code, 400)
+        r = self.client.get(f"/api/kegiatan/{keg.id}/laporan/")
+        self.assertEqual(r.data["realisasi"], Decimal("400000"))
+
+    def test_pendaftaran_sitin_lalu_finalisasi(self):
+        self.client.force_authenticate(self.admin)
+        pid = self.client.post("/api/pendaftaran-siswa/", {
+            "nama_calon": "Gita", "tanggal_daftar": "2026-01-10",
+            "biaya_sitin": "100000", "biaya_pendaftaran": "500000",
+        }, format="json").data["id"]
+        self.assertEqual(self.client.post(f"/api/pendaftaran-siswa/{pid}/bayar-sitin/").status_code, 200)
+        r = self.client.post(f"/api/pendaftaran-siswa/{pid}/finalisasi/", {"spp_nominal": "400000"}, format="json")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["status"], "REGISTERED")
+        self.assertIsNotNone(r.data["siswa"])
