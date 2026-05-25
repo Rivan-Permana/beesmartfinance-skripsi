@@ -9,7 +9,7 @@ from django.db.models import Sum
 
 from accounting.models import TrJurnal, TrJurnalDetail
 
-from .common import akun_rule, audit_user
+from .common import akun_rule, akun_sistem, audit_user
 
 
 def generate_tagihan(siswa, periode_bulan, periode_tahun, tarif_katering=Decimal(0)):
@@ -65,10 +65,11 @@ def generate_tagihan(siswa, periode_bulan, periode_tahun, tarif_katering=Decimal
     return tagihan
 
 
-def post_pembayaran_tagihan(tagihan, user=None, akun_kas_kode="1101"):
+def post_pembayaran_tagihan(tagihan, user=None, akun_kas_kode=None):
     """Jurnal DRAFT saat tagihan dibayar (Dr Kas, Cr Pendapatan per komponen)."""
     if tagihan.jurnal_id:
         raise ValueError("Tagihan ini sudah memiliki jurnal.")
+    akun_kas_kode = akun_kas_kode or akun_sistem("KAS", "1101")
 
     detail = list(tagihan.detail.all())
     if not detail:

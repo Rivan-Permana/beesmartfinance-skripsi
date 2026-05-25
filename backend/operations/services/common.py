@@ -17,6 +17,18 @@ def akun_rule(komponen):
     return rule.akun_kredit_id
 
 
+def akun_sistem(key, default):
+    """Resolve akun sistem (KAS, PIUTANG_KARYAWAN, dst) dari MsPostingRule.
+
+    Bila belum dikonfigurasi, pakai `default`. Ini menghapus kebutuhan meng-edit
+    kode saat bagan akun berubah: cukup set MsPostingRule(komponen=key).
+    """
+    from operations.models import MsPostingRule
+
+    rule = MsPostingRule.objects.filter(komponen=key, aktif=True).first()
+    return rule.akun_kredit_id if rule else default
+
+
 def buat_jurnal(no_bukti, tanggal, keterangan, tipe, baris, user):
     """Buat 1 jurnal DRAFT dari daftar baris (kode_akun, debit, kredit).
 

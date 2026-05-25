@@ -75,22 +75,27 @@ router.register("pinjaman", PinjamanPegawaiViewSet, basename="pinjaman")
 router.register("gaji", GajiPegawaiViewSet, basename="gaji")
 router.register("aset", FixedAssetViewSet, basename="aset")
 
+# Semua resource & aksi di bawah versi /api/v1/
+api_v1 = [
+    # auth (JWT)
+    path("auth/token/", ThrottledTokenObtainPairView.as_view(), name="token_obtain_pair"),
+    path("auth/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+    # resources
+    path("", include(router.urls)),
+    # laporan & dashboard
+    path("laporan/neraca-saldo/", NeracaSaldoView.as_view()),
+    path("laporan/laba-rugi/", LabaRugiView.as_view()),
+    path("laporan/posisi-keuangan/", PosisiKeuanganView.as_view()),
+    path("laporan/realisasi-anggaran/", RealisasiAnggaranView.as_view()),
+    path("laporan/buku-besar/<str:kode_akun>/", BukuBesarView.as_view()),
+    path("dashboard/ringkasan/", DashboardRingkasanView.as_view()),
+    path("dashboard/prediksi-kas/", PrediksiKasView.as_view()),
+]
+
 urlpatterns = [
     path("admin/", admin.site.urls),
-    # auth (JWT)
-    path("api/auth/token/", ThrottledTokenObtainPairView.as_view(), name="token_obtain_pair"),
-    path("api/auth/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
-    # resources
-    path("api/", include(router.urls)),
-    # laporan & dashboard
-    path("api/laporan/neraca-saldo/", NeracaSaldoView.as_view()),
-    path("api/laporan/laba-rugi/", LabaRugiView.as_view()),
-    path("api/laporan/posisi-keuangan/", PosisiKeuanganView.as_view()),
-    path("api/laporan/realisasi-anggaran/", RealisasiAnggaranView.as_view()),
-    path("api/laporan/buku-besar/<str:kode_akun>/", BukuBesarView.as_view()),
-    path("api/dashboard/ringkasan/", DashboardRingkasanView.as_view()),
-    path("api/dashboard/prediksi-kas/", PrediksiKasView.as_view()),
-    # docs
+    path("api/v1/", include(api_v1)),
+    # docs (lintas-versi)
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="docs"),
 ]
