@@ -4,15 +4,16 @@ from decimal import Decimal
 
 from django.db import transaction
 
-from .common import akun_rule, audit_user, buat_jurnal
+from .common import akun_rule, akun_sistem, audit_user, buat_jurnal
 
 
-def post_bayar_sitin(pendaftaran, user=None, akun_kas="1101"):
+def post_bayar_sitin(pendaftaran, user=None, akun_kas=None):
     """Pembayaran sit-in/trial -> auto-journal pendapatan."""
     if pendaftaran.jurnal_sitin_id:
         raise ValueError("Pembayaran sit-in sudah dijurnal.")
     if pendaftaran.biaya_sitin <= 0:
         raise ValueError("Biaya sit-in nol.")
+    akun_kas = akun_kas or akun_sistem("KAS", "1101")
     akun_pendapatan = akun_rule("SITIN")
     with transaction.atomic():
         with audit_user(user):
@@ -32,7 +33,7 @@ def post_bayar_sitin(pendaftaran, user=None, akun_kas="1101"):
     return jurnal
 
 
-def finalisasi_pendaftaran(pendaftaran, user=None, akun_kas="1101", spp_nominal=Decimal(0)):
+def finalisasi_pendaftaran(pendaftaran, user=None, akun_kas=None, spp_nominal=Decimal(0)):
     """Calon mendaftar resmi: jurnal admission + buat record Siswa."""
     from operations.models import Siswa
 
@@ -40,6 +41,7 @@ def finalisasi_pendaftaran(pendaftaran, user=None, akun_kas="1101", spp_nominal=
         raise ValueError("Pendaftaran sudah difinalisasi.")
     if pendaftaran.biaya_pendaftaran <= 0:
         raise ValueError("Biaya pendaftaran nol.")
+    akun_kas = akun_kas or akun_sistem("KAS", "1101")
     akun_pendapatan = akun_rule("PENDAFTARAN")
 
     with transaction.atomic():

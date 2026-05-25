@@ -5,13 +5,15 @@ from decimal import Decimal
 
 from django.db import transaction
 
-from .common import audit_user, buat_jurnal
+from .common import akun_sistem, audit_user, buat_jurnal
 
 
-def post_pencairan_kasbon(pinjaman, user=None, akun_piutang="1103", akun_kas="1101"):
+def post_pencairan_kasbon(pinjaman, user=None, akun_piutang=None, akun_kas=None):
     """Pencairan kasbon pegawai (Dr Piutang Karyawan, Cr Kas)."""
     if pinjaman.jurnal_id:
         raise ValueError("Pinjaman ini sudah dijurnal.")
+    akun_piutang = akun_piutang or akun_sistem("PIUTANG_KARYAWAN", "1103")
+    akun_kas = akun_kas or akun_sistem("KAS", "1101")
     with transaction.atomic():
         with audit_user(user):
             jurnal = buat_jurnal(
@@ -30,11 +32,15 @@ def post_pencairan_kasbon(pinjaman, user=None, akun_piutang="1103", akun_kas="11
     return jurnal
 
 
-def post_gaji(gaji, user=None, akun_beban="5201", akun_kas="1101",
-              akun_piutang="1103", akun_utang_asuransi="2101"):
+def post_gaji(gaji, user=None, akun_beban=None, akun_kas=None,
+              akun_piutang=None, akun_utang_asuransi=None):
     """Payroll: Dr Beban Gaji (bruto); Cr Kas (netto)/Piutang/Utang Asuransi."""
     if gaji.jurnal_id:
         raise ValueError("Gaji periode ini sudah dijurnal.")
+    akun_beban = akun_beban or akun_sistem("BEBAN_GAJI", "5201")
+    akun_kas = akun_kas or akun_sistem("KAS", "1101")
+    akun_piutang = akun_piutang or akun_sistem("PIUTANG_KARYAWAN", "1103")
+    akun_utang_asuransi = akun_utang_asuransi or akun_sistem("UTANG_ASURANSI", "2101")
 
     baris = [(akun_beban, gaji.total_bruto, Decimal(0)),
              (akun_kas, Decimal(0), gaji.total_netto)]

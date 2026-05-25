@@ -40,17 +40,17 @@ class JurnalApiTests(APITestCase):
         }
 
     def test_butuh_autentikasi(self):
-        resp = self.client.post("/api/jurnal/", self._payload(), format="json")
+        resp = self.client.post("/api/v1/jurnal/", self._payload(), format="json")
         self.assertEqual(resp.status_code, 401)
 
     def test_hanya_finance_boleh_buat(self):
         self.client.force_authenticate(self.admin)
         self.assertEqual(
-            self.client.post("/api/jurnal/", self._payload(), format="json").status_code,
+            self.client.post("/api/v1/jurnal/", self._payload(), format="json").status_code,
             403,
         )
         self.client.force_authenticate(self.finance)
-        resp = self.client.post("/api/jurnal/", self._payload(), format="json")
+        resp = self.client.post("/api/v1/jurnal/", self._payload(), format="json")
         self.assertEqual(resp.status_code, 201)
         self.assertEqual(resp.data["status"], "DRAFT")
 
@@ -59,53 +59,53 @@ class JurnalApiTests(APITestCase):
         bad = self._payload()
         bad["detail"][0]["debit"] = "999"
         self.assertEqual(
-            self.client.post("/api/jurnal/", bad, format="json").status_code, 400
+            self.client.post("/api/v1/jurnal/", bad, format="json").status_code, 400
         )
 
     def test_alur_maker_checker(self):
         self.client.force_authenticate(self.finance)
-        jid = self.client.post("/api/jurnal/", self._payload(), format="json").data["id"]
+        jid = self.client.post("/api/v1/jurnal/", self._payload(), format="json").data["id"]
         # submit oleh finance
-        r = self.client.post(f"/api/jurnal/{jid}/submit/")
+        r = self.client.post(f"/api/v1/jurnal/{jid}/submit/")
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.data["status"], "PENDING")
         # finance tidak boleh approve
-        self.assertEqual(self.client.post(f"/api/jurnal/{jid}/approve/").status_code, 403)
+        self.assertEqual(self.client.post(f"/api/v1/jurnal/{jid}/approve/").status_code, 403)
         # principal approve -> POSTED
         self.client.force_authenticate(self.principal)
-        r = self.client.post(f"/api/jurnal/{jid}/approve/")
+        r = self.client.post(f"/api/v1/jurnal/{jid}/approve/")
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.data["status"], "POSTED")
 
     def test_void_membuat_pembalik(self):
         self.client.force_authenticate(self.finance)
-        jid = self.client.post("/api/jurnal/", self._payload("JV9"), format="json").data["id"]
-        self.client.post(f"/api/jurnal/{jid}/submit/")
+        jid = self.client.post("/api/v1/jurnal/", self._payload("JV9"), format="json").data["id"]
+        self.client.post(f"/api/v1/jurnal/{jid}/submit/")
         self.client.force_authenticate(self.principal)
-        self.client.post(f"/api/jurnal/{jid}/approve/")
-        r = self.client.post(f"/api/jurnal/{jid}/void/")
+        self.client.post(f"/api/v1/jurnal/{jid}/approve/")
+        r = self.client.post(f"/api/v1/jurnal/{jid}/void/")
         self.assertEqual(r.status_code, 201)
         self.assertEqual(r.data["pembalik"]["tipe_sumber"], "REVERSAL")
 
     def test_laporan_neraca_saldo(self):
         self.client.force_authenticate(self.finance)
-        self.assertEqual(self.client.get("/api/laporan/neraca-saldo/").status_code, 200)
+        self.assertEqual(self.client.get("/api/v1/laporan/neraca-saldo/").status_code, 200)
 
     def test_void_hanya_principal(self):
         # Administration tidak boleh void
         self.client.force_authenticate(self.finance)
-        jid = self.client.post("/api/jurnal/", self._payload("JVX"), format="json").data["id"]
-        self.client.post(f"/api/jurnal/{jid}/submit/")
+        jid = self.client.post("/api/v1/jurnal/", self._payload("JVX"), format="json").data["id"]
+        self.client.post(f"/api/v1/jurnal/{jid}/submit/")
         self.client.force_authenticate(self.principal)
-        self.client.post(f"/api/jurnal/{jid}/approve/")
+        self.client.post(f"/api/v1/jurnal/{jid}/approve/")
         self.client.force_authenticate(self.admin)
-        self.assertEqual(self.client.post(f"/api/jurnal/{jid}/void/").status_code, 403)
+        self.assertEqual(self.client.post(f"/api/v1/jurnal/{jid}/void/").status_code, 403)
 
     def test_delete_jurnal_hanya_finance(self):
         self.client.force_authenticate(self.finance)
-        jid = self.client.post("/api/jurnal/", self._payload("JVD"), format="json").data["id"]
+        jid = self.client.post("/api/v1/jurnal/", self._payload("JVD"), format="json").data["id"]
         self.client.force_authenticate(self.admin)  # bukan Finance
-        self.assertEqual(self.client.delete(f"/api/jurnal/{jid}/").status_code, 403)
+        self.assertEqual(self.client.delete(f"/api/v1/jurnal/{jid}/").status_code, 403)
 
 
 class ClosingApiTests(APITestCase):
@@ -131,7 +131,7 @@ class ClosingApiTests(APITestCase):
 
     def test_tutup_periode_menghasilkan_jurnal_penutup(self):
         self.client.force_authenticate(self.principal)
-        r = self.client.post(f"/api/periode/{self.periode.id}/tutup/")
+        r = self.client.post(f"/api/v1/periode/{self.periode.id}/tutup/")
         self.assertEqual(r.status_code, 200)
         self.assertIn("jurnal_penutup", r.data)
         self.periode.refresh_from_db()

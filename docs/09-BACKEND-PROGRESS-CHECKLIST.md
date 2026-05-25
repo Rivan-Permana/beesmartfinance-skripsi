@@ -120,6 +120,18 @@ Catatan arsitektur penting (penyimpangan sadar dari draft awal docs):
 - ✅ **Security headers + rate limiting** (HSTS/SSL via `DJANGO_HTTPS`, throttle
   login 5/min) — A02/A07 tertutup
 
+## 5b. Catatan teknis (sebelumnya 🟡) — STATUS: SELESAI ✅
+
+- ✅ **Kode akun tak lagi hardcode** — service resolve via `akun_sistem()`/`MsPostingRule`
+  (KAS, PIUTANG_KARYAWAN, UTANG_ASURANSI, BEBAN_GAJI), fallback default. Ubah akun
+  cukup lewat data, tanpa edit kode.
+- ✅ **API versioning** — semua resource/aksi/laporan di bawah `/api/v1/`
+  (docs `/api/docs`, schema `/api/schema` lintas-versi).
+- ✅ **Settings hardening** — guard `SECRET_KEY` di `DJANGO_ENV=production`,
+  konfigurasi `LOGGING` (console + logger `security`), `DJANGO_LOG_LEVEL`.
+- ✅ **Refactor foldering** — `operations` dipecah jadi package per domain
+  (models/services/api), file template mati dihapus, app `accounts` punya test.
+
 ## 6. Yang masih terbuka (rencana berikutnya)
 
 - ⬜ **Frontend Vue 3** (SPA + Pinia + JWT) — `02-FRONTEND-MIGRATION.md`
@@ -130,6 +142,8 @@ Catatan arsitektur penting (penyimpangan sadar dari draft awal docs):
 ---
 
 ## Ringkasan endpoint terimplementasi
+
+> Base path: **`/api/v1/`** (kecuali `/api/schema` & `/api/docs`).
 
 Auth: `auth/token`, `auth/token/refresh` · Docs: `schema`, `docs`
 

@@ -39,11 +39,11 @@ class TagihanApiTests(APITestCase):
                 {"komponen": "SPP", "akun_pendapatan": "4101", "nominal": "500000"}
             ],
         }
-        r = self.client.post("/api/tagihan/", payload, format="json")
+        r = self.client.post("/api/v1/tagihan/", payload, format="json")
         self.assertEqual(r.status_code, 201)
         tid = r.data["id"]
 
-        r = self.client.post(f"/api/tagihan/{tid}/bayar/")
+        r = self.client.post(f"/api/v1/tagihan/{tid}/bayar/")
         self.assertEqual(r.status_code, 200)
         self.assertIn("jurnal_id", r.data)
         self.assertEqual(r.data["tagihan"]["status"], "LUNAS")
@@ -75,12 +75,12 @@ class KeuanganActionApiTests(APITestCase):
         self.client.force_authenticate(self.finance)
 
     def test_posting_gaji(self):
-        r = self.client.post(f"/api/gaji/{self.gaji.id}/posting/")
+        r = self.client.post(f"/api/v1/gaji/{self.gaji.id}/posting/")
         self.assertEqual(r.status_code, 200)
         self.assertIn("jurnal_id", r.data)
 
     def test_susutkan_aset(self):
-        r = self.client.post(f"/api/aset/{self.aset.id}/susutkan/")
+        r = self.client.post(f"/api/v1/aset/{self.aset.id}/susutkan/")
         self.assertEqual(r.status_code, 200)
         self.aset.refresh_from_db()
         self.assertEqual(self.aset.akumulasi_penyusutan, Decimal("500000"))
@@ -90,10 +90,10 @@ class KeuanganActionApiTests(APITestCase):
         admin = User.objects.create_user("admx", password="x")
         admin.groups.add(Group.objects.get(name="Administration"))
         self.client.force_authenticate(admin)
-        self.assertEqual(self.client.get("/api/gaji/").status_code, 403)
+        self.assertEqual(self.client.get("/api/v1/gaji/").status_code, 403)
         # Finance boleh
         self.client.force_authenticate(self.finance)
-        self.assertEqual(self.client.get("/api/gaji/").status_code, 200)
+        self.assertEqual(self.client.get("/api/v1/gaji/").status_code, 200)
 
 
 class GapFeatureApiTests(APITestCase):
@@ -122,7 +122,7 @@ class GapFeatureApiTests(APITestCase):
     def test_generate_tagihan_dari_spp(self):
         siswa = Siswa.objects.create(nama="Eka", spp_nominal=Decimal("500000"))
         self.client.force_authenticate(self.admin)
-        r = self.client.post("/api/tagihan/generate/", {
+        r = self.client.post("/api/v1/tagihan/generate/", {
             "siswa": siswa.id, "periode_bulan": 2, "periode_tahun": 2026,
         }, format="json")
         self.assertEqual(r.status_code, 201)
@@ -131,10 +131,10 @@ class GapFeatureApiTests(APITestCase):
     def test_struk_tagihan(self):
         siswa = Siswa.objects.create(nama="Fajar", spp_nominal=Decimal("300000"))
         self.client.force_authenticate(self.admin)
-        tid = self.client.post("/api/tagihan/generate/", {
+        tid = self.client.post("/api/v1/tagihan/generate/", {
             "siswa": siswa.id, "periode_bulan": 3, "periode_tahun": 2026,
         }, format="json").data["id"]
-        r = self.client.get(f"/api/tagihan/{tid}/struk/")
+        r = self.client.get(f"/api/v1/tagihan/{tid}/struk/")
         self.assertEqual(r.status_code, 200)
         self.assertEqual(len(r.data["rincian"]), 1)
 
@@ -143,26 +143,26 @@ class GapFeatureApiTests(APITestCase):
         keg = self.Kegiatan.objects.create(
             nama="Outing", akun_beban_id="5101", pagu=Decimal("1000000"),
         )
-        r = self.client.post(f"/api/kegiatan/{keg.id}/realisasi/", {
+        r = self.client.post(f"/api/v1/kegiatan/{keg.id}/realisasi/", {
             "nominal": "400000", "deskripsi": "sewa bus", "tanggal": "2026-02-10",
         }, format="json")
         self.assertEqual(r.status_code, 201)
         # melebihi pagu -> ditolak
-        r = self.client.post(f"/api/kegiatan/{keg.id}/realisasi/", {
+        r = self.client.post(f"/api/v1/kegiatan/{keg.id}/realisasi/", {
             "nominal": "700000", "tanggal": "2026-02-11",
         }, format="json")
         self.assertEqual(r.status_code, 400)
-        r = self.client.get(f"/api/kegiatan/{keg.id}/laporan/")
+        r = self.client.get(f"/api/v1/kegiatan/{keg.id}/laporan/")
         self.assertEqual(r.data["realisasi"], Decimal("400000"))
 
     def test_pendaftaran_sitin_lalu_finalisasi(self):
         self.client.force_authenticate(self.admin)
-        pid = self.client.post("/api/pendaftaran-siswa/", {
+        pid = self.client.post("/api/v1/pendaftaran-siswa/", {
             "nama_calon": "Gita", "tanggal_daftar": "2026-01-10",
             "biaya_sitin": "100000", "biaya_pendaftaran": "500000",
         }, format="json").data["id"]
-        self.assertEqual(self.client.post(f"/api/pendaftaran-siswa/{pid}/bayar-sitin/").status_code, 200)
-        r = self.client.post(f"/api/pendaftaran-siswa/{pid}/finalisasi/", {"spp_nominal": "400000"}, format="json")
+        self.assertEqual(self.client.post(f"/api/v1/pendaftaran-siswa/{pid}/bayar-sitin/").status_code, 200)
+        r = self.client.post(f"/api/v1/pendaftaran-siswa/{pid}/finalisasi/", {"spp_nominal": "400000"}, format="json")
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.data["status"], "REGISTERED")
         self.assertIsNotNone(r.data["siswa"])

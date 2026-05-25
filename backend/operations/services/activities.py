@@ -4,14 +4,15 @@ from decimal import Decimal
 
 from django.db import transaction
 
-from .common import audit_user, buat_jurnal
+from .common import akun_sistem, audit_user, buat_jurnal
 
 
 def post_realisasi_kegiatan(kegiatan, tanggal, deskripsi, nominal, user=None,
-                            akun_kas="1101"):
+                            akun_kas=None):
     """Realisasi (pengeluaran) kegiatan -> auto-journal beban, cek pagu kegiatan."""
     from operations.models import RealisasiKegiatan
 
+    akun_kas = akun_kas or akun_sistem("KAS", "1101")
     nominal = Decimal(str(nominal))
     if nominal <= 0:
         raise ValueError("Nominal realisasi harus > 0.")
