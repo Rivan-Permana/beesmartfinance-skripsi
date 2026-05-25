@@ -91,6 +91,22 @@ class JurnalApiTests(APITestCase):
         self.client.force_authenticate(self.finance)
         self.assertEqual(self.client.get("/api/laporan/neraca-saldo/").status_code, 200)
 
+    def test_void_hanya_principal(self):
+        # Administration tidak boleh void
+        self.client.force_authenticate(self.finance)
+        jid = self.client.post("/api/jurnal/", self._payload("JVX"), format="json").data["id"]
+        self.client.post(f"/api/jurnal/{jid}/submit/")
+        self.client.force_authenticate(self.principal)
+        self.client.post(f"/api/jurnal/{jid}/approve/")
+        self.client.force_authenticate(self.admin)
+        self.assertEqual(self.client.post(f"/api/jurnal/{jid}/void/").status_code, 403)
+
+    def test_delete_jurnal_hanya_finance(self):
+        self.client.force_authenticate(self.finance)
+        jid = self.client.post("/api/jurnal/", self._payload("JVD"), format="json").data["id"]
+        self.client.force_authenticate(self.admin)  # bukan Finance
+        self.assertEqual(self.client.delete(f"/api/jurnal/{jid}/").status_code, 403)
+
 
 class ClosingApiTests(APITestCase):
     def setUp(self):

@@ -86,10 +86,10 @@ class TrJurnalViewSet(viewsets.ModelViewSet):
         )
 
     def get_permissions(self):
-        # Finance: buat/ubah draft & submit. Principal: approve/post.
-        if self.action in ("create", "update", "partial_update", "submit"):
+        # Finance: buat/ubah draft, submit, hapus draft. Principal: approve, void.
+        if self.action in ("create", "update", "partial_update", "submit", "destroy"):
             return [IsFinance()]
-        if self.action == "approve":
+        if self.action in ("approve", "void"):
             return [IsPrincipal()]
         return [IsAuthenticated()]
 
