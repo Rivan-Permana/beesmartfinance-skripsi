@@ -50,3 +50,12 @@ class IsFinanceOrPrincipal(InGroup):
 
 class IsTeacherOrPrincipal(InGroup):
     groups = (TEACHER, PRINCIPAL)
+
+
+class IsFinanceWriteFinancePrincipalRead(BasePermission):
+    """Data sensitif (gaji/pinjaman): baca = Finance/Principal, tulis = Finance."""
+
+    def has_permission(self, request, view):
+        if request.method in ("GET", "HEAD", "OPTIONS"):
+            return _in_groups(request.user, (FINANCE, PRINCIPAL))
+        return _in_groups(request.user, (FINANCE,))

@@ -85,6 +85,16 @@ class KeuanganActionApiTests(APITestCase):
         self.aset.refresh_from_db()
         self.assertEqual(self.aset.akumulasi_penyusutan, Decimal("500000"))
 
+    def test_gaji_tidak_bisa_dibaca_administration(self):
+        # data gaji sensitif: Administration tidak boleh baca
+        admin = User.objects.create_user("admx", password="x")
+        admin.groups.add(Group.objects.get(name="Administration"))
+        self.client.force_authenticate(admin)
+        self.assertEqual(self.client.get("/api/gaji/").status_code, 403)
+        # Finance boleh
+        self.client.force_authenticate(self.finance)
+        self.assertEqual(self.client.get("/api/gaji/").status_code, 200)
+
 
 class GapFeatureApiTests(APITestCase):
     def setUp(self):

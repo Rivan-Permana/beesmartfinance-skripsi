@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from accounts.permissions import (
     IsAdministration,
     IsFinanceOrReadOnly,
+    IsFinanceWriteFinancePrincipalRead,
     IsTeacherOrPrincipal,
 )
 
@@ -60,13 +61,13 @@ from .services import (
 
 # ---- master & operasional sekolah (Administration) ----
 class JenjangViewSet(viewsets.ModelViewSet):
-    queryset = Jenjang.objects.all()
+    queryset = Jenjang.objects.all().order_by("kode")
     serializer_class = JenjangSerializer
     permission_classes = [IsAdministration]
 
 
 class KelompokViewSet(viewsets.ModelViewSet):
-    queryset = Kelompok.objects.select_related("jenjang")
+    queryset = Kelompok.objects.select_related("jenjang").order_by("nama")
     serializer_class = KelompokSerializer
     permission_classes = [IsAdministration]
 
@@ -80,31 +81,31 @@ class SiswaViewSet(viewsets.ModelViewSet):
 
 
 class KehadiranSiswaViewSet(viewsets.ModelViewSet):
-    queryset = KehadiranSiswa.objects.select_related("siswa")
+    queryset = KehadiranSiswa.objects.select_related("siswa").order_by("-tanggal")
     serializer_class = KehadiranSiswaSerializer
     permission_classes = [IsAdministration]
 
 
 class AbsenPegawaiViewSet(viewsets.ModelViewSet):
-    queryset = AbsenPegawai.objects.select_related("pegawai")
+    queryset = AbsenPegawai.objects.select_related("pegawai").order_by("-tanggal")
     serializer_class = AbsenPegawaiSerializer
     permission_classes = [IsAdministration]
 
 
 class MenuKateringViewSet(viewsets.ModelViewSet):
-    queryset = MenuKatering.objects.all()
+    queryset = MenuKatering.objects.all().order_by("-tanggal")
     serializer_class = MenuKateringSerializer
     permission_classes = [IsAdministration]
 
 
 class ArmadaJemputanViewSet(viewsets.ModelViewSet):
-    queryset = ArmadaJemputan.objects.all()
+    queryset = ArmadaJemputan.objects.all().order_by("nama_supir")
     serializer_class = ArmadaJemputanSerializer
     permission_classes = [IsAdministration]
 
 
 class PendaftaranJemputanViewSet(viewsets.ModelViewSet):
-    queryset = PendaftaranJemputan.objects.select_related("siswa", "armada")
+    queryset = PendaftaranJemputan.objects.select_related("siswa", "armada").order_by("-id")
     serializer_class = PendaftaranJemputanSerializer
     permission_classes = [IsAdministration]
 
@@ -115,7 +116,7 @@ class TagihanViewSet(viewsets.ModelViewSet):
     filterset_fields = ["status", "periode_tahun", "siswa"]
 
     def get_queryset(self):
-        return Tagihan.objects.select_related("siswa").prefetch_related("detail")
+        return Tagihan.objects.select_related("siswa").prefetch_related("detail").order_by("-periode_tahun", "-periode_bulan")
 
     @action(detail=True, methods=["post"])
     def bayar(self, request, pk=None):
@@ -162,9 +163,9 @@ class PegawaiViewSet(viewsets.ModelViewSet):
 
 
 class PinjamanPegawaiViewSet(viewsets.ModelViewSet):
-    queryset = PinjamanPegawai.objects.select_related("pegawai")
+    queryset = PinjamanPegawai.objects.select_related("pegawai").order_by("-tanggal_pinjaman")
     serializer_class = PinjamanPegawaiSerializer
-    permission_classes = [IsFinanceOrReadOnly]
+    permission_classes = [IsFinanceWriteFinancePrincipalRead]
 
     @action(detail=True, methods=["post"])
     def cairkan(self, request, pk=None):
@@ -178,9 +179,9 @@ class PinjamanPegawaiViewSet(viewsets.ModelViewSet):
 
 
 class GajiPegawaiViewSet(viewsets.ModelViewSet):
-    queryset = GajiPegawai.objects.select_related("pegawai")
+    queryset = GajiPegawai.objects.select_related("pegawai").order_by("-periode_tahun", "-periode_bulan")
     serializer_class = GajiPegawaiSerializer
-    permission_classes = [IsFinanceOrReadOnly]
+    permission_classes = [IsFinanceWriteFinancePrincipalRead]
 
     @action(detail=True, methods=["post"])
     def posting(self, request, pk=None):
@@ -194,7 +195,7 @@ class GajiPegawaiViewSet(viewsets.ModelViewSet):
 
 
 class FixedAssetViewSet(viewsets.ModelViewSet):
-    queryset = FixedAsset.objects.all()
+    queryset = FixedAsset.objects.all().order_by("nama")
     serializer_class = FixedAssetSerializer
     permission_classes = [IsFinanceOrReadOnly]
 
@@ -211,7 +212,7 @@ class FixedAssetViewSet(viewsets.ModelViewSet):
 
 # ---- kegiatan sekolah (Teacher in Charge + Principal) ----
 class KegiatanViewSet(viewsets.ModelViewSet):
-    queryset = Kegiatan.objects.select_related("penanggung_jawab")
+    queryset = Kegiatan.objects.select_related("penanggung_jawab").order_by("-id")
     serializer_class = KegiatanSerializer
     permission_classes = [IsTeacherOrPrincipal]
     filterset_fields = ["status", "penanggung_jawab"]
@@ -250,7 +251,7 @@ class KegiatanViewSet(viewsets.ModelViewSet):
 
 # ---- registrasi calon siswa (Administration) ----
 class PendaftaranSiswaViewSet(viewsets.ModelViewSet):
-    queryset = PendaftaranSiswa.objects.select_related("siswa", "jenjang")
+    queryset = PendaftaranSiswa.objects.select_related("siswa", "jenjang").order_by("-tanggal_daftar")
     serializer_class = PendaftaranSiswaSerializer
     permission_classes = [IsAdministration]
     filterset_fields = ["status"]
