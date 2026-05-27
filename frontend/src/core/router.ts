@@ -43,6 +43,12 @@ const router = createRouter({
           component: () => import("@/features/siswa/SiswaListView.vue"),
           meta: { roles: ["Administration"] as Role[] },
         },
+        {
+          path: "tagihan",
+          name: "tagihan",
+          component: () => import("@/features/tagihan/TagihanListView.vue"),
+          meta: { roles: ["Administration"] as Role[] },
+        },
       ],
     },
   ],

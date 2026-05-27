@@ -91,6 +91,19 @@ class JurnalApiTests(APITestCase):
         self.client.force_authenticate(self.finance)
         self.assertEqual(self.client.get("/api/v1/laporan/neraca-saldo/").status_code, 200)
 
+    def test_pelanggaran_constraint_jadi_400_bukan_500(self):
+        # baris dgn debit & kredit sama-sama > 0 melanggar CHECK one_side_only.
+        self.client.force_authenticate(self.finance)
+        bad = {
+            "no_bukti": "BADC", "tanggal": "2026-02-01", "keterangan": "x",
+            "detail": [
+                {"kode_akun": "1101", "debit": "500", "kredit": "500"},
+                {"kode_akun": "4101", "debit": "500", "kredit": "500"},
+            ],
+        }
+        resp = self.client.post("/api/v1/jurnal/", bad, format="json")
+        self.assertEqual(resp.status_code, 400)  # ditangani exception handler, bukan 500
+
     def test_void_hanya_principal(self):
         # Administration tidak boleh void
         self.client.force_authenticate(self.finance)

@@ -13,6 +13,7 @@ import { useToast } from "primevue/usetoast"
 import { computed, onMounted, reactive, ref } from "vue"
 
 import { coaApi, jurnalApi } from "./api"
+import { notifyError } from "@/core/errors"
 import { useAuthStore } from "@/stores/auth"
 import type { Coa, Jurnal, JurnalStatus } from "@/types/api"
 
@@ -48,8 +49,8 @@ async function load() {
       statusFilter.value ? { status: statusFilter.value } : {},
     )
     rows.value = data.results
-  } catch {
-    toast.add({ severity: "error", summary: "Gagal memuat jurnal", life: 3000 })
+  } catch (e) {
+    notifyError(toast, e, "Gagal memuat jurnal.")
   } finally {
     loading.value = false
   }
@@ -119,13 +120,8 @@ async function save() {
     toast.add({ severity: "success", summary: "Jurnal dibuat (DRAFT)", life: 2500 })
     dialog.value = false
     await load()
-  } catch (e: any) {
-    toast.add({
-      severity: "error",
-      summary: "Gagal membuat jurnal",
-      detail: e?.response?.data?.detail,
-      life: 4000,
-    })
+  } catch (e) {
+    notifyError(toast, e, "Gagal membuat jurnal.")
   } finally {
     saving.value = false
   }
@@ -136,16 +132,8 @@ async function doAction(fn: () => Promise<unknown>, ok: string) {
     await fn()
     toast.add({ severity: "success", summary: ok, life: 2500 })
     await load()
-  } catch (e: any) {
-    toast.add({
-      severity: "error",
-      summary: "Aksi gagal",
-      detail:
-        typeof e?.response?.data === "string"
-          ? e.response.data
-          : e?.response?.data?.detail,
-      life: 4000,
-    })
+  } catch (e) {
+    notifyError(toast, e, "Tindakan gagal diproses.")
   }
 }
 
