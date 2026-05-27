@@ -2,6 +2,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from django.test import TestCase
+from rest_framework.test import APITestCase
 
 from accounts.permissions import _in_groups
 
@@ -26,3 +27,17 @@ class AccountsTests(TestCase):
     def test_superuser_lolos_semua_group(self):
         su = User.objects.create_superuser("boss", "boss@x.id", "x")
         self.assertTrue(_in_groups(su, ("Finance",)))
+
+
+class MeApiTests(APITestCase):
+    def test_me_butuh_login(self):
+        self.assertEqual(self.client.get("/api/v1/auth/me/").status_code, 401)
+
+    def test_me_mengembalikan_role(self):
+        u = User.objects.create_user("u2", password="x")
+        u.groups.add(Group.objects.get(name="Finance"))
+        self.client.force_authenticate(u)
+        r = self.client.get("/api/v1/auth/me/")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["username"], "u2")
+        self.assertIn("Finance", r.data["groups"])
