@@ -14,6 +14,7 @@ import { useToast } from "primevue/usetoast"
 import { onMounted, reactive, ref } from "vue"
 
 import { siswaApi } from "./api"
+import { notifyError } from "@/core/errors"
 import type { Siswa, SiswaStatus } from "@/types/api"
 
 const toast = useToast()
@@ -46,8 +47,8 @@ async function load() {
   try {
     const data = await siswaApi.list(search.value ? { search: search.value } : {})
     rows.value = data.results
-  } catch {
-    toast.add({ severity: "error", summary: "Gagal memuat data", life: 3000 })
+  } catch (e) {
+    notifyError(toast, e, "Gagal memuat data siswa.")
   } finally {
     loading.value = false
   }
@@ -86,8 +87,8 @@ async function save() {
     }
     dialog.value = false
     await load()
-  } catch {
-    toast.add({ severity: "error", summary: "Gagal menyimpan", life: 3000 })
+  } catch (e) {
+    notifyError(toast, e, "Gagal menyimpan data siswa.")
   } finally {
     saving.value = false
   }
@@ -106,8 +107,8 @@ function confirmDelete(row: Siswa) {
         await siswaApi.remove(row.id)
         toast.add({ severity: "success", summary: "Siswa dihapus", life: 2500 })
         await load()
-      } catch {
-        toast.add({ severity: "error", summary: "Gagal menghapus", life: 3000 })
+      } catch (e) {
+        notifyError(toast, e, "Gagal menghapus siswa.")
       }
     },
   })

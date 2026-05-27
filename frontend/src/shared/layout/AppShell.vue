@@ -20,6 +20,7 @@ const allNav: NavItem[] = [
   { label: "Dashboard", icon: "pi pi-th-large", to: "/dashboard", roles: ["Finance", "SchoolPrincipal"] },
   { label: "Jurnal", icon: "pi pi-book", to: "/jurnal", roles: ["Finance", "SchoolPrincipal"] },
   { label: "Siswa", icon: "pi pi-users", to: "/siswa", roles: ["Administration"] },
+  { label: "Tagihan", icon: "pi pi-receipt", to: "/tagihan", roles: ["Administration"] },
 ]
 
 const nav = computed(() => allNav.filter((i) => auth.hasRole(i.roles)))

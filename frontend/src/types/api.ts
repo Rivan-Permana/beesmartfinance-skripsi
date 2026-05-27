@@ -87,6 +87,37 @@ export interface JurnalInput {
   detail: { kode_akun: string; debit: string; kredit: string }[]
 }
 
+export type TagihanStatus = "BELUM" | "SEBAGIAN" | "LUNAS"
+
+export interface TagihanDetail {
+  id?: number
+  komponen: "SPP" | "KATERING" | "JEMPUTAN" | "LAIN"
+  akun_pendapatan: string
+  nominal: string
+}
+
+export interface Tagihan {
+  id: number
+  siswa: number
+  periode_bulan: number
+  periode_tahun: number
+  total: string
+  status: TagihanStatus
+  jurnal: string | null
+  detail: TagihanDetail[]
+}
+
+export interface StrukTagihan {
+  no_tagihan: number
+  siswa: string
+  nis: string | null
+  periode: string
+  status: TagihanStatus
+  rincian: { komponen: string; nominal: string }[]
+  total: string
+  no_jurnal: string | null
+}
+
 export interface DashboardRingkasan {
   kas: string
   total_pendapatan: string
