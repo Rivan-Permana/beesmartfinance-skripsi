@@ -3,6 +3,14 @@ import { createRouter, createWebHistory } from "vue-router"
 import { useAuthStore } from "@/stores/auth"
 import type { Role } from "@/types/api"
 
+/** Halaman awal sesuai role (hindari loop redirect). */
+function roleHome(): string {
+  const auth = useAuthStore()
+  if (auth.hasRole(["Finance", "SchoolPrincipal"])) return "/dashboard"
+  if (auth.hasRole(["Administration"])) return "/siswa"
+  return "/jurnal"
+}
+
 const router = createRouter({
   history: createWebHistory(),
   routes: [
@@ -16,7 +24,19 @@ const router = createRouter({
       path: "/",
       component: () => import("@/shared/layout/AppShell.vue"),
       children: [
-        { path: "", redirect: "/siswa" },
+        { path: "", redirect: () => roleHome() },
+        {
+          path: "dashboard",
+          name: "dashboard",
+          component: () => import("@/features/dashboard/DashboardView.vue"),
+          meta: { roles: ["Finance", "SchoolPrincipal"] as Role[] },
+        },
+        {
+          path: "jurnal",
+          name: "jurnal",
+          component: () => import("@/features/jurnal/JurnalListView.vue"),
+          meta: { roles: ["Finance", "SchoolPrincipal"] as Role[] },
+        },
         {
           path: "siswa",
           name: "siswa",
@@ -38,7 +58,7 @@ router.beforeEach(async (to) => {
   }
   const roles = to.meta.roles as Role[] | undefined
   if (roles && !auth.hasRole(roles)) {
-    return { path: "/" }
+    return roleHome()
   }
   return true
 })

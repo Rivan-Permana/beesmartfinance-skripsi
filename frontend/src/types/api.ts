@@ -48,3 +48,49 @@ export interface Siswa {
 }
 
 export type SiswaInput = Omit<Siswa, "id">
+
+// --- Accounting ---
+export interface Coa {
+  kode_akun: string
+  nama_akun: string
+  posisi_normal: "D" | "K"
+  is_active: boolean
+}
+
+export type JurnalStatus = "DRAFT" | "PENDING" | "POSTED" | "VOID"
+
+export interface JurnalDetail {
+  id?: number
+  kode_akun: string
+  debit: string
+  kredit: string
+}
+
+export interface Jurnal {
+  id: string
+  no_bukti: string
+  tanggal: string
+  keterangan: string | null
+  tipe_sumber: string
+  status: JurnalStatus
+  created_by: number | null
+  approved_by: number | null
+  posted_at: string | null
+  is_deleted: boolean
+  detail: JurnalDetail[]
+}
+
+export interface JurnalInput {
+  no_bukti: string
+  tanggal: string
+  keterangan?: string
+  detail: { kode_akun: string; debit: string; kredit: string }[]
+}
+
+export interface DashboardRingkasan {
+  kas: string
+  total_pendapatan: string
+  total_beban: string
+  surplus_defisit: string
+  anggaran: { pagu: string | number; realisasi: string | number }
+}
