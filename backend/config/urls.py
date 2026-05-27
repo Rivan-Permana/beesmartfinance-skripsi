@@ -12,6 +12,7 @@ class ThrottledTokenObtainPairView(TokenObtainPairView):
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "login"
 
+from accounts.api import MeView
 from accounting.api import (
     MsCoaViewSet,
     MsGolonganViewSet,
@@ -80,6 +81,7 @@ api_v1 = [
     # auth (JWT)
     path("auth/token/", ThrottledTokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("auth/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
+    path("auth/me/", MeView.as_view(), name="me"),
     # resources
     path("", include(router.urls)),
     # laporan & dashboard

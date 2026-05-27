@@ -1,8 +1,75 @@
 # 🎨 Frontend Migration Guide
 
-> Panduan lengkap migrasi dari AdminLTE + jQuery ke Vue.js 3 + Vuetify
+> Panduan migrasi frontend ke SPA modern.
+>
+> ⚠️ **REVISI FINAL (berlaku) — lihat bagian "Rencana Final" di bawah.**
+> Bagian lama (Vuetify) dipertahankan sebagai referensi historis, namun
+> **keputusan final memakai PrimeVue + TypeScript** sesuai ringkasan berikut.
 
-## 📑 Table of Contents
+---
+
+## ✅ Rencana Final Frontend (revisi)
+
+### Tech stack final
+- **Vite + Vue 3 + TypeScript** (`<script setup lang="ts">`, `strict`)
+- **PrimeVue 4** (komponen) + **@primeuix/themes** (Aura + preset brand)
+- **Pinia** (state), **Vue Router** (+ guard RBAC), **Axios** (client + interceptor JWT/refresh)
+- Tipe API idealnya **di-generate dari OpenAPI** (`/api/schema`) agar sinkron dgn backend
+
+### Tema: "Branded-Professional"
+Layout **dashboard admin** (sidebar navy + topbar + konten terang), bukan kloning
+landing page. Brand sekolah masuk sebagai **aksen** (bukan dekorasi penuh) demi
+keterbacaan untuk staf harian (termasuk pengguna kurang tech-savvy).
+
+Palette (dari web compro `sekolahlebahmadu.com`):
+- Orange `#F5A623` · Magenta `#E5197F` (primary) · Navy `#2E2A6E` (sidebar/heading)
+- Sky Blue `#4FB0DB` · Cream `#F5EDD6` (aksen) · workspace terang `#F6F7FB`
+- Font: **Nunito Sans** (body) + **Baloo 2** (heading/brand), logo lebah 🐝
+
+### Struktur folder (feature-based, selaras backend)
+```
+frontend/src/
+├── core/        theme.ts · api.ts (axios+interceptor) · router.ts
+├── stores/      auth.ts (Pinia: token, user, role, hasRole)
+├── types/       api.ts (DTO domain; calon hasil generate OpenAPI)
+├── shared/      layout/AppShell.vue (sidebar navy + topbar)
+└── features/    <domain>/  (views, components, api.ts)
+                 auth/ · siswa/ · (jurnal, tagihan, gaji, dst — menyusul)
+```
+
+### Auth & RBAC
+- Login → JWT (access+refresh) di `localStorage`; `auth/me` ambil role (Groups).
+- **Route guard** + menu/aksi tampil per role (Finance/SchoolPrincipal/
+  Administration/TeacherInCharge) — cermin RBAC backend. UI gating ≠ security
+  boundary; server tetap otoritatif.
+- Axios interceptor: inject `Bearer`, auto-refresh saat 401, logout bila gagal.
+
+### Konsistensi BE↔FE
+- Konsumsi **`/api/v1/`**; istilah & status domain (DRAFT/PENDING/POSTED, dll)
+  persis backend; nominal `Decimal` ditangani aman (hindari float liar).
+
+### Peta modul → endpoint (acuan implementasi bertahap)
+| Modul FE | Endpoint utama | Role |
+|---|---|---|
+| Login / sesi | `auth/token`, `auth/token/refresh`, `auth/me` | semua |
+| Siswa (✅ fondasi) | `siswa/` | Administration |
+| Jurnal + maker-checker | `jurnal/` (+`submit`/`approve`/`void`) | Finance/Principal |
+| Tagihan + bayar/struk | `tagihan/` (+`generate`/`bayar`/`struk`) | Administration |
+| Pegawai/Gaji/Pinjaman | `pegawai/`,`gaji/`(+`posting`),`pinjaman/`(+`cairkan`) | Finance/Principal |
+| Aset | `aset/`(+`susutkan`) | Finance |
+| Kegiatan | `kegiatan/`(+`realisasi`/`laporan`) | Teacher/Principal |
+| Anggaran/Periode | `anggaran/`,`periode/`(+`tutup`) | Finance/Principal |
+| Laporan & Dashboard | `laporan/*`,`dashboard/*` | Finance/Principal |
+
+### Status implementasi
+- ✅ Fondasi: scaffold, tema brand, auth JWT+refresh, guard RBAC, AppShell,
+  modul **Siswa** CRUD end-to-end (PrimeVue DataTable/Dialog/Toast/Confirm).
+  Build (`vue-tsc` + `vite build`) hijau.
+- ⬜ Berikutnya: modul lain mengikuti peta di atas + dashboard/laporan.
+
+---
+
+## 📑 Table of Contents (dokumen lama — referensi)
 
 - [Overview](#overview)
 - [Technology Stack](#technology-stack)

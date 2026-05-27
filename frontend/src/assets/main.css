@@ -1,0 +1,47 @@
+:root {
+  /* Palette brand Sekolah Lebah Madu */
+  --bee-orange: #f5a623;
+  --bee-magenta: #e5197f;
+  --bee-navy: #2e2a6e;
+  --bee-navy-700: #3a3690;
+  --bee-blue: #4fb0db;
+  --bee-cream: #f5edd6;
+
+  /* Workspace (Branded-Professional: terang & kontras tinggi) */
+  --app-bg: #f6f7fb;
+  --app-surface: #ffffff;
+  --app-border: #e5e7eb;
+  --app-text: #1f2430;
+  --app-text-muted: #6b7280;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: "Nunito Sans", system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  background: var(--app-bg);
+  color: var(--app-text);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+/* Heading sedikit lebih berkarakter (brand) tapi tetap terbaca */
+h1, h2, h3 {
+  font-family: "Baloo 2", "Nunito Sans", system-ui, sans-serif;
+  color: var(--bee-navy);
+  margin: 0 0 0.25rem;
+}
+
+a {
+  color: var(--bee-magenta);
+  text-decoration: none;
+}
