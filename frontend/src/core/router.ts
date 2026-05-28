@@ -67,6 +67,18 @@ const router = createRouter({
           component: () => import("@/features/kepegawaian/PinjamanListView.vue"),
           meta: { roles: ["Finance", "SchoolPrincipal"] as Role[] },
         },
+        {
+          path: "aset",
+          name: "aset",
+          component: () => import("@/features/aset/AsetListView.vue"),
+          meta: { roles: ["Finance", "SchoolPrincipal"] as Role[] },
+        },
+        {
+          path: "kegiatan",
+          name: "kegiatan",
+          component: () => import("@/features/kegiatan/KegiatanListView.vue"),
+          meta: { roles: ["TeacherInCharge", "SchoolPrincipal"] as Role[] },
+        },
       ],
     },
   ],
