@@ -34,7 +34,11 @@ class KegiatanViewSet(viewsets.ModelViewSet):
             )
         except (KeyError, ValueError) as exc:
             raise ValidationError(str(exc))
-        return Response({"realisasi_id": r.id, "jurnal_id": str(r.jurnal_id)}, status=201)
+        return Response({
+            "detail": "Realisasi kegiatan tercatat dan dijurnal sebagai DRAFT.",
+            "realisasi_id": r.id,
+            "jurnal_id": str(r.jurnal_id),
+        }, status=201)
 
     @action(detail=True, methods=["get"])
     def laporan(self, request, pk=None):

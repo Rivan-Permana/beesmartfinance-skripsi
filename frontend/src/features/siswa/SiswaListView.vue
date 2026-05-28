@@ -14,7 +14,7 @@ import { useToast } from "primevue/usetoast"
 import { onMounted, reactive, ref } from "vue"
 
 import { siswaApi } from "./api"
-import { notifyError } from "@/core/errors"
+import { notifyError, notifySuccess } from "@/core/errors"
 import type { Siswa, SiswaStatus } from "@/types/api"
 
 const toast = useToast()
@@ -80,10 +80,10 @@ async function save() {
   try {
     if (editingId.value) {
       await siswaApi.update(editingId.value, form)
-      toast.add({ severity: "success", summary: "Siswa diperbarui", life: 2500 })
+      notifySuccess(toast, "Data siswa diperbarui")
     } else {
       await siswaApi.create(form)
-      toast.add({ severity: "success", summary: "Siswa ditambahkan", life: 2500 })
+      notifySuccess(toast, "Siswa baru ditambahkan")
     }
     dialog.value = false
     await load()
@@ -105,7 +105,7 @@ function confirmDelete(row: Siswa) {
     accept: async () => {
       try {
         await siswaApi.remove(row.id)
-        toast.add({ severity: "success", summary: "Siswa dihapus", life: 2500 })
+        notifySuccess(toast, "Siswa dihapus")
         await load()
       } catch (e) {
         notifyError(toast, e, "Gagal menghapus siswa.")

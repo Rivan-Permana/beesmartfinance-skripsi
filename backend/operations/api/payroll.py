@@ -24,7 +24,10 @@ class PinjamanPegawaiViewSet(viewsets.ModelViewSet):
             jurnal = post_pencairan_kasbon(self.get_object(), user=request.user)
         except ValueError as exc:
             raise ValidationError(str(exc))
-        return Response({"jurnal_id": str(jurnal.id)})
+        return Response({
+            "detail": "Kasbon berhasil dicairkan dan dijurnal sebagai DRAFT.",
+            "jurnal_id": str(jurnal.id),
+        })
 
 
 class GajiPegawaiViewSet(viewsets.ModelViewSet):
@@ -39,4 +42,7 @@ class GajiPegawaiViewSet(viewsets.ModelViewSet):
             jurnal = post_gaji(self.get_object(), user=request.user)
         except ValueError as exc:
             raise ValidationError(str(exc))
-        return Response({"jurnal_id": str(jurnal.id)})
+        return Response({
+            "detail": "Gaji berhasil dijurnal sebagai DRAFT — menunggu approval.",
+            "jurnal_id": str(jurnal.id),
+        })

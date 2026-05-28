@@ -24,4 +24,7 @@ class FixedAssetViewSet(viewsets.ModelViewSet):
             jurnal = post_penyusutan(self.get_object(), user=request.user)
         except ValueError as exc:
             raise ValidationError(str(exc))
-        return Response({"jurnal_id": str(jurnal.id)})
+        return Response({
+            "detail": "Penyusutan aset tercatat dan dijurnal sebagai DRAFT.",
+            "jurnal_id": str(jurnal.id),
+        })
