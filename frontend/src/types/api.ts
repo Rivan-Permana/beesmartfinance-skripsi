@@ -161,6 +161,46 @@ export interface Pinjaman {
   jurnal: string | null
 }
 
+// --- Aset & Kegiatan ---
+export interface FixedAsset {
+  id: number
+  nama: string
+  akun_aset: string
+  akun_akumulasi: string
+  akun_beban_depr: string
+  tanggal_perolehan: string
+  harga_perolehan: string
+  umur_manfaat_bulan: number
+  metode: "garis_lurus"
+  akumulasi_penyusutan: string
+  penyusutan_per_bulan: string
+}
+
+export type KegiatanStatus = "RENCANA" | "BERJALAN" | "SELESAI"
+
+export interface Kegiatan {
+  id: number
+  nama: string
+  akun_beban: string
+  pagu: string
+  penanggung_jawab: number | null
+  tanggal_mulai: string | null
+  tanggal_selesai: string | null
+  status: KegiatanStatus
+  realisasi: string
+  sisa_pagu: string
+  rasio_utilisasi: number
+}
+
+export interface LaporanKegiatan {
+  kegiatan: string
+  pagu: string
+  realisasi: string
+  sisa_pagu: string
+  rasio_utilisasi: number
+  rincian: { tanggal: string; deskripsi: string; nominal: string }[]
+}
+
 export interface DashboardRingkasan {
   kas: string
   total_pendapatan: string

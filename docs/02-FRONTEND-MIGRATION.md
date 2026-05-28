@@ -62,10 +62,24 @@ frontend/src/
 | Laporan & Dashboard | `laporan/*`,`dashboard/*` | Finance/Principal |
 
 ### Status implementasi
-- ✅ Fondasi: scaffold, tema brand, auth JWT+refresh, guard RBAC, AppShell,
-  modul **Siswa** CRUD end-to-end (PrimeVue DataTable/Dialog/Toast/Confirm).
-  Build (`vue-tsc` + `vite build`) hijau.
-- ⬜ Berikutnya: modul lain mengikuti peta di atas + dashboard/laporan.
+- ✅ Fondasi: scaffold, tema brand, auth JWT+refresh, guard RBAC + role-aware
+  home redirect, AppShell (sidebar navy + topbar).
+- ✅ Pesan ramah terpusat: `core/errors.ts` (`notifyError`, `notifySuccess`)
+  — pesan Indonesia kontekstual untuk pegawai (401/403/404/429/500/koneksi/
+  validasi + sukses dengan `detail` dari backend).
+- ✅ Modul terimplementasi:
+  - **Siswa** (Administration) — CRUD
+  - **Tagihan** (Administration) — list + generate + bayar + struk
+  - **Dashboard** (Finance/Principal) — KPI + realisasi anggaran
+  - **Jurnal** (Finance/Principal) — list + buat (multi-baris, cek balance)
+    + alur maker-checker (submit/approve/void)
+  - **Pegawai** (Finance/Principal baca; Finance tulis) — CRUD
+  - **Gaji** (Finance/Principal baca; Finance tulis) — list + buat slip + posting
+  - **Kasbon/Pinjaman** (Finance/Principal baca; Finance tulis) — list + ajukan + cairkan
+  - **Aset** (Finance/Principal) — list + tambah + susutkan
+  - **Kegiatan** (Teacher/Principal) — list + buat + realisasi + laporan utilisasi
+- ⬜ Berikutnya: Anggaran/Periode (CRUD + tutup), Laporan detail
+  (neraca-saldo, laba-rugi, posisi-keuangan, realisasi-anggaran, buku-besar).
 
 ---
 

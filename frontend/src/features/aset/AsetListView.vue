@@ -1,0 +1,211 @@
+<script setup lang="ts">
+import Button from "primevue/button"
+import Column from "primevue/column"
+import DataTable from "primevue/datatable"
+import DatePicker from "primevue/datepicker"
+import Dialog from "primevue/dialog"
+import InputNumber from "primevue/inputnumber"
+import InputText from "primevue/inputtext"
+import Select from "primevue/select"
+import { useConfirm } from "primevue/useconfirm"
+import { useToast } from "primevue/usetoast"
+import { computed, onMounted, reactive, ref } from "vue"
+
+import { asetApi } from "./api"
+import { notifyError, notifySuccess } from "@/core/errors"
+import { coaApi } from "@/features/jurnal/api"
+import { useAuthStore } from "@/stores/auth"
+import type { Coa, FixedAsset } from "@/types/api"
+
+const auth = useAuthStore()
+const toast = useToast()
+const confirm = useConfirm()
+
+const rows = ref<FixedAsset[]>([])
+const coaList = ref<Coa[]>([])
+const loading = ref(false)
+const canWrite = computed(() => auth.hasRole(["Finance"]))
+
+function rp(v: string | number | null | undefined) {
+  return "Rp " + Number(v ?? 0).toLocaleString("id-ID")
+}
+
+async function load() {
+  loading.value = true
+  try {
+    rows.value = (await asetApi.list()).results
+  } catch (e) {
+    notifyError(toast, e, "Gagal memuat data aset.")
+  } finally {
+    loading.value = false
+  }
+}
+
+const dialog = ref(false)
+const saving = ref(false)
+const form = reactive<{
+  nama: string
+  akun_aset: string | null
+  akun_akumulasi: string | null
+  akun_beban_depr: string | null
+  tanggal_perolehan: Date
+  harga_perolehan: number
+  umur_manfaat_bulan: number
+}>({
+  nama: "",
+  akun_aset: null,
+  akun_akumulasi: null,
+  akun_beban_depr: null,
+  tanggal_perolehan: new Date(),
+  harga_perolehan: 0,
+  umur_manfaat_bulan: 12,
+})
+
+function openCreate() {
+  form.nama = ""
+  form.akun_aset = null
+  form.akun_akumulasi = null
+  form.akun_beban_depr = null
+  form.tanggal_perolehan = new Date()
+  form.harga_perolehan = 0
+  form.umur_manfaat_bulan = 12
+  dialog.value = true
+}
+
+const formValid = computed(
+  () =>
+    form.nama.trim() !== "" &&
+    !!form.akun_aset &&
+    !!form.akun_akumulasi &&
+    !!form.akun_beban_depr &&
+    form.harga_perolehan > 0 &&
+    form.umur_manfaat_bulan > 0,
+)
+
+async function save() {
+  saving.value = true
+  try {
+    await asetApi.create({
+      nama: form.nama,
+      akun_aset: form.akun_aset as string,
+      akun_akumulasi: form.akun_akumulasi as string,
+      akun_beban_depr: form.akun_beban_depr as string,
+      tanggal_perolehan: form.tanggal_perolehan.toISOString().slice(0, 10),
+      harga_perolehan: String(form.harga_perolehan),
+      umur_manfaat_bulan: form.umur_manfaat_bulan,
+    })
+    notifySuccess(toast, "Aset tetap ditambahkan")
+    dialog.value = false
+    await load()
+  } catch (e) {
+    notifyError(toast, e, "Gagal menyimpan data aset.")
+  } finally {
+    saving.value = false
+  }
+}
+
+function susutkan(a: FixedAsset) {
+  confirm.require({
+    message: `Catat penyusutan ${a.nama} sebesar ${rp(a.penyusutan_per_bulan)} bulan ini? Jurnal beban penyusutan akan dibuat otomatis.`,
+    header: "Konfirmasi Penyusutan",
+    icon: "pi pi-chart-bar",
+    rejectLabel: "Batal",
+    acceptLabel: "Catat Penyusutan",
+    accept: async () => {
+      try {
+        const res = await asetApi.susutkan(a.id)
+        notifySuccess(toast, "Penyusutan tercatat", res)
+        await load()
+      } catch (e) {
+        notifyError(toast, e, "Gagal mencatat penyusutan.")
+      }
+    },
+  })
+}
+
+onMounted(async () => {
+  await load()
+  try {
+    coaList.value = await coaApi.list()
+  } catch {
+    /* dropdown akun kosong jika gagal */
+  }
+})
+</script>
+
+<template>
+  <div class="page">
+    <div class="page-head">
+      <h1>Aset Tetap</h1>
+      <Button v-if="canWrite" label="Tambah Aset" icon="pi pi-plus" @click="openCreate" />
+    </div>
+
+    <DataTable :value="rows" :loading="loading" paginator :rows="10" data-key="id" striped-rows>
+      <template #empty>Belum ada aset tetap.</template>
+      <Column field="nama" header="Nama Aset" />
+      <Column field="tanggal_perolehan" header="Diperoleh" />
+      <Column header="Harga"><template #body="{ data }">{{ rp(data.harga_perolehan) }}</template></Column>
+      <Column header="Umur">
+        <template #body="{ data }">{{ data.umur_manfaat_bulan }} bln</template>
+      </Column>
+      <Column header="Akumulasi"><template #body="{ data }">{{ rp(data.akumulasi_penyusutan) }}</template></Column>
+      <Column header="Penyusutan / bulan"><template #body="{ data }">{{ rp(data.penyusutan_per_bulan) }}</template></Column>
+      <Column header="Aksi" style="width: 11rem">
+        <template #body="{ data }">
+          <Button
+            v-if="canWrite"
+            label="Susutkan"
+            size="small"
+            text
+            @click="susutkan(data)"
+          />
+        </template>
+      </Column>
+    </DataTable>
+
+    <Dialog v-model:visible="dialog" header="Tambah Aset Tetap" modal :style="{ width: '34rem' }">
+      <div class="form-grid">
+        <div class="field span2">
+          <label>Nama Aset *</label>
+          <InputText v-model="form.nama" fluid />
+        </div>
+        <div class="field">
+          <label>Tanggal Perolehan</label>
+          <DatePicker v-model="form.tanggal_perolehan" date-format="yy-mm-dd" fluid />
+        </div>
+        <div class="field">
+          <label>Harga Perolehan</label>
+          <InputNumber v-model="form.harga_perolehan" :min="0" fluid />
+        </div>
+        <div class="field">
+          <label>Umur Manfaat (bulan)</label>
+          <InputNumber v-model="form.umur_manfaat_bulan" :min="1" fluid />
+        </div>
+        <div class="field">
+          <label>Akun Aset *</label>
+          <Select v-model="form.akun_aset" :options="coaList" option-label="nama_akun" option-value="kode_akun" filter placeholder="Pilih" fluid />
+        </div>
+        <div class="field">
+          <label>Akun Akumulasi *</label>
+          <Select v-model="form.akun_akumulasi" :options="coaList" option-label="nama_akun" option-value="kode_akun" filter placeholder="Pilih" fluid />
+        </div>
+        <div class="field">
+          <label>Akun Beban Penyusutan *</label>
+          <Select v-model="form.akun_beban_depr" :options="coaList" option-label="nama_akun" option-value="kode_akun" filter placeholder="Pilih" fluid />
+        </div>
+      </div>
+      <template #footer>
+        <Button label="Batal" severity="secondary" text @click="dialog = false" />
+        <Button label="Simpan" :disabled="!formValid" :loading="saving" @click="save" />
+      </template>
+    </Dialog>
+  </div>
+</template>
+
+<style scoped>
+.page-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; }
+.field { display: flex; flex-direction: column; gap: 0.3rem; }
+.field.span2 { grid-column: 1 / -1; }
+.field label { font-weight: 600; font-size: 0.85rem; }
+</style>
