@@ -13,6 +13,14 @@ import "./assets/main.css"
 
 const app = createApp(App)
 
+// Logger error global utk runtime errors yg lolos ErrorBoundary.
+app.config.errorHandler = (err, _instance, info) => {
+  console.error("[App error]", info, err)
+}
+window.addEventListener("unhandledrejection", (event) => {
+  console.error("[Unhandled promise]", event.reason)
+})
+
 app.use(createPinia())
 app.use(router)
 app.use(PrimeVue, {
