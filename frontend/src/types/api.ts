@@ -269,3 +269,22 @@ export interface DashboardRingkasan {
   surplus_defisit: string
   anggaran: { pagu: string | number; realisasi: string | number }
 }
+
+export interface LabaRugiBulananRow {
+  bulan: number
+  pendapatan: number
+  beban: number
+}
+export interface LabaRugiBulananResult {
+  tahun: number
+  data: LabaRugiBulananRow[]
+}
+
+export interface PrediksiKasRow {
+  periode: string
+  tahun: number
+  bulan: number
+  arus_kas_masuk: string
+  arus_kas_keluar: string
+  net_cash_flow_bulanan: string
+}

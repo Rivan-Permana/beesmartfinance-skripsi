@@ -949,6 +949,22 @@ paths:
       responses:
         '204':
           description: No response body
+  /api/v1/dashboard/laba-rugi-bulanan/:
+    get:
+      operationId: v1_dashboard_laba_rugi_bulanan_retrieve
+      description: Agregasi pendapatan & beban per bulan untuk tahun tertentu.
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
   /api/v1/dashboard/prediksi-kas/:
     get:
       operationId: v1_dashboard_prediksi_kas_retrieve
