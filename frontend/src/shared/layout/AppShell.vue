@@ -26,6 +26,9 @@ const allNav: NavItem[] = [
   { label: "Kasbon", icon: "pi pi-credit-card", to: "/pinjaman", roles: ["Finance", "SchoolPrincipal"] },
   { label: "Aset", icon: "pi pi-box", to: "/aset", roles: ["Finance", "SchoolPrincipal"] },
   { label: "Kegiatan", icon: "pi pi-flag", to: "/kegiatan", roles: ["TeacherInCharge", "SchoolPrincipal"] },
+  { label: "Anggaran", icon: "pi pi-chart-pie", to: "/anggaran", roles: ["Finance", "SchoolPrincipal"] },
+  { label: "Periode", icon: "pi pi-calendar", to: "/periode", roles: ["Finance", "SchoolPrincipal"] },
+  { label: "Laporan", icon: "pi pi-file", to: "/laporan", roles: ["Finance", "SchoolPrincipal"] },
 ]
 
 const nav = computed(() => allNav.filter((i) => auth.hasRole(i.roles)))

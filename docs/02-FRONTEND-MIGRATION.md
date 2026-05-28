@@ -78,8 +78,15 @@ frontend/src/
   - **Kasbon/Pinjaman** (Finance/Principal baca; Finance tulis) — list + ajukan + cairkan
   - **Aset** (Finance/Principal) — list + tambah + susutkan
   - **Kegiatan** (Teacher/Principal) — list + buat + realisasi + laporan utilisasi
-- ⬜ Berikutnya: Anggaran/Periode (CRUD + tutup), Laporan detail
-  (neraca-saldo, laba-rugi, posisi-keuangan, realisasi-anggaran, buku-besar).
+  - **Anggaran** (Finance/Principal) — CRUD pagu per akun + carry-over
+  - **Periode Akuntansi** (Finance/Principal) — list + buat + tutup buku
+    (jurnal penutup nominal -> ekuitas) oleh Principal
+  - **Laporan** (Finance/Principal) — tabbed: Neraca Saldo, Laba Rugi,
+    Posisi Keuangan, Realisasi Anggaran (per tahun), Buku Besar (per akun
+    dengan saldo berjalan)
+- 🎉 **Semua peta modul→endpoint dari rencana final selesai.** Sisa di
+  luar scope FE inti: deployment, generator tipe OpenAPI otomatis, dan
+  fitur produksi (i18n lanjut, PWA, dll).
 
 ---
 
