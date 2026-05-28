@@ -25,6 +25,7 @@ from accounting.reports import (
     AuditLogViewSet,
     BukuBesarView,
     DashboardRingkasanView,
+    LabaRugiBulananView,
     LabaRugiView,
     NeracaSaldoView,
     PosisiKeuanganView,
@@ -92,6 +93,7 @@ api_v1 = [
     path("laporan/buku-besar/<str:kode_akun>/", BukuBesarView.as_view()),
     path("dashboard/ringkasan/", DashboardRingkasanView.as_view()),
     path("dashboard/prediksi-kas/", PrediksiKasView.as_view()),
+    path("dashboard/laba-rugi-bulanan/", LabaRugiBulananView.as_view()),
 ]
 
 urlpatterns = [

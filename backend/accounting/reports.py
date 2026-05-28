@@ -130,6 +130,52 @@ class PrediksiKasView(APIView):
         return Response(_rows("SELECT * FROM v_dataset_prediksi_kas"))
 
 
+@extend_schema(responses=OpenApiTypes.OBJECT)
+class LabaRugiBulananView(APIView):
+    """Agregasi pendapatan & beban per bulan untuk tahun tertentu."""
+
+    permission_classes = [IsFinanceOrPrincipal]
+
+    def get(self, request):
+        try:
+            tahun = int(request.query_params.get("tahun") or 0)
+        except ValueError:
+            tahun = 0
+        if not tahun:
+            from datetime import date
+            tahun = date.today().year
+
+        rows = _rows(
+            """
+            SELECT
+              EXTRACT(MONTH FROM j.tanggal)::int AS bulan,
+              substring(c.kode_akun FROM 1 FOR 1) AS gol,
+              SUM(d.debit)  AS deb,
+              SUM(d.kredit) AS kre
+            FROM tr_jurnal_detail d
+            JOIN tr_jurnal j ON j.id = d.jurnal_id
+            JOIN ms_coa c ON c.kode_akun = d.kode_akun
+            WHERE j.status = 'POSTED' AND NOT j.is_deleted
+              AND EXTRACT(YEAR FROM j.tanggal) = %s
+              AND substring(c.kode_akun FROM 1 FOR 1) IN ('4','5')
+            GROUP BY 1, 2
+            ORDER BY 1
+            """,
+            [tahun],
+        )
+
+        bulanan = {m: {"bulan": m, "pendapatan": 0, "beban": 0} for m in range(1, 13)}
+        for r in rows:
+            m = r["bulan"]
+            deb, kre = float(r["deb"] or 0), float(r["kre"] or 0)
+            if r["gol"] == "4":
+                bulanan[m]["pendapatan"] += kre - deb
+            else:
+                bulanan[m]["beban"] += deb - kre
+
+        return Response({"tahun": tahun, "data": list(bulanan.values())})
+
+
 class AuditLogSerializer(serializers.ModelSerializer):
     class Meta:
         model = AuditLog

@@ -1,8 +1,11 @@
+import { Chart as ChartJS, registerables } from "chart.js"
 import { createPinia } from "pinia"
 import PrimeVue from "primevue/config"
 import ConfirmationService from "primevue/confirmationservice"
 import ToastService from "primevue/toastservice"
 import { createApp } from "vue"
+
+ChartJS.register(...registerables)
 
 import App from "./App.vue"
 import { BeePreset } from "./core/theme"

@@ -266,6 +266,23 @@ export interface paths {
         patch: operations["v1_coa_partial_update"];
         trace?: never;
     };
+    "/api/v1/dashboard/laba-rugi-bulanan/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Agregasi pendapatan & beban per bulan untuk tahun tertentu. */
+        get: operations["v1_dashboard_laba_rugi_bulanan_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/dashboard/prediksi-kas/": {
         parameters: {
             query?: never;
@@ -2943,6 +2960,27 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MsCoa"];
+                };
+            };
+        };
+    };
+    v1_dashboard_laba_rugi_bulanan_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
