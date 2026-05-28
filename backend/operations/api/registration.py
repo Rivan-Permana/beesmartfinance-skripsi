@@ -27,7 +27,10 @@ class PendaftaranSiswaViewSet(viewsets.ModelViewSet):
             jurnal = post_bayar_sitin(self.get_object(), user=request.user)
         except ValueError as exc:
             raise ValidationError(str(exc))
-        return Response({"jurnal_id": str(jurnal.id)})
+        return Response({
+            "detail": "Pembayaran sit-in tercatat dan dijurnal sebagai DRAFT.",
+            "jurnal_id": str(jurnal.id),
+        })
 
     @action(detail=True, methods=["post"])
     def finalisasi(self, request, pk=None):

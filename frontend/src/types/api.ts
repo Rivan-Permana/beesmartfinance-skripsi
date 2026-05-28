@@ -118,6 +118,49 @@ export interface StrukTagihan {
   no_jurnal: string | null
 }
 
+// --- Kepegawaian ---
+export interface Pegawai {
+  id: number
+  nip: string | null
+  nama: string
+  jabatan: string | null
+  nomor_hp: string | null
+  alamat: string | null
+  status_aktif: boolean
+  user: number | null
+}
+export type PegawaiInput = Omit<Pegawai, "id">
+
+export interface Gaji {
+  id: number
+  pegawai: number
+  periode_bulan: number
+  periode_tahun: number
+  gaji_pokok: string
+  tunjangan_jabatan: string
+  tunjangan_pengabdian: string
+  transport: string
+  bonus_insentif: string
+  thr: string
+  potongan_pinjaman: string
+  potongan_asuransi: string
+  total_bruto: string
+  total_netto: string
+  jurnal: string | null
+}
+
+export interface Pinjaman {
+  id: number
+  pegawai: number
+  tanggal_pinjaman: string
+  jumlah_pinjaman: string
+  tenor_bulan: number
+  angsuran_per_bulan: string
+  sudah_terbayar: string
+  sisa_pinjaman: string
+  jurnal: string | null
+}
+
 export interface DashboardRingkasan {
   kas: string
   total_pendapatan: string

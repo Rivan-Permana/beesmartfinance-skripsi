@@ -61,9 +61,11 @@ class MsPeriodeAkuntansiViewSet(viewsets.ModelViewSet):
             jurnal = close_period(periode, user=request.user)
         except ValueError as exc:
             raise ValidationError(str(exc))
-        return Response(
-            {"periode": self.get_serializer(periode).data, "jurnal_penutup": str(jurnal.id)}
-        )
+        return Response({
+            "detail": f"Periode {periode.kode} berhasil ditutup; jurnal penutup dibuat.",
+            "periode": self.get_serializer(periode).data,
+            "jurnal_penutup": str(jurnal.id),
+        })
 
 
 class TrAnggaranViewSet(viewsets.ModelViewSet):
@@ -139,6 +141,7 @@ class TrJurnalViewSet(viewsets.ModelViewSet):
             pembalik = post_reversal(jurnal, user=request.user)
         except ValueError as exc:
             raise ValidationError(str(exc))
-        return Response(
-            {"pembalik": self.get_serializer(pembalik).data}, status=status.HTTP_201_CREATED
-        )
+        return Response({
+            "detail": "Jurnal berhasil dibatalkan via jurnal pembalik.",
+            "pembalik": self.get_serializer(pembalik).data,
+        }, status=status.HTTP_201_CREATED)

@@ -13,7 +13,7 @@ import { useToast } from "primevue/usetoast"
 import { computed, onMounted, reactive, ref } from "vue"
 
 import { coaApi, jurnalApi } from "./api"
-import { notifyError } from "@/core/errors"
+import { notifyError, notifySuccess } from "@/core/errors"
 import { useAuthStore } from "@/stores/auth"
 import type { Coa, Jurnal, JurnalStatus } from "@/types/api"
 
@@ -117,7 +117,7 @@ async function save() {
         kredit: String(d.kredit || 0),
       })),
     })
-    toast.add({ severity: "success", summary: "Jurnal dibuat (DRAFT)", life: 2500 })
+    notifySuccess(toast, "Jurnal dibuat sebagai DRAFT")
     dialog.value = false
     await load()
   } catch (e) {
@@ -129,8 +129,8 @@ async function save() {
 
 async function doAction(fn: () => Promise<unknown>, ok: string) {
   try {
-    await fn()
-    toast.add({ severity: "success", summary: ok, life: 2500 })
+    const res = await fn()
+    notifySuccess(toast, ok, res)
     await load()
   } catch (e) {
     notifyError(toast, e, "Tindakan gagal diproses.")

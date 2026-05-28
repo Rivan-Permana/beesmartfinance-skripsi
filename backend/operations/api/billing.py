@@ -38,9 +38,11 @@ class TagihanViewSet(viewsets.ModelViewSet):
             jurnal = post_pembayaran_tagihan(tagihan, user=request.user)
         except ValueError as exc:
             raise ValidationError(str(exc))
-        return Response(
-            {"tagihan": self.get_serializer(tagihan).data, "jurnal_id": str(jurnal.id)}
-        )
+        return Response({
+            "detail": "Pembayaran tercatat — jurnal pendapatan DRAFT telah dibuat.",
+            "tagihan": self.get_serializer(tagihan).data,
+            "jurnal_id": str(jurnal.id),
+        })
 
     @action(detail=False, methods=["post"])
     def generate(self, request):

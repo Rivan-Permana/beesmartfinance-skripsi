@@ -11,7 +11,7 @@ import { useToast } from "primevue/usetoast"
 import { computed, onMounted, reactive, ref } from "vue"
 
 import { tagihanApi } from "./api"
-import { notifyError } from "@/core/errors"
+import { notifyError, notifySuccess } from "@/core/errors"
 import { siswaApi } from "@/features/siswa/api"
 import type { Siswa, StrukTagihan, Tagihan, TagihanStatus } from "@/types/api"
 
@@ -83,7 +83,7 @@ async function generate() {
       periode_tahun: form.periode_tahun,
       tarif_katering: form.tarif_katering || 0,
     })
-    toast.add({ severity: "success", summary: "Tagihan dibuat", life: 2500 })
+    notifySuccess(toast, "Tagihan berhasil dibuat")
     dialog.value = false
     await load()
   } catch (e) {
@@ -102,8 +102,8 @@ function bayar(t: Tagihan) {
     acceptLabel: "Bayar",
     accept: async () => {
       try {
-        await tagihanApi.bayar(t.id)
-        toast.add({ severity: "success", summary: "Pembayaran tercatat (jurnal DRAFT dibuat)", life: 3000 })
+        const res = await tagihanApi.bayar(t.id)
+        notifySuccess(toast, "Pembayaran tercatat", res)
         await load()
       } catch (e) {
         notifyError(toast, e, "Gagal mencatat pembayaran.")

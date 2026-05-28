@@ -97,3 +97,19 @@ export function notifyError(toast: ToastLike, e: unknown, fallback?: string) {
   const f = friendlyError(e, fallback)
   toast.add({ severity: "error", summary: f.summary, detail: f.detail, life: 5000 })
 }
+
+/**
+ * Tampilkan toast sukses ramah. `data` boleh berisi `{ detail }` dari backend
+ * (lihat exception handler & action endpoint) untuk dijadikan baris kedua.
+ */
+export function notifySuccess(
+  toast: ToastLike,
+  summary: string,
+  data?: { detail?: string } | unknown,
+) {
+  const detail =
+    data && typeof data === "object" && "detail" in (data as object)
+      ? (data as { detail?: string }).detail
+      : undefined
+  toast.add({ severity: "success", summary, detail, life: 3500 })
+}
