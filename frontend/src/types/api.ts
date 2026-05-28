@@ -201,6 +201,67 @@ export interface LaporanKegiatan {
   rincian: { tanggal: string; deskripsi: string; nominal: string }[]
 }
 
+// --- Laporan ---
+export interface SaldoRow {
+  kode_akun: string
+  nama_akun: string
+  posisi_normal: "D" | "K"
+  total_debit: string
+  total_kredit: string
+  saldo_akhir: string
+}
+
+export interface LabaRugiResult {
+  pendapatan: SaldoRow[]
+  beban: SaldoRow[]
+  total_pendapatan: string
+  total_beban: string
+  laba_rugi: string
+}
+
+export interface PosisiKeuanganResult {
+  aset: SaldoRow[]
+  liabilitas: SaldoRow[]
+  ekuitas: SaldoRow[]
+}
+
+export interface RealisasiAnggaranRow {
+  kode_akun: string
+  nama_akun: string
+  tahun_anggaran: number
+  pagu: string
+  realisasi: string
+  sisa_pagu: string
+}
+
+export interface BukuBesarRow {
+  no_bukti: string
+  tanggal: string
+  keterangan: string | null
+  debit: string
+  kredit: string
+}
+
+// --- Anggaran & Periode ---
+export interface Anggaran {
+  id: number
+  kode_akun: string
+  tahun_anggaran: number
+  bulan: number | null
+  nominal_anggaran: string
+  keterangan: string | null
+  carry_over: boolean
+  periode: number | null
+}
+
+export interface PeriodeAkuntansi {
+  id: number
+  kode: string
+  tgl_mulai: string
+  tgl_selesai: string
+  status: "OPEN" | "CLOSED"
+}
+
 export interface DashboardRingkasan {
   kas: string
   total_pendapatan: string
