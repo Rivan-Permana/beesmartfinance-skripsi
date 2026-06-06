@@ -39,5 +39,3 @@ htmlcov/
 
 # Git
 *.orig
-
-.env.example
