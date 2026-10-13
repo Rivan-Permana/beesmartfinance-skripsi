@@ -91,7 +91,7 @@ npm run test:watch  # watch mode
 npm run build       # typecheck + production build
 ```
 
-CI (GitHub Actions): `.github/workflows/ci.yml` — backend tests + frontend vitest + build.
+Deployment otomatis FE–BE: [panduan VPS dan Cloudflare](docs/18-CLOUDFLARE-DEPLOY.md).
 
 ---
 

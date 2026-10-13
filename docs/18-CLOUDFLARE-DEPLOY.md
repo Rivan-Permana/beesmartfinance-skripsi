@@ -1,6 +1,6 @@
 # Deployment Cloudflare — BeeSmart Finance
 
-## Status 12 Oktober 2026
+## Status 13 Oktober 2026
 
 Frontend Vue/Vite dan gateway API sudah di-deploy langsung dari working directory lokal:
 
@@ -12,36 +12,30 @@ Worker memakai `BACKEND_ORIGIN` dari `frontend/wrangler.jsonc`.
 Halaman login merespons 200; API tanpa token merespons 401; login `admin.tu`
 dan pembacaan profil melalui URL Cloudflare berhasil (200).
 Data demo baru, empat akun peran, COA 186 akun, dan aturan posting sudah ada.
-Deployment ini belum mengaktifkan deployment otomatis dari GitHub.
+Source produksi sudah tersedia di branch `main`. Deployment otomatis diatur
+melalui VPS karena GitHub Actions milik akun ini sedang diblokir oleh status
+billing GitHub; repository dan runner standar yang digunakan tetap gratis.
 
-## Menyiapkan deployment otomatis FE–BE
+## Deployment otomatis FE–BE tanpa GitHub Actions
 
-`.github/workflows/ci.yml` sekarang menjalankan job `deploy` pada push ke
-`main`. Job ini membangun frontend dengan
-`VITE_API_BASE_URL=/api/v1`, mengirim file backend yang dilacak Git ke
-`/opt/beesmartfinance`, menjalankan `scripts/deploy_vps.sh`, memeriksa origin
-API, lalu menerbitkan Worker yang sama dengan `wrangler deploy --keep-vars`.
-Job tidak berjalan untuk pull request.
-Sebelum migrasi, skrip deploy menyimpan dump PostgreSQL di folder `backups/`
-pada VPS dan menghentikan deployment bila backup gagal. Salinan di luar VPS
-tetap diperlukan untuk memulihkan data jika server hilang.
+`deploy` di VPS menjalankan `scripts/poll_deploy_vps.sh` setiap lima menit.
+Skrip mengambil commit terbaru `main` dari repository publik, lalu hanya
+melakukan deployment jika SHA berubah. Source backend yang dilacak Git disalin
+ke `/opt/beesmartfinance`, diikuti `scripts/deploy_vps.sh`. Skrip itu menyimpan
+dump PostgreSQL di `backups/` sebelum migrasi dan berhenti jika backup gagal.
+Frontend dibangun dalam image Node 22 dan diterbitkan ke Worker yang sama
+dengan `wrangler deploy --keep-vars`. Setelah berhasil, SHA disimpan terpisah
+untuk backend dan frontend sehingga kegagalan salah satu tahap bisa diulang.
+Deploy pertama dan setiap commit baru mungkin memerlukan beberapa menit.
 
-Sebelum mengaktifkannya, masukkan enam repository secrets di GitHub Actions:
-`CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_API_TOKEN`, `VPS_HOST`, `VPS_USER`,
-`VPS_SSH_KEY`, dan `VPS_KNOWN_HOSTS`. Token Cloudflare harus dibatasi ke akun
-Worker ini. `VPS_KNOWN_HOSTS` harus berasal dari fingerprint SSH server yang
-sudah diverifikasi, bukan hasil penerimaan otomatis saat workflow berjalan.
-Gunakan SSH key khusus deployment yang tidak meminta passphrase interaktif.
-Akun SSH harus dapat menulis ke `/opt/beesmartfinance` dan menjalankan Docker.
-Jangan masukkan nilai secret ke Git atau dokumentasi.
-
-Commit file workflow bersama source dan konfigurasi deployment yang digunakan:
-`docker-compose.production.yml`, `docker/`, `scripts/deploy_vps.sh`,
-`frontend/wrangler.jsonc`, `frontend/worker/`, dan perubahan frontend/backend
-terkait. Repo ini publik; tinjau daftar file sebelum staging. Workflow hanya
-mengirim file backend yang dilacak Git dan tidak menghapus `.env.vps` maupun
-volume PostgreSQL/media di VPS. Backup database di luar VPS perlu disiapkan
-untuk pemulihan jika VPS hilang.
+Token Cloudflare untuk deployment VPS disimpan di
+`/home/deploy/.config/beesmartfinance/cloudflare.env` (mode `0600`) sebagai
+`CLOUDFLARE_ACCOUNT_ID` dan `CLOUDFLARE_API_TOKEN`; jangan masukkan nilainya
+ke Git, chat, atau dokumentasi. Cron milik `deploy` mencatat output ke
+`/home/deploy/.local/state/beesmartfinance/deploy.log`. Periksa SHA terakhir di
+`backend_sha` dan `frontend_sha` dalam folder state yang sama. Script hanya
+menyalin file yang diperlukan dan tidak menimpa `.env.vps` atau volume Docker.
+Backup database di luar VPS tetap diperlukan untuk pemulihan jika server hilang.
 
 ## Deployment frontend dari terminal
 
@@ -55,24 +49,6 @@ Wrangler memakai `frontend/wrangler.jsonc`, mengunggah `dist`, dan melayani rout
 Vue melalui fallback SPA. Origin backend tersimpan sebagai variabel Worker di
 berkas konfigurasi; `--keep-vars` juga mempertahankan variabel lain yang diatur
 melalui dashboard Cloudflare.
-
-## Form Git deployment Cloudflare Workers
-
-Setelah file konfigurasi dan source yang ingin dirilis sudah tersedia di GitHub,
-gunakan pengaturan berikut pada form deployment repository:
-
-| Field | Nilai |
-| --- | --- |
-| Project name | `beesmartfinance-skripsi` |
-| Root directory | `frontend` |
-| Build command | `npm run build` |
-| Deploy command | `npx wrangler deploy --keep-vars` |
-| Preview command | `npx wrangler versions upload` |
-| Build variable `VITE_API_BASE_URL` | `/api/v1` |
-
-Gunakan Worker yang sudah dibuat untuk menyambungkan repository; jangan membuat
-Worker kedua untuk deployment yang sama. Perubahan lokal yang belum di-push
-belum akan tersedia pada build dari GitHub.
 
 ## Menyambungkan backend permanen
 
