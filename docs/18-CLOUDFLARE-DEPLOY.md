@@ -16,8 +16,8 @@ Deployment ini belum mengaktifkan deployment otomatis dari GitHub.
 
 ## Menyiapkan deployment otomatis FE–BE
 
-`.github/workflows/ci.yml` sekarang menyiapkan job `deploy` setelah job backend
-dan frontend berhasil pada push ke `main`. Job ini membangun frontend dengan
+`.github/workflows/ci.yml` sekarang menjalankan job `deploy` pada push ke
+`main`. Job ini membangun frontend dengan
 `VITE_API_BASE_URL=/api/v1`, mengirim file backend yang dilacak Git ke
 `/opt/beesmartfinance`, menjalankan `scripts/deploy_vps.sh`, memeriksa origin
 API, lalu menerbitkan Worker yang sama dengan `wrangler deploy --keep-vars`.

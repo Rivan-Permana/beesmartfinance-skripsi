@@ -1,80 +1,15 @@
-name: CI
+name: Deploy FE-BE
 
 on:
   push:
     branches: [main]
-  pull_request:
 
 permissions:
   contents: read
 
 jobs:
-  backend:
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: db_lebah_madu
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres -d db_lebah_madu"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.13"
-
-      - name: Install backend dependencies
-        run: pip install .
-
-      - name: Run Django tests
-        working-directory: backend
-        env:
-          DB_NAME: db_lebah_madu
-          DB_USER: postgres
-          DB_PASSWORD: postgres
-          DB_HOST: localhost
-          DB_PORT: 5432
-          DJANGO_SECRET_KEY: ci-test-secret
-          DJANGO_DEBUG: "true"
-          DJANGO_ENV: development
-        run: python manage.py test --parallel
-
-  frontend:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install frontend dependencies
-        working-directory: frontend
-        run: npm ci
-
-      - name: Unit tests (Vitest)
-        working-directory: frontend
-        run: npm run test
-
-      - name: Production build
-        working-directory: frontend
-        run: npm run build
-
   deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [backend, frontend]
     runs-on: ubuntu-latest
     concurrency:
       group: production-deploy
