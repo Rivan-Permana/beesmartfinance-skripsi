@@ -5,7 +5,7 @@ from django.contrib.auth.models import Group
 from rest_framework.test import APITestCase
 
 from accounting.models import MsCoa, MsGolongan, MsSubGolongan
-from operations.models import Siswa
+from operations.models import Siswa, Tagihan
 
 User = get_user_model()
 
@@ -26,10 +26,26 @@ class TagihanApiTests(APITestCase):
     def setUp(self):
         self.admin = User.objects.create_user("admin1", password="x")
         self.admin.groups.add(Group.objects.get(name="Administration"))
+        self.finance = User.objects.create_user("finance1", password="x")
+        self.finance.groups.add(Group.objects.get(name="Finance"))
         _coa("1101", "KAS", "D")
         _coa("4101", "PENDAPATAN SPP", "K")
         self.siswa = Siswa.objects.create(nama="Dina", spp_nominal=Decimal("500000"))
         self.client.force_authenticate(self.admin)
+
+    def test_finance_baca_tunggakan_tanpa_bayar(self):
+        payload = {
+            "siswa": self.siswa.id, "periode_bulan": 2, "periode_tahun": 2026,
+            "total": "500000",
+            "detail": [
+                {"komponen": "SPP", "akun_pendapatan": "4101", "nominal": "500000"}
+            ],
+        }
+        tid = self.client.post("/api/v1/tagihan/", payload, format="json").data["id"]
+
+        self.client.force_authenticate(self.finance)
+        self.assertEqual(self.client.get("/api/v1/tagihan/").status_code, 200)
+        self.assertEqual(self.client.post(f"/api/v1/tagihan/{tid}/bayar/").status_code, 403)
 
     def test_buat_tagihan_lalu_bayar_auto_jurnal(self):
         payload = {
@@ -110,9 +126,13 @@ class GapFeatureApiTests(APITestCase):
         _coa("4102", "PEND SITIN", "K")
         _coa("4103", "PEND DAFTAR", "K")
         _coa("5101", "BEBAN KEGIATAN", "D")
-        for komp, akun in [("SPP", "4101"), ("SITIN", "4102"), ("PENDAFTARAN", "4103")]:
+        for komp, akun, event in [
+            ("SPP", "4101", "TAGIHAN"),
+            ("SITIN", "4102", "REGISTRASI"),
+            ("PENDAFTARAN", "4103", "REGISTRASI"),
+        ]:
             MsPostingRule.objects.create(
-                event_code="TAGIHAN" if komp == "SPP" else komp,
+                event_code=event,
                 komponen=komp, akun_debit_id="1101", akun_kredit_id=akun,
             )
         self.MsPostingRule = MsPostingRule
@@ -125,7 +145,7 @@ class GapFeatureApiTests(APITestCase):
         r = self.client.post("/api/v1/tagihan/generate/", {
             "siswa": siswa.id, "periode_bulan": 2, "periode_tahun": 2026,
         }, format="json")
-        self.assertEqual(r.status_code, 201)
+        self.assertEqual(r.status_code, 201, r.data)
         self.assertEqual(r.data["total"], "500000.00")
 
     def test_struk_tagihan(self):
@@ -137,6 +157,35 @@ class GapFeatureApiTests(APITestCase):
         r = self.client.get(f"/api/v1/tagihan/{tid}/struk/")
         self.assertEqual(r.status_code, 200)
         self.assertEqual(len(r.data["rincian"]), 1)
+        self.assertIn("sections", r.data)
+
+    def test_preview_tagihan(self):
+        siswa = Siswa.objects.create(nama="Hana", spp_nominal=Decimal("400000"))
+        self.client.force_authenticate(self.admin)
+        r = self.client.post("/api/v1/tagihan/preview/", {
+            "siswa": siswa.id, "periode_bulan": 4, "periode_tahun": 2026,
+        }, format="json")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["total"], "400000.00")
+        self.assertEqual(len(r.data["detail"]), 1)
+        self.assertEqual(Tagihan.objects.filter(siswa=siswa).count(), 0)
+
+    def test_update_tagihan_belum_lunas(self):
+        siswa = Siswa.objects.create(nama="Ira", spp_nominal=Decimal("200000"))
+        self.client.force_authenticate(self.admin)
+        tid = self.client.post("/api/v1/tagihan/generate/", {
+            "siswa": siswa.id, "periode_bulan": 5, "periode_tahun": 2026,
+        }, format="json").data["id"]
+        r = self.client.put(f"/api/v1/tagihan/{tid}/", {
+            "siswa": siswa.id, "periode_bulan": 5, "periode_tahun": 2026,
+            "detail": [{
+                "komponen": "SPP", "kategori": "BULANAN",
+                "keterangan": "SPP Bulan Mei", "akun_pendapatan": "4101",
+                "nominal": "250000",
+            }],
+        }, format="json")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["total"], "250000.00")
 
     def test_kegiatan_realisasi_dan_pagu(self):
         self.client.force_authenticate(self.teacher)
@@ -147,7 +196,6 @@ class GapFeatureApiTests(APITestCase):
             "nominal": "400000", "deskripsi": "sewa bus", "tanggal": "2026-02-10",
         }, format="json")
         self.assertEqual(r.status_code, 201)
-        # melebihi pagu -> ditolak
         r = self.client.post(f"/api/v1/kegiatan/{keg.id}/realisasi/", {
             "nominal": "700000", "tanggal": "2026-02-11",
         }, format="json")
@@ -166,3 +214,52 @@ class GapFeatureApiTests(APITestCase):
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.data["status"], "REGISTERED")
         self.assertIsNotNone(r.data["siswa"])
+
+
+class AbsenPegawaiApiTests(APITestCase):
+    def setUp(self):
+        self.admin = User.objects.create_user("adm_abs", password="x")
+        self.admin.groups.add(Group.objects.get(name="Administration"))
+        from operations.models import Pegawai
+        self.pegawai = Pegawai.objects.create(nama="Bu Siti", jabatan="Guru")
+        self.client.force_authenticate(self.admin)
+
+    def test_bulk_save_dan_rekap(self):
+        r = self.client.post("/api/v1/absen-pegawai/bulk-save/", {
+            "tanggal": "2026-02-10",
+            "items": [{"pegawai": self.pegawai.id, "hadir": 1, "izin": 0, "sakit": 0, "terlambat": 0}],
+        }, format="json")
+        self.assertEqual(r.status_code, 200)
+        r = self.client.get("/api/v1/absen-pegawai/rekap-bulanan/", {"bulan": 2, "tahun": 2026})
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(len(r.data), 1)
+        self.assertEqual(r.data[0]["hadir"], 1)
+
+
+class TarifKateringApiTests(APITestCase):
+    def setUp(self):
+        self.admin = User.objects.create_user("adm_kat", password="x")
+        self.admin.groups.add(Group.objects.get(name="Administration"))
+        self.client.force_authenticate(self.admin)
+
+    def test_get_default_lalu_set_tarif(self):
+        r = self.client.get("/api/v1/tarif-katering/", {"bulan": 6, "tahun": 2026})
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(r.data["is_default"])
+        self.assertEqual(r.data["tarif_harian"], "20000")
+        self.assertEqual(r.data["tarif_jumat"], "10000")
+
+        r = self.client.put("/api/v1/tarif-katering/", {
+            "periode_bulan": 6,
+            "periode_tahun": 2026,
+            "tarif_harian": "25000",
+            "tarif_jumat": "12000",
+        }, format="json")
+        self.assertEqual(r.status_code, 200)
+        self.assertFalse(r.data["is_default"])
+        self.assertEqual(r.data["tarif_harian"], "25000.00")
+        self.assertEqual(r.data["tarif_jumat"], "12000.00")
+
+        r = self.client.get("/api/v1/tarif-katering/", {"bulan": 6, "tahun": 2026})
+        self.assertFalse(r.data["is_default"])
+        self.assertEqual(r.data["tarif_harian"], "25000.00")

@@ -144,6 +144,8 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = "static/"
+MEDIA_URL = "/media/"
+MEDIA_ROOT = REPO_ROOT / "media"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # CORS (frontend Vue/Vite)
@@ -151,6 +153,12 @@ CORS_ALLOWED_ORIGINS = env(
     "DJANGO_CORS_ORIGINS",
     default=["http://localhost:5173", "http://localhost:3000"],
 )
+# Dev: Vite bisa pindah port (5174, 5175, …) kalau 5173 sudah dipakai
+if DEBUG:
+    CORS_ALLOWED_ORIGIN_REGEXES = [
+        r"^http://localhost:\d+$",
+        r"^http://127\.0\.0\.1:\d+$",
+    ]
 
 # Security headers
 SECURE_CONTENT_TYPE_NOSNIFF = True

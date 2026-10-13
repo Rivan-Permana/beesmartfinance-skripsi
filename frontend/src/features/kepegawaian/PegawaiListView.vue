@@ -3,6 +3,7 @@ import Button from "primevue/button"
 import Column from "primevue/column"
 import DataTable from "primevue/datatable"
 import Dialog from "primevue/dialog"
+import DatePicker from "primevue/datepicker"
 import InputText from "primevue/inputtext"
 import ToggleSwitch from "primevue/toggleswitch"
 import Tag from "primevue/tag"
@@ -13,6 +14,7 @@ import { computed, onMounted, reactive, ref } from "vue"
 
 import { pegawaiApi } from "./api"
 import { notifyError, notifySuccess } from "@/core/errors"
+import PageLayout from "@/shared/components/PageLayout.vue"
 import { useAuthStore } from "@/stores/auth"
 import type { Pegawai } from "@/types/api"
 
@@ -22,7 +24,7 @@ const confirm = useConfirm()
 
 const rows = ref<Pegawai[]>([])
 const loading = ref(false)
-const canWrite = computed(() => auth.hasRole(["Finance"]))
+const canWrite = computed(() => auth.hasRole(["Administration", "Finance"]))
 
 async function load() {
   loading.value = true
@@ -45,23 +47,38 @@ function openCreate() {
   editingId.value = null
   Object.assign(form, {
     nip: "", nama: "", jabatan: "", nomor_hp: "", alamat: "", status_aktif: true,
+    tanggal_mulai_kerja: null, tanggal_selesai_kerja: null,
   })
   dialog.value = true
 }
 function openEdit(row: Pegawai) {
   editingId.value = row.id
-  Object.assign(form, { ...row })
+  Object.assign(form, {
+    ...row,
+    tanggal_mulai_kerja: row.tanggal_mulai_kerja ? new Date(row.tanggal_mulai_kerja) : null,
+    tanggal_selesai_kerja: row.tanggal_selesai_kerja ? new Date(row.tanggal_selesai_kerja) : null,
+  })
   dialog.value = true
+}
+
+function fmtDate(d: Date | null | undefined) {
+  if (!d) return null
+  return d.toISOString().slice(0, 10)
 }
 
 async function save() {
   saving.value = true
+  const payload = {
+    ...form,
+    tanggal_mulai_kerja: fmtDate(form.tanggal_mulai_kerja as unknown as Date),
+    tanggal_selesai_kerja: fmtDate(form.tanggal_selesai_kerja as unknown as Date),
+  }
   try {
     if (editingId.value) {
-      await pegawaiApi.update(editingId.value, form)
+      await pegawaiApi.update(editingId.value, payload)
       notifySuccess(toast, "Data pegawai diperbarui")
     } else {
-      await pegawaiApi.create(form)
+      await pegawaiApi.create(payload)
       notifySuccess(toast, "Pegawai ditambahkan")
     }
     dialog.value = false
@@ -97,17 +114,25 @@ onMounted(load)
 </script>
 
 <template>
-  <div class="page">
-    <div class="page-head">
-      <h1>Pegawai</h1>
+  <PageLayout title="Data Pegawai" subtitle="Kelola pegawai aktif sekolah">
+    <template #actions>
       <Button v-if="canWrite" label="Tambah Pegawai" icon="pi pi-plus" @click="openCreate" />
-    </div>
+    </template>
 
     <DataTable :value="rows" :loading="loading" paginator :rows="10" data-key="id" striped-rows>
       <template #empty>Belum ada data pegawai.</template>
       <Column field="nip" header="NIP" />
       <Column field="nama" header="Nama" />
       <Column field="jabatan" header="Jabatan" />
+      <Column header="Periode Kerja">
+        <template #body="{ data }">
+          <span v-if="data.tanggal_mulai_kerja" class="periode">
+            {{ data.tanggal_mulai_kerja }}
+            <template v-if="data.tanggal_selesai_kerja"> — {{ data.tanggal_selesai_kerja }}</template>
+          </span>
+          <span v-else class="muted">—</span>
+        </template>
+      </Column>
       <Column field="nomor_hp" header="No. HP" />
       <Column header="Status">
         <template #body="{ data }">
@@ -117,25 +142,23 @@ onMounted(load)
           />
         </template>
       </Column>
-      <Column header="Aksi" style="width: 8rem">
+      <Column header="Aksi" headerClass="bee-col-actions--sm" bodyClass="bee-col-actions--sm">
         <template #body="{ data }">
-          <Button
-            v-if="canWrite"
-            icon="pi pi-pencil"
-            text
-            rounded
-            aria-label="Edit"
-            @click="openEdit(data)"
-          />
-          <Button
-            v-if="canWrite"
-            icon="pi pi-trash"
-            text
-            rounded
-            severity="danger"
-            aria-label="Hapus"
-            @click="confirmDelete(data)"
-          />
+          <div v-if="canWrite" class="bee-actions">
+            <Button
+              icon="pi pi-pencil"
+              text
+              aria-label="Edit"
+              @click="openEdit(data)"
+            />
+            <Button
+              icon="pi pi-trash"
+              text
+              severity="danger"
+              aria-label="Hapus"
+              @click="confirmDelete(data)"
+            />
+          </div>
         </template>
       </Column>
     </DataTable>
@@ -167,6 +190,14 @@ onMounted(load)
           <label>Alamat</label>
           <Textarea v-model="form.alamat as string" rows="2" auto-resize fluid />
         </div>
+        <div class="field">
+          <label>Mulai kerja</label>
+          <DatePicker v-model="form.tanggal_mulai_kerja as unknown as Date" date-format="yy-mm-dd" fluid />
+        </div>
+        <div class="field">
+          <label>Selesai kerja</label>
+          <DatePicker v-model="form.tanggal_selesai_kerja as unknown as Date" date-format="yy-mm-dd" fluid />
+        </div>
         <div class="field span2 inline">
           <label>Pegawai aktif</label>
           <ToggleSwitch v-model="form.status_aktif" />
@@ -177,13 +208,10 @@ onMounted(load)
         <Button label="Simpan" :loading="saving" @click="save" />
       </template>
     </Dialog>
-  </div>
+  </PageLayout>
 </template>
 
 <style scoped>
-.page-head {
-  display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;
-}
 .form-grid {
   display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem;
 }
@@ -191,4 +219,6 @@ onMounted(load)
 .field.span2 { grid-column: 1 / -1; }
 .field.inline { flex-direction: row; align-items: center; gap: 0.75rem; }
 .field label { font-weight: 600; font-size: 0.85rem; }
+.muted { color: var(--app-text-muted); font-size: 0.85rem; }
+.periode { font-size: 0.85rem; }
 </style>

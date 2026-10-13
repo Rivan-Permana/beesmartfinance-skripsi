@@ -10,6 +10,8 @@ from rest_framework.response import Response
 
 from accounts.permissions import IsFinance, IsFinanceOrReadOnly, IsPrincipal
 
+from config.db_errors import humanize_db_error
+
 from .models import (
     MsCoa,
     MsGolongan,
@@ -98,6 +100,17 @@ class TrJurnalViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
 
+    def perform_destroy(self, instance):
+        if instance.status != "DRAFT":
+            raise ValidationError("Hanya jurnal DRAFT yang bisa dihapus.")
+        instance.detail.all().delete()
+        instance.delete()
+
+    def perform_update(self, serializer):
+        if serializer.instance.status != "DRAFT":
+            raise ValidationError("Hanya jurnal DRAFT yang bisa diubah.")
+        serializer.save()
+
     @action(detail=True, methods=["post"])
     def submit(self, request, pk=None):
         """DRAFT -> PENDING (maker mengajukan)."""
@@ -130,7 +143,8 @@ class TrJurnalViewSet(viewsets.ModelViewSet):
                     update_fields=["status", "approved_by", "approved_at", "posted_at"]
                 )
         except DatabaseError as exc:
-            raise ValidationError(str(exc).strip().splitlines()[0])
+            msg = str(exc).strip().splitlines()[0] if str(exc).strip() else ""
+            raise ValidationError(humanize_db_error(msg))
         return Response(self.get_serializer(jurnal).data, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=["post"], permission_classes=[IsPrincipal])

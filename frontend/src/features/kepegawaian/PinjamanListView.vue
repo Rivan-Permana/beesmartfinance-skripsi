@@ -13,6 +13,8 @@ import { computed, onMounted, reactive, ref } from "vue"
 
 import { pegawaiApi, pinjamanApi } from "./api"
 import { notifyError, notifySuccess } from "@/core/errors"
+import { formatRp } from "@/core/format"
+import PageLayout from "@/shared/components/PageLayout.vue"
 import { useAuthStore } from "@/stores/auth"
 import type { Pegawai, Pinjaman } from "@/types/api"
 
@@ -32,7 +34,7 @@ const pegawaiNama = computed(() => {
 })
 
 function rp(v: string | number | null | undefined) {
-  return "Rp " + Number(v ?? 0).toLocaleString("id-ID")
+  return formatRp(v)
 }
 
 async function load() {
@@ -48,6 +50,7 @@ async function load() {
 
 // --- form ---
 const dialog = ref(false)
+const editingId = ref<number | null>(null)
 const saving = ref(false)
 const form = reactive<{
   pegawai: number | null
@@ -64,6 +67,7 @@ const form = reactive<{
 })
 
 function openCreate() {
+  editingId.value = null
   form.pegawai = null
   form.tanggal_pinjaman = new Date()
   form.jumlah_pinjaman = 0
@@ -72,18 +76,34 @@ function openCreate() {
   dialog.value = true
 }
 
+function openEdit(p: Pinjaman) {
+  editingId.value = p.id
+  form.pegawai = p.pegawai
+  form.tanggal_pinjaman = new Date(p.tanggal_pinjaman + "T12:00:00")
+  form.jumlah_pinjaman = Number(p.jumlah_pinjaman)
+  form.tenor_bulan = p.tenor_bulan
+  form.angsuran_per_bulan = Number(p.angsuran_per_bulan)
+  dialog.value = true
+}
+
 async function save() {
   if (!form.pegawai) return
   saving.value = true
   try {
-    await pinjamanApi.create({
+    const payload = {
       pegawai: form.pegawai,
       tanggal_pinjaman: form.tanggal_pinjaman.toISOString().slice(0, 10),
       jumlah_pinjaman: String(form.jumlah_pinjaman || 0),
       tenor_bulan: form.tenor_bulan,
       angsuran_per_bulan: String(form.angsuran_per_bulan || 0),
-    })
-    notifySuccess(toast, "Pengajuan kasbon disimpan")
+    }
+    if (editingId.value) {
+      await pinjamanApi.update(editingId.value, payload)
+      notifySuccess(toast, "Kasbon diperbarui")
+    } else {
+      await pinjamanApi.create(payload)
+      notifySuccess(toast, "Pengajuan kasbon disimpan")
+    }
     dialog.value = false
     await load()
   } catch (e) {
@@ -91,6 +111,26 @@ async function save() {
   } finally {
     saving.value = false
   }
+}
+
+function confirmDelete(p: Pinjaman) {
+  confirm.require({
+    message: "Hapus pengajuan kasbon ini? Hanya yang belum dicairkan.",
+    header: "Konfirmasi Hapus",
+    icon: "pi pi-trash",
+    rejectLabel: "Batal",
+    acceptLabel: "Hapus",
+    acceptClass: "p-button-danger",
+    accept: async () => {
+      try {
+        await pinjamanApi.remove(p.id)
+        notifySuccess(toast, "Kasbon dihapus.")
+        await load()
+      } catch (e) {
+        notifyError(toast, e, "Gagal menghapus kasbon.")
+      }
+    },
+  })
 }
 
 function cairkan(p: Pinjaman) {
@@ -123,11 +163,10 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="page">
-    <div class="page-head">
-      <h1>Kasbon / Pinjaman Pegawai</h1>
+  <PageLayout title="Kasbon Pegawai" subtitle="Ajukan dan cairkan pinjaman pegawai">
+    <template #actions>
       <Button v-if="canWrite" label="Ajukan Kasbon" icon="pi pi-plus" @click="openCreate" />
-    </div>
+    </template>
 
     <DataTable :value="rows" :loading="loading" paginator :rows="10" data-key="id" striped-rows>
       <template #empty>Belum ada pinjaman.</template>
@@ -148,20 +187,44 @@ onMounted(async () => {
           />
         </template>
       </Column>
-      <Column header="Aksi" style="width: 9rem">
+      <Column header="Aksi" headerClass="bee-col-actions--md" bodyClass="bee-col-actions--md">
         <template #body="{ data }">
-          <Button
-            v-if="canWrite && !data.jurnal"
-            label="Cairkan"
-            size="small"
-            text
-            @click="cairkan(data)"
-          />
+          <div class="bee-actions">
+            <Button
+              v-if="canWrite && !data.jurnal"
+              icon="pi pi-pencil"
+              text
+              rounded
+              aria-label="Edit kasbon"
+              @click="openEdit(data)"
+            />
+            <Button
+              v-if="canWrite && !data.jurnal"
+              label="Cairkan"
+              size="small"
+              text
+              @click="cairkan(data)"
+            />
+            <Button
+              v-if="canWrite && !data.jurnal"
+              icon="pi pi-trash"
+              text
+              rounded
+              severity="danger"
+              aria-label="Hapus kasbon"
+              @click="confirmDelete(data)"
+            />
+          </div>
         </template>
       </Column>
     </DataTable>
 
-    <Dialog v-model:visible="dialog" header="Ajukan Kasbon" modal :style="{ width: '32rem' }">
+    <Dialog
+      v-model:visible="dialog"
+      :header="editingId ? 'Edit Kasbon' : 'Ajukan Kasbon'"
+      modal
+      :style="{ width: '32rem' }"
+    >
       <div class="form-grid">
         <div class="field span2">
           <label>Pegawai *</label>
@@ -172,6 +235,7 @@ onMounted(async () => {
             option-value="id"
             filter
             placeholder="Pilih pegawai"
+            :disabled="!!editingId"
             fluid
           />
         </div>
@@ -197,11 +261,10 @@ onMounted(async () => {
         <Button label="Simpan" :disabled="!form.pegawai" :loading="saving" @click="save" />
       </template>
     </Dialog>
-  </div>
+  </PageLayout>
 </template>
 
 <style scoped>
-.page-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; }
 .field { display: flex; flex-direction: column; gap: 0.3rem; }
 .field.span2 { grid-column: 1 / -1; }

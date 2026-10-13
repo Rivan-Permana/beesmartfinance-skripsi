@@ -6,6 +6,8 @@ import Dialog from "primevue/dialog"
 import InputNumber from "primevue/inputnumber"
 import InputText from "primevue/inputtext"
 import Select from "primevue/select"
+import Message from "primevue/message"
+import Tag from "primevue/tag"
 import ToggleSwitch from "primevue/toggleswitch"
 import { useConfirm } from "primevue/useconfirm"
 import { useToast } from "primevue/usetoast"
@@ -13,7 +15,9 @@ import { computed, onMounted, reactive, ref } from "vue"
 
 import { anggaranApi } from "./api"
 import { notifyError, notifySuccess } from "@/core/errors"
+import { formatRp } from "@/core/format"
 import { coaApi } from "@/features/jurnal/api"
+import PageLayout from "@/shared/components/PageLayout.vue"
 import { useAuthStore } from "@/stores/auth"
 import type { Anggaran, Coa } from "@/types/api"
 
@@ -40,8 +44,16 @@ const coaNama = computed(() => {
   return m
 })
 
+const bebanCoaList = computed(() =>
+  coaList.value.filter((c) => c.kode_akun.startsWith("5")),
+)
+
+const pendapatanAkunCount = computed(() =>
+  coaList.value.filter((c) => c.kode_akun.startsWith("4")).length,
+)
+
 function rp(v: string | number | null | undefined) {
-  return "Rp " + Number(v ?? 0).toLocaleString("id-ID")
+  return formatRp(v)
 }
 
 async function load() {
@@ -150,11 +162,14 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="page">
-    <div class="page-head">
-      <h1>Anggaran</h1>
+  <PageLayout title="Anggaran" subtitle="Atur pagu beban (akun 5.x) — dipasangkan dengan pendapatan 4.x di laporan">
+    <Message severity="info" :closable="false" class="mb">
+      <strong>Anggaran</strong> diisi manual untuk akun <strong>beban (5.x)</strong> per tahun.
+      Pendapatan (4.x, {{ pendapatanAkunCount }} akun) terisi otomatis dari tagihan &amp; jurnal pemasukan.
+    </Message>
+    <template #actions>
       <Button v-if="canWrite" label="Tambah Anggaran" icon="pi pi-plus" @click="openCreate" />
-    </div>
+    </template>
 
     <DataTable :value="rows" :loading="loading" paginator :rows="10" data-key="id" striped-rows>
       <template #empty>Belum ada anggaran.</template>
@@ -162,6 +177,7 @@ onMounted(async () => {
         <template #body="{ data }">
           <strong>{{ data.kode_akun }}</strong>
           <span class="muted"> — {{ coaNama.get(data.kode_akun) ?? "-" }}</span>
+          <Tag value="Beban 5.x" severity="secondary" class="ml" />
         </template>
       </Column>
       <Column header="Tahun"><template #body="{ data }">{{ data.tahun_anggaran }}</template></Column>
@@ -174,10 +190,12 @@ onMounted(async () => {
       <Column header="Carry-over">
         <template #body="{ data }">{{ data.carry_over ? "Ya" : "Tidak" }}</template>
       </Column>
-      <Column header="Aksi" style="width: 8rem">
+      <Column header="Aksi" headerClass="bee-col-actions--sm" bodyClass="bee-col-actions--sm">
         <template #body="{ data }">
-          <Button v-if="canWrite" icon="pi pi-pencil" text rounded aria-label="Edit" @click="openEdit(data)" />
-          <Button v-if="canWrite" icon="pi pi-trash" text rounded severity="danger" aria-label="Hapus" @click="confirmDelete(data)" />
+          <div v-if="canWrite" class="bee-actions">
+            <Button v-if="canWrite" icon="pi pi-pencil" text rounded aria-label="Edit" @click="openEdit(data)" />
+            <Button v-if="canWrite" icon="pi pi-trash" text rounded severity="danger" aria-label="Hapus" @click="confirmDelete(data)" />
+          </div>
         </template>
       </Column>
     </DataTable>
@@ -191,7 +209,11 @@ onMounted(async () => {
       <div class="form-grid">
         <div class="field span2">
           <label>Akun Beban *</label>
-          <Select v-model="form.kode_akun" :options="coaList" option-label="nama_akun" option-value="kode_akun" filter placeholder="Pilih akun" fluid />
+          <Select v-model="form.kode_akun" :options="bebanCoaList" option-label="nama_akun" option-value="kode_akun" filter placeholder="Pilih akun beban" fluid>
+            <template #option="{ option }">
+              <span>{{ option.kode_akun }} — {{ option.nama_akun }}</span>
+            </template>
+          </Select>
         </div>
         <div class="field">
           <label>Tahun Anggaran *</label>
@@ -219,15 +241,16 @@ onMounted(async () => {
         <Button label="Simpan" :disabled="!formValid" :loading="saving" @click="save" />
       </template>
     </Dialog>
-  </div>
+  </PageLayout>
 </template>
 
 <style scoped>
-.page-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; }
 .field { display: flex; flex-direction: column; gap: 0.3rem; }
 .field.span2 { grid-column: 1 / -1; }
 .field.inline { flex-direction: row; align-items: center; justify-content: space-between; }
 .field label { font-weight: 600; font-size: 0.85rem; }
 .muted { color: var(--app-text-muted); }
+.mb { margin-bottom: 1rem; }
+.ml { margin-left: 0.35rem; vertical-align: middle; }
 </style>

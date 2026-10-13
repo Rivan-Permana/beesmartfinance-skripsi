@@ -52,6 +52,41 @@ class IsTeacherOrPrincipal(InGroup):
     groups = (TEACHER, PRINCIPAL)
 
 
+class IsAdministrationOrTeacherReadOnly(BasePermission):
+    """Admin tulis; TeacherInCharge baca saja (rekap absensi)."""
+
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        if request.method in ("GET", "HEAD", "OPTIONS"):
+            return _in_groups(request.user, (ADMINISTRATION, TEACHER))
+        return _in_groups(request.user, (ADMINISTRATION,))
+
+
+class IsAdministrationOrFinance(InGroup):
+    groups = (ADMINISTRATION, FINANCE)
+
+
+class IsAdministrationOrFinanceOrPrincipalRead(BasePermission):
+    """Master pegawai: Admin/Finance kelola; Principal baca (oversight)."""
+
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        if request.method in ("GET", "HEAD", "OPTIONS"):
+            return _in_groups(request.user, (ADMINISTRATION, FINANCE, PRINCIPAL))
+        return _in_groups(request.user, (ADMINISTRATION, FINANCE))
+
+
+class IsAdministrationWriteFinancePrincipalRead(BasePermission):
+    """Tagihan: Admin bayar/tulis; Finance/Principal baca tunggakan."""
+
+    def has_permission(self, request, view):
+        if request.method in ("GET", "HEAD", "OPTIONS"):
+            return _in_groups(request.user, (ADMINISTRATION, FINANCE, PRINCIPAL))
+        return _in_groups(request.user, (ADMINISTRATION,))
+
+
 class IsFinanceWriteFinancePrincipalRead(BasePermission):
     """Data sensitif (gaji/pinjaman): baca = Finance/Principal, tulis = Finance."""
 

@@ -4,7 +4,14 @@ Re-export agar `from operations.services import fn` tetap berfungsi.
 """
 
 from .common import akun_rule, audit_user, buat_jurnal
-from .billing import generate_tagihan, post_pembayaran_tagihan, struk_tagihan
+from .billing import (
+    generate_batch_tagihan,
+    generate_tagihan,
+    post_pembayaran_tagihan,
+    preview_batch_tagihan,
+    preview_tagihan,
+    struk_tagihan,
+)
 from .payroll import post_gaji, post_pencairan_kasbon
 from .assets import post_penyusutan
 from .activities import post_realisasi_kegiatan
@@ -12,7 +19,8 @@ from .registration import finalisasi_pendaftaran, post_bayar_sitin
 
 __all__ = [
     "akun_rule", "audit_user", "buat_jurnal",
-    "generate_tagihan", "post_pembayaran_tagihan", "struk_tagihan",
+    "generate_tagihan", "generate_batch_tagihan", "post_pembayaran_tagihan",
+    "preview_tagihan", "preview_batch_tagihan", "struk_tagihan",
     "post_gaji", "post_pencairan_kasbon",
     "post_penyusutan",
     "post_realisasi_kegiatan",

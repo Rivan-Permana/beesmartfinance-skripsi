@@ -6,16 +6,22 @@ import DatePicker from "primevue/datepicker"
 import Dialog from "primevue/dialog"
 import InputNumber from "primevue/inputnumber"
 import InputText from "primevue/inputtext"
+import Message from "primevue/message"
 import Select from "primevue/select"
 import Tag from "primevue/tag"
 import { useConfirm } from "primevue/useconfirm"
 import { useToast } from "primevue/usetoast"
 import { computed, onMounted, reactive, ref } from "vue"
+import { useRoute } from "vue-router"
 
 import { coaApi, jurnalApi } from "./api"
-import { notifyError, notifySuccess } from "@/core/errors"
+import { notifyError, notifySuccess, jurnalActionSuccessMessage } from "@/core/errors"
+import { formatRp } from "@/core/format"
+import PageLayout from "@/shared/components/PageLayout.vue"
 import { useAuthStore } from "@/stores/auth"
 import type { Coa, Jurnal, JurnalStatus } from "@/types/api"
+
+const route = useRoute()
 
 const auth = useAuthStore()
 const toast = useToast()
@@ -42,6 +48,41 @@ const statusSeverity: Record<JurnalStatus, string> = {
 const canCreate = computed(() => auth.hasRole(["Finance"]))
 const canApprove = computed(() => auth.hasRole(["SchoolPrincipal"]))
 
+const jenisFilter = computed(() => {
+  const j = route.query.jenis
+  return j === "masuk" || j === "keluar" ? j : null
+})
+
+const pageTitle = computed(() => {
+  if (jenisFilter.value === "masuk") return "Pemasukan"
+  if (jenisFilter.value === "keluar") return "Pengeluaran"
+  return "Jurnal"
+})
+
+const pageSubtitle = computed(() => {
+  if (jenisFilter.value === "masuk") return "Transaksi pendapatan (akun 4.x)"
+  if (jenisFilter.value === "keluar") return "Transaksi beban (akun 5.x)"
+  return "Catat, submit, dan approve jurnal akuntansi"
+})
+
+const filteredRows = computed(() => {
+  if (!jenisFilter.value) return rows.value
+  const prefix = jenisFilter.value === "masuk" ? "4" : "5"
+  return rows.value.filter((j) =>
+    (j.detail ?? []).some((d) => d.kode_akun.startsWith(prefix)),
+  )
+})
+
+const coaOptionsForForm = computed(() => {
+  if (jenisFilter.value === "masuk") {
+    return coaList.value.filter((c) => c.kode_akun.startsWith("4"))
+  }
+  if (jenisFilter.value === "keluar") {
+    return coaList.value.filter((c) => c.kode_akun.startsWith("5"))
+  }
+  return coaList.value
+})
+
 async function load() {
   loading.value = true
   try {
@@ -58,6 +99,7 @@ async function load() {
 
 // --- form ---
 const dialog = ref(false)
+const editingId = ref<string | null>(null)
 const saving = ref(false)
 const form = reactive<{
   no_bukti: string
@@ -67,15 +109,37 @@ const form = reactive<{
 }>({ no_bukti: "", tanggal: new Date(), keterangan: "", detail: [] })
 
 function openCreate() {
+  editingId.value = null
   form.no_bukti = ""
   form.tanggal = new Date()
   form.keterangan = ""
+  const preset = coaOptionsForForm.value[0]?.kode_akun ?? null
   form.detail = [
-    { kode_akun: null, debit: 0, kredit: 0 },
+    { kode_akun: preset, debit: 0, kredit: 0 },
     { kode_akun: null, debit: 0, kredit: 0 },
   ]
   dialog.value = true
 }
+
+function openEdit(j: Jurnal) {
+  editingId.value = j.id
+  form.no_bukti = j.no_bukti
+  form.tanggal = new Date(j.tanggal)
+  form.keterangan = j.keterangan ?? ""
+  form.detail = (j.detail ?? []).map((d) => ({
+    kode_akun: d.kode_akun,
+    debit: Number(d.debit) || 0,
+    kredit: Number(d.kredit) || 0,
+  }))
+  if (form.detail.length < 2) {
+    form.detail.push({ kode_akun: null, debit: 0, kredit: 0 })
+  }
+  dialog.value = true
+}
+
+const dialogTitle = computed(() =>
+  editingId.value ? "Ubah Jurnal Draft" : "Buat Jurnal",
+)
 
 function addLine() {
   form.detail.push({ kode_akun: null, debit: 0, kredit: 0 })
@@ -101,13 +165,13 @@ const formValid = computed(
 )
 
 function fmt(n: number) {
-  return "Rp " + Number(n).toLocaleString("id-ID")
+  return formatRp(n)
 }
 
 async function save() {
   saving.value = true
   try {
-    await jurnalApi.create({
+    const payload = {
       no_bukti: form.no_bukti,
       tanggal: form.tanggal.toISOString().slice(0, 10),
       keterangan: form.keterangan,
@@ -116,21 +180,55 @@ async function save() {
         debit: String(d.debit || 0),
         kredit: String(d.kredit || 0),
       })),
-    })
-    notifySuccess(toast, "Jurnal dibuat sebagai DRAFT")
+    }
+    if (editingId.value) {
+      await jurnalApi.update(editingId.value, payload)
+      notifySuccess(toast, "Jurnal draft diperbarui")
+    } else {
+      await jurnalApi.create(payload)
+      notifySuccess(toast, "Jurnal dibuat sebagai DRAFT")
+    }
     dialog.value = false
     await load()
   } catch (e) {
-    notifyError(toast, e, "Gagal membuat jurnal.")
+    notifyError(toast, e, editingId.value ? "Gagal menyimpan perubahan." : "Gagal membuat jurnal.")
   } finally {
     saving.value = false
   }
 }
 
-async function doAction(fn: () => Promise<unknown>, ok: string) {
+function removeDraft(j: Jurnal) {
+  confirm.require({
+    message: `Hapus jurnal draft ${j.no_bukti}?`,
+    header: "Konfirmasi Hapus",
+    icon: "pi pi-exclamation-triangle",
+    rejectLabel: "Batal",
+    acceptLabel: "Hapus",
+    acceptClass: "p-button-danger",
+    accept: async () => {
+      try {
+        await jurnalApi.remove(j.id)
+        notifySuccess(toast, "Jurnal draft dihapus")
+        await load()
+      } catch (e) {
+        notifyError(toast, e, "Gagal menghapus jurnal.")
+      }
+    },
+  })
+}
+
+async function doAction(
+  fn: () => Promise<unknown>,
+  action?: "submit" | "approve" | "void",
+) {
   try {
     const res = await fn()
-    notifySuccess(toast, ok, res)
+    if (action) {
+      const msg = jurnalActionSuccessMessage(action, res)
+      notifySuccess(toast, msg.summary, { detail: msg.detail })
+    } else {
+      notifySuccess(toast, "Berhasil")
+    }
     await load()
   } catch (e) {
     notifyError(toast, e, "Tindakan gagal diproses.")
@@ -138,10 +236,10 @@ async function doAction(fn: () => Promise<unknown>, ok: string) {
 }
 
 function submit(j: Jurnal) {
-  doAction(() => jurnalApi.submit(j.id), "Diajukan (PENDING)")
+  doAction(() => jurnalApi.submit(j.id), "submit")
 }
 function approve(j: Jurnal) {
-  doAction(() => jurnalApi.approve(j.id), "Disetujui (POSTED)")
+  doAction(() => jurnalApi.approve(j.id), "approve")
 }
 function voidJurnal(j: Jurnal) {
   confirm.require({
@@ -151,7 +249,7 @@ function voidJurnal(j: Jurnal) {
     rejectLabel: "Batal",
     acceptLabel: "Void",
     acceptClass: "p-button-danger",
-    accept: () => doAction(() => jurnalApi.void(j.id), "Jurnal dibalik (VOID)"),
+    accept: () => doAction(() => jurnalApi.void(j.id), "void"),
   })
 }
 
@@ -166,18 +264,17 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="page">
-    <div class="page-head">
-      <h1>Jurnal</h1>
+  <PageLayout :title="pageTitle" :subtitle="pageSubtitle">
+    <template #actions>
       <Button
         v-if="canCreate"
         label="Buat Jurnal"
         icon="pi pi-plus"
         @click="openCreate"
       />
-    </div>
+    </template>
 
-    <div class="toolbar">
+    <template #filters>
       <Select
         v-model="statusFilter"
         :options="STATUS_OPTS"
@@ -187,9 +284,21 @@ onMounted(async () => {
         show-clear
         @change="load"
       />
-    </div>
+    </template>
 
-    <DataTable :value="rows" :loading="loading" paginator :rows="10" data-key="id" striped-rows>
+    <Message severity="info" :closable="false" class="jurnal-hint">
+      <template v-if="jenisFilter === 'masuk'">
+        Catat <strong>pemasukan</strong> (akun pendapatan 4.x). Draft bisa diedit sebelum diajukan ke Kepala Sekolah.
+      </template>
+      <template v-else-if="jenisFilter === 'keluar'">
+        Catat <strong>pengeluaran</strong> (akun beban 5.x). Draft bisa diedit sebelum diajukan ke Kepala Sekolah.
+      </template>
+      <template v-else>
+        Buat jurnal manual, submit untuk approval, lalu approve untuk masuk buku besar (POSTED).
+      </template>
+    </Message>
+
+    <DataTable :value="filteredRows" :loading="loading" paginator :rows="10" data-key="id" striped-rows>
       <template #empty>Belum ada jurnal.</template>
       <Column field="no_bukti" header="No. Bukti" />
       <Column field="tanggal" header="Tanggal" />
@@ -204,38 +313,57 @@ onMounted(async () => {
           <Tag :value="data.status" :severity="statusSeverity[data.status as JurnalStatus]" />
         </template>
       </Column>
-      <Column header="Aksi" style="width: 11rem">
+      <Column header="Aksi" headerClass="bee-col-actions--xl" bodyClass="bee-col-actions--xl">
         <template #body="{ data }">
-          <Button
-            v-if="data.status === 'DRAFT' && canCreate"
-            label="Submit"
-            size="small"
-            text
-            @click="submit(data)"
-          />
-          <Button
-            v-if="data.status === 'PENDING' && canApprove"
-            label="Approve"
-            size="small"
-            severity="success"
-            text
-            @click="approve(data)"
-          />
-          <Button
-            v-if="data.status === 'POSTED' && canApprove"
-            label="Void"
-            size="small"
-            severity="danger"
-            text
-            @click="voidJurnal(data)"
-          />
+          <div class="bee-actions">
+            <Button
+              v-if="data.status === 'DRAFT' && canCreate"
+              label="Edit"
+              size="small"
+              text
+              @click="openEdit(data)"
+            />
+            <Button
+              v-if="data.status === 'DRAFT' && canCreate"
+              label="Submit"
+              size="small"
+              text
+              @click="submit(data)"
+            />
+            <Button
+              v-if="data.status === 'DRAFT' && canCreate"
+              icon="pi pi-trash"
+              size="small"
+              severity="danger"
+              text
+              rounded
+              aria-label="Hapus draft"
+              @click="removeDraft(data)"
+            />
+            <Button
+              v-if="data.status === 'PENDING' && canApprove"
+              label="Approve"
+              size="small"
+              severity="success"
+              text
+              @click="approve(data)"
+            />
+            <Button
+              v-if="data.status === 'POSTED' && canApprove"
+              label="Void"
+              size="small"
+              severity="danger"
+              text
+              @click="voidJurnal(data)"
+            />
+          </div>
         </template>
       </Column>
     </DataTable>
 
     <Dialog
       v-model:visible="dialog"
-      header="Buat Jurnal"
+      :header="dialogTitle"
       modal
       :style="{ width: '56rem' }"
     >
@@ -268,13 +396,17 @@ onMounted(async () => {
             <td>
               <Select
                 v-model="d.kode_akun"
-                :options="coaList"
+                :options="coaOptionsForForm"
                 option-label="nama_akun"
                 option-value="kode_akun"
                 filter
                 placeholder="Pilih akun"
                 fluid
-              />
+              >
+                <template #option="{ option }">
+                  <span>{{ option.kode_akun }} — {{ option.nama_akun }}</span>
+                </template>
+              </Select>
             </td>
             <td><InputNumber v-model="d.debit" :min="0" fluid /></td>
             <td><InputNumber v-model="d.kredit" :min="0" fluid /></td>
@@ -300,23 +432,20 @@ onMounted(async () => {
         </tfoot>
       </table>
       <p v-if="!balanced" class="warn">Debit dan kredit harus seimbang dan &gt; 0.</p>
+      <p v-else class="ok-hint">
+        <i class="pi pi-check-circle" /> Jurnal seimbang — akan disimpan sebagai DRAFT, lalu Submit → Approve (Kepsek).
+      </p>
 
       <template #footer>
         <Button label="Batal" severity="secondary" text @click="dialog = false" />
         <Button label="Simpan (DRAFT)" :disabled="!formValid" :loading="saving" @click="save" />
       </template>
     </Dialog>
-  </div>
+  </PageLayout>
 </template>
 
 <style scoped>
-.page-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 1rem;
-}
-.toolbar {
+.jurnal-hint {
   margin-bottom: 1rem;
 }
 .muted {
@@ -358,6 +487,11 @@ onMounted(async () => {
 }
 .warn {
   color: var(--bee-magenta);
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+}
+.ok-hint {
+  color: #2e9e5b;
   font-size: 0.85rem;
   margin-top: 0.5rem;
 }

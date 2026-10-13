@@ -39,6 +39,12 @@ class Siswa(SoftDeleteModel, TimeStampedModel):
     nama_ibu = models.CharField(max_length=100, blank=True, null=True)
     kontak_ibu = models.CharField(max_length=20, blank=True, null=True)
     spp_nominal = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+    tipe_tp = models.CharField(
+        max_length=5,
+        choices=[("baru", "Siswa Baru"), ("lama", "Daftar Ulang")],
+        default="baru",
+        help_text="Status TP untuk komponen biaya tahunan (baru vs daftar ulang).",
+    )
     status = models.CharField(max_length=10, choices=STATUS, default="aktif")
     periode = models.ForeignKey(
         "accounting.MsPeriodeAkuntansi", on_delete=models.SET_NULL,

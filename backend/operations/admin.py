@@ -9,6 +9,7 @@ from .models import (
     Jenjang,
     KehadiranSiswa,
     Kelompok,
+    KomponenBiayaTemplate,
     MenuKatering,
     MsPostingRule,
     Pegawai,
@@ -26,6 +27,12 @@ admin.site.register(MenuKatering)
 admin.site.register(KehadiranSiswa)
 admin.site.register(AbsenPegawai)
 admin.site.register(PendaftaranJemputan)
+
+
+@admin.register(KomponenBiayaTemplate)
+class KomponenBiayaTemplateAdmin(admin.ModelAdmin):
+    list_display = ("kode", "nama", "jenjang", "tipe_siswa", "tahun_ke", "bulan_tagih", "nominal", "aktif")
+    list_filter = ("jenjang", "tipe_siswa", "aktif")
 
 
 @admin.register(Siswa)

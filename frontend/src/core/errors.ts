@@ -7,18 +7,68 @@ export interface FriendlyError {
 
 function extractDetail(data: unknown): string | undefined {
   if (!data) return undefined
-  if (typeof data === "string") return data
+  if (typeof data === "string") return humanizeTechnicalDetail(data)
+  if (Array.isArray(data)) {
+    return humanizeTechnicalDetail(data.map((x) => String(x)).join(" · "))
+  }
   if (typeof data === "object") {
     const obj = data as Record<string, unknown>
-    if (obj.detail) return String(obj.detail)
+    if (obj.detail) return humanizeTechnicalDetail(String(obj.detail))
     const parts: string[] = []
     for (const [key, val] of Object.entries(obj)) {
       const text = Array.isArray(val) ? val.join(", ") : String(val)
-      parts.push(key === "non_field_errors" ? text : `${key}: ${text}`)
+      if (key === "non_field_errors" || /^\d+$/.test(key)) {
+        parts.push(humanizeTechnicalDetail(text))
+      } else {
+        parts.push(`${key}: ${humanizeTechnicalDetail(text)}`)
+      }
     }
     return parts.join(" · ") || undefined
   }
   return undefined
+}
+
+/** Terjemahkan sisa jargon teknis (PostgreSQL, constraint) ke bahasa ramah. */
+export function humanizeTechnicalDetail(raw: string): string {
+  const text = raw.trim()
+  if (!text) return text
+  const lower = text.toLowerCase()
+  if (
+    lower.includes("mspostingrule")
+    || lower.includes("posting rule")
+    || lower.includes("belum diset")
+  ) {
+    return "Akun pendapatan untuk komponen tagihan belum dikonfigurasi. Hubungi Staff Keuangan."
+  }
+  if (
+    lower.includes("belum terdaftar")
+    || (lower.includes("is not present") && lower.includes("ms_coa"))
+    || (lower.includes("tr_jurnal_detail") && lower.includes("kode_akun") && lower.includes("insert"))
+  ) {
+    return "Akun COA untuk jurnal belum terdaftar atau belum dikonfigurasi. Hubungi Staff Keuangan untuk mapping akun auto-jurnal."
+  }
+  if (lower.includes("seed_system_posting_rules")) {
+    return "Mapping akun auto-jurnal belum lengkap. Hubungi Staff Keuangan."
+  }
+  if (lower.includes("tr_jurnal_detail") && lower.includes("kode_akun")) {
+    return "Akun ini masih tercatat di jurnal. Nonaktifkan akun, atau periksa jurnal terkait terlebih dahulu."
+  }
+  if (lower.includes("ms_coa_sub_golongan") || (lower.includes("ms_sub_golongan") && lower.includes("ms_coa"))) {
+    return "Sub-golongan masih punya akun di dalamnya. Pindahkan atau hapus akun tersebut dulu."
+  }
+  if (lower.includes("foreign key") || (lower.includes("violates") && lower.includes("constraint"))) {
+    return "Data ini masih dipakai di bagian lain. Periksa kembali sebelum menghapus atau mengubah."
+  }
+  if (lower.includes("invalid page")) {
+    return "Halaman tidak ditemukan. Kembali ke halaman pertama."
+  }
+  if (lower.includes("duplicate key") || lower.includes("already exists")) {
+    return "Kode atau data sudah ada. Gunakan kode lain."
+  }
+  if (text.length > 180 || lower.includes("pg_") || lower.includes("_fkey")) {
+    return "Operasi tidak dapat dilanjutkan. Data mungkin masih dipakai di modul lain."
+  }
+  return text
 }
 
 /**
@@ -83,6 +133,39 @@ export function friendlyError(
   return { summary: fallback }
 }
 
+/** Ambil baris detail toast sukses — hanya string, bukan objek/array API. */
+function extractSuccessDetail(data: unknown): string | undefined {
+  if (!data || typeof data !== "object") return undefined
+  const detail = (data as { detail?: unknown }).detail
+  return typeof detail === "string" && detail.trim() ? detail : undefined
+}
+
+/** Pesan sukses ramah untuk aksi jurnal (response body = objek jurnal). */
+export function jurnalActionSuccessMessage(
+  action: "submit" | "approve" | "void",
+  data: unknown,
+): { summary: string; detail?: string } {
+  const j = data as { no_bukti?: string; keterangan?: string }
+  const bukti = j.no_bukti ? `No. bukti ${j.no_bukti}` : "Jurnal"
+  switch (action) {
+    case "submit":
+      return {
+        summary: "Jurnal diajukan",
+        detail: `${bukti} menunggu persetujuan Kepala Sekolah.`,
+      }
+    case "approve":
+      return {
+        summary: "Jurnal disetujui",
+        detail: `${bukti} sudah masuk buku besar (POSTED).`,
+      }
+    case "void":
+      return {
+        summary: "Jurnal dibatalkan",
+        detail: extractSuccessDetail(data) ?? `${bukti} dibalik via jurnal pembalik.`,
+      }
+  }
+}
+
 interface ToastLike {
   add: (m: {
     severity: string
@@ -107,9 +190,6 @@ export function notifySuccess(
   summary: string,
   data?: { detail?: string } | unknown,
 ) {
-  const detail =
-    data && typeof data === "object" && "detail" in (data as object)
-      ? (data as { detail?: string }).detail
-      : undefined
+  const detail = extractSuccessDetail(data)
   toast.add({ severity: "success", summary, detail, life: 3500 })
 }

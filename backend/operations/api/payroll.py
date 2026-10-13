@@ -10,6 +10,7 @@ from accounts.permissions import IsFinanceWriteFinancePrincipalRead
 from operations.models import GajiPegawai, PinjamanPegawai
 from operations.serializers import GajiPegawaiSerializer, PinjamanPegawaiSerializer
 from operations.services import post_gaji, post_pencairan_kasbon
+from operations.services.payroll import apply_potongan_pinjaman
 
 
 class PinjamanPegawaiViewSet(viewsets.ModelViewSet):
@@ -34,6 +35,14 @@ class GajiPegawaiViewSet(viewsets.ModelViewSet):
     queryset = GajiPegawai.objects.select_related("pegawai").order_by("-periode_tahun", "-periode_bulan")
     serializer_class = GajiPegawaiSerializer
     permission_classes = [IsFinanceWriteFinancePrincipalRead]
+
+    def perform_create(self, serializer):
+        gaji = serializer.save()
+        apply_potongan_pinjaman(gaji, save=True)
+
+    def perform_update(self, serializer):
+        gaji = serializer.save()
+        apply_potongan_pinjaman(gaji, save=True)
 
     @action(detail=True, methods=["post"])
     def posting(self, request, pk=None):

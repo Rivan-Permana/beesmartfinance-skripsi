@@ -14,6 +14,16 @@ class Pegawai(SoftDeleteModel, TimeStampedModel):
     nomor_hp = models.CharField(max_length=20, blank=True, null=True)
     alamat = models.TextField(blank=True, null=True)
     status_aktif = models.BooleanField(default=True)
+    tanggal_mulai_kerja = models.DateField(blank=True, null=True)
+    tanggal_selesai_kerja = models.DateField(blank=True, null=True)
+    tarif_uang_makan_hari = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0,
+        help_text="Tarif harian uang makan (KAFALAH Lunch).",
+    )
+    tarif_transport_hari = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0,
+        help_text="Tarif harian transport (KAFALAH Transport).",
+    )
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
         blank=True, null=True, related_name="pegawai",

@@ -3,26 +3,47 @@ import Button from "primevue/button"
 import Column from "primevue/column"
 import DataTable from "primevue/datatable"
 import Dialog from "primevue/dialog"
-import IconField from "primevue/iconfield"
-import InputIcon from "primevue/inputicon"
 import InputNumber from "primevue/inputnumber"
 import InputText from "primevue/inputtext"
+import Message from "primevue/message"
 import Select from "primevue/select"
 import Tag from "primevue/tag"
 import { useConfirm } from "primevue/useconfirm"
 import { useToast } from "primevue/usetoast"
 import { onMounted, reactive, ref } from "vue"
 
+import { kelompokApi } from "@/features/absensi/api"
 import { siswaApi } from "./api"
+import { formatRp } from "@/core/format"
 import { notifyError, notifySuccess } from "@/core/errors"
-import type { Siswa, SiswaStatus } from "@/types/api"
+import EmptyState from "@/shared/components/EmptyState.vue"
+import PageLayout from "@/shared/components/PageLayout.vue"
+import SearchField from "@/shared/components/SearchField.vue"
+import { useTableSearch } from "@/shared/composables/useTableSearch"
+import type { Kelompok, Siswa, SiswaStatus } from "@/types/api"
 
 const toast = useToast()
 const confirm = useConfirm()
 
 const rows = ref<Siswa[]>([])
+const kelompokList = ref<Kelompok[]>([])
 const loading = ref(false)
-const search = ref("")
+
+const kelompokMap = () => {
+  const m = new Map<number, string>()
+  kelompokList.value.forEach((k) => {
+    m.set(k.id, `${k.jenjang_kode ?? ""} · ${k.nama}`.trim())
+  })
+  return m
+}
+
+/** Kolom yang tampil di tabel — jangan sertakan field tersembunyi (mis. nama ibu). */
+const { query: search, filtered: filteredRows } = useTableSearch(rows, (row) => [
+  row.nis,
+  row.nama,
+  row.status,
+  formatRp(row.spp_nominal),
+])
 
 const STATUS: { label: string; value: SiswaStatus }[] = [
   { label: "Aktif", value: "aktif" },
@@ -45,8 +66,12 @@ const statusSeverity: Record<SiswaStatus, string> = {
 async function load() {
   loading.value = true
   try {
-    const data = await siswaApi.list(search.value ? { search: search.value } : {})
-    rows.value = data.results
+    const [data, kelompok] = await Promise.all([
+      siswaApi.listAll(),
+      kelompokApi.list(),
+    ])
+    rows.value = data
+    kelompokList.value = kelompok
   } catch (e) {
     notifyError(toast, e, "Gagal memuat data siswa.")
   } finally {
@@ -63,7 +88,7 @@ const form = reactive<Partial<Siswa>>({})
 function openCreate() {
   editingId.value = null
   Object.assign(form, {
-    nis: "", nama: "", status: "aktif", spp_nominal: "0",
+    nis: "", nama: "", status: "aktif", spp_nominal: "0", kelompok: null,
     nama_ayah: "", kontak_ayah: "", nama_ibu: "", kontak_ibu: "", alamat: "",
   })
   dialog.value = true
@@ -118,35 +143,42 @@ onMounted(load)
 </script>
 
 <template>
-  <div class="page">
-    <div class="page-head">
-      <h1>Data Siswa</h1>
+  <PageLayout title="Data Siswa" subtitle="Kelola siswa aktif PG/TK">
+    <Message severity="info" :closable="false" class="mb">
+      Untuk mengatur jenjang/kelompok atau pindah banyak siswa sekaligus, buka menu <strong>Kelompok</strong>.
+    </Message>
+    <template #actions>
       <Button label="Tambah Siswa" icon="pi pi-plus" @click="openCreate" />
-    </div>
-
-    <div class="toolbar">
-      <IconField>
-        <InputIcon class="pi pi-search" />
-        <InputText
-          v-model="search"
-          placeholder="Cari NIS / nama…"
-          @keyup.enter="load"
-        />
-      </IconField>
-      <Button label="Cari" severity="secondary" outlined @click="load" />
-    </div>
+    </template>
+    <template #filters>
+      <SearchField
+        v-model="search"
+        hint="Cari NIS, nama, status, atau SPP (kolom di tabel)"
+      />
+    </template>
 
     <DataTable
-      :value="rows"
+      :value="filteredRows"
       :loading="loading"
       paginator
       :rows="10"
       data-key="id"
       striped-rows
     >
-      <template #empty>Belum ada data siswa.</template>
+      <template #empty>
+        <EmptyState
+          message="Belum ada data siswa."
+          action-label="Tambah Siswa"
+          @action="openCreate"
+        />
+      </template>
       <Column field="nis" header="NIS" />
       <Column field="nama" header="Nama" />
+      <Column header="Kelompok">
+        <template #body="{ data }">
+          {{ data.kelompok ? kelompokMap().get(data.kelompok) ?? "—" : "—" }}
+        </template>
+      </Column>
       <Column header="Status">
         <template #body="{ data }">
           <Tag
@@ -156,25 +188,27 @@ onMounted(load)
         </template>
       </Column>
       <Column header="SPP">
-        <template #body="{ data }">Rp {{ Number(data.spp_nominal).toLocaleString("id-ID") }}</template>
-      </Column>
-      <Column header="Aksi" style="width: 8rem">
         <template #body="{ data }">
-          <Button
-            icon="pi pi-pencil"
-            text
-            rounded
-            aria-label="Edit"
-            @click="openEdit(data)"
-          />
-          <Button
-            icon="pi pi-trash"
-            text
-            rounded
-            severity="danger"
-            aria-label="Hapus"
-            @click="confirmDelete(data)"
-          />
+          <span class="tabular-nums">{{ formatRp(data.spp_nominal) }}</span>
+        </template>
+      </Column>
+      <Column header="Aksi" headerClass="bee-col-actions--sm" bodyClass="bee-col-actions--sm">
+        <template #body="{ data }">
+          <div class="bee-actions">
+            <Button
+              icon="pi pi-pencil"
+              text
+              aria-label="Edit"
+              @click="openEdit(data)"
+            />
+            <Button
+              icon="pi pi-trash"
+              text
+              severity="danger"
+              aria-label="Hapus"
+              @click="confirmDelete(data)"
+            />
+          </div>
         </template>
       </Column>
     </DataTable>
@@ -193,6 +227,23 @@ onMounted(load)
         <div class="field">
           <label>Nama *</label>
           <InputText v-model="form.nama" fluid />
+        </div>
+        <div class="field">
+          <label>Kelompok</label>
+          <Select
+            v-model="form.kelompok"
+            :options="kelompokList"
+            option-label="nama"
+            option-value="id"
+            placeholder="Pilih kelompok"
+            show-clear
+            filter
+            fluid
+          >
+            <template #option="{ option }">
+              {{ option.jenjang_kode }} · {{ option.nama }}
+            </template>
+          </Select>
         </div>
         <div class="field">
           <label>Status</label>
@@ -234,33 +285,14 @@ onMounted(load)
         <Button label="Simpan" :loading="saving" @click="save" />
       </template>
     </Dialog>
-  </div>
+  </PageLayout>
 </template>
 
 <style scoped>
-.page-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 1rem;
-}
-.toolbar {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-}
-.form-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.85rem;
-}
+.mb { margin-bottom: 1rem; }
 .field {
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
-}
-.field label {
-  font-weight: 600;
-  font-size: 0.85rem;
 }
 </style>

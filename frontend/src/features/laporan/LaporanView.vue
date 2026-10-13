@@ -2,7 +2,7 @@
 import Button from "primevue/button"
 import Column from "primevue/column"
 import DataTable from "primevue/datatable"
-import InputNumber from "primevue/inputnumber"
+import Message from "primevue/message"
 import ProgressBar from "primevue/progressbar"
 import Select from "primevue/select"
 import Tab from "primevue/tab"
@@ -14,8 +14,12 @@ import { useToast } from "primevue/usetoast"
 import { computed, onMounted, ref, watch } from "vue"
 
 import { laporanApi } from "./api"
+import { downloadCsv } from "@/core/export"
 import { notifyError } from "@/core/errors"
+import { formatRp } from "@/core/format"
 import { coaApi } from "@/features/jurnal/api"
+import PageLayout from "@/shared/components/PageLayout.vue"
+import PeriodPicker from "@/shared/components/PeriodPicker.vue"
 import type {
   BukuBesarRow,
   Coa,
@@ -28,8 +32,11 @@ import type {
 const toast = useToast()
 
 const tab = ref("neraca")
+const periodeBulan = ref(new Date().getMonth() + 1)
+const periodeTahun = ref(new Date().getFullYear())
+const periodParams = computed(() => ({ tahun: periodeTahun.value, bulan: periodeBulan.value }))
 function rp(v: string | number | null | undefined) {
-  return "Rp " + Number(v ?? 0).toLocaleString("id-ID")
+  return formatRp(v)
 }
 function pct(pagu: string, realisasi: string) {
   const p = Number(pagu) || 0
@@ -47,7 +54,7 @@ const neraca = ref<SaldoRow[]>([])
 const loadingNeraca = ref(false)
 async function loadNeraca() {
   loadingNeraca.value = true
-  try { neraca.value = await laporanApi.neracaSaldo() }
+  try { neraca.value = await laporanApi.neracaSaldo({ tahun: periodeTahun.value }) }
   catch (e) { notifyError(toast, e, "Gagal memuat neraca saldo.") }
   finally { loadingNeraca.value = false }
 }
@@ -57,7 +64,7 @@ const labaRugi = ref<LabaRugiResult | null>(null)
 const loadingLR = ref(false)
 async function loadLabaRugi() {
   loadingLR.value = true
-  try { labaRugi.value = await laporanApi.labaRugi() }
+  try { labaRugi.value = await laporanApi.labaRugi({ tahun: periodeTahun.value }) }
   catch (e) { notifyError(toast, e, "Gagal memuat laba rugi.") }
   finally { loadingLR.value = false }
 }
@@ -67,7 +74,7 @@ const posisi = ref<PosisiKeuanganResult | null>(null)
 const loadingPK = ref(false)
 async function loadPosisi() {
   loadingPK.value = true
-  try { posisi.value = await laporanApi.posisiKeuangan() }
+  try { posisi.value = await laporanApi.posisiKeuangan({ tahun: periodeTahun.value }) }
   catch (e) { notifyError(toast, e, "Gagal memuat posisi keuangan.") }
   finally { loadingPK.value = false }
 }
@@ -81,12 +88,11 @@ const totalLiabEkuitas = computed(() => {
 })
 
 // --- Realisasi Anggaran ---
-const tahun = ref<number>(new Date().getFullYear())
 const realisasi = ref<RealisasiAnggaranRow[]>([])
 const loadingRA = ref(false)
 async function loadRealisasi() {
   loadingRA.value = true
-  try { realisasi.value = await laporanApi.realisasiAnggaran(tahun.value) }
+  try { realisasi.value = await laporanApi.realisasiAnggaran(periodeTahun.value) }
   catch (e) { notifyError(toast, e, "Gagal memuat realisasi anggaran.") }
   finally { loadingRA.value = false }
 }
@@ -98,7 +104,9 @@ const loadingBB = ref(false)
 async function loadBukuBesar() {
   if (!kodeAkun.value) return
   loadingBB.value = true
-  try { mutasi.value = await laporanApi.bukuBesar(kodeAkun.value) }
+  try {
+    mutasi.value = await laporanApi.bukuBesar(kodeAkun.value, periodParams.value)
+  }
   catch (e) { notifyError(toast, e, "Gagal memuat buku besar.") }
   finally { loadingBB.value = false }
 }
@@ -112,20 +120,59 @@ const mutasiDenganSaldo = computed(() => {
 
 // auto-load tiap pindah tab pertama kali
 const loaded = ref<Record<string, boolean>>({})
-watch(tab, async (t) => {
-  if (loaded.value[t]) return
-  loaded.value[t] = true
+
+async function reloadTab(t: string) {
   if (t === "neraca") await loadNeraca()
   if (t === "lr") await loadLabaRugi()
   if (t === "pk") await loadPosisi()
   if (t === "ra") await loadRealisasi()
+  if (t === "bb" && kodeAkun.value) await loadBukuBesar()
+}
+
+watch(tab, async (t) => {
+  if (loaded.value[t]) return
+  loaded.value[t] = true
+  await reloadTab(t)
 }, { immediate: true })
+
+async function applyPeriod() {
+  loaded.value = { [tab.value]: true }
+  await reloadTab(tab.value)
+}
+
+function cetak() {
+  window.print()
+}
+
+function exportNeracaCsv() {
+  downloadCsv(
+    `neraca-saldo-${periodeTahun.value}.csv`,
+    ["Kode", "Nama", "Posisi", "Debit", "Kredit", "Saldo"],
+    neraca.value.map((r) => [
+      r.kode_akun, r.nama_akun, r.posisi_normal,
+      r.total_debit, r.total_kredit, r.saldo_akhir,
+    ]),
+  )
+}
 </script>
 
 <template>
-  <div class="page">
-    <h1>Laporan Keuangan</h1>
+  <PageLayout title="Laporan Keuangan" subtitle="Neraca saldo, laba rugi, posisi keuangan, dan buku besar">
+    <template #filters>
+      <PeriodPicker v-model:bulan="periodeBulan" v-model:tahun="periodeTahun" />
+      <Button label="Terapkan" icon="pi pi-filter" size="small" @click="applyPeriod" />
+    </template>
+    <template #actions>
+      <Button label="Cetak" icon="pi pi-print" severity="secondary" @click="cetak" />
+      <Button v-if="tab === 'neraca'" label="Export CSV" icon="pi pi-download" text @click="exportNeracaCsv" />
+    </template>
 
+    <Message severity="info" :closable="false" class="mb">
+      Laporan dihitung dari <strong>jurnal berstatus POSTED</strong> tahun {{ periodeTahun }}.
+      Buku besar bisa difilter per bulan; neraca saldo &amp; laba rugi menampilkan ringkasan tahun berjalan.
+    </Message>
+
+    <div class="laporan-print">
     <Tabs v-model:value="tab">
       <TabList>
         <Tab value="neraca">Neraca Saldo</Tab>
@@ -156,27 +203,31 @@ watch(tab, async (t) => {
             <section>
               <h3>Pendapatan</h3>
               <table class="report">
-                <tr v-for="r in labaRugi.pendapatan" :key="r.kode_akun">
-                  <td>{{ r.kode_akun }} — {{ r.nama_akun }}</td>
-                  <td class="num">{{ rp(r.saldo_akhir) }}</td>
-                </tr>
-                <tr class="total">
-                  <td>Total Pendapatan</td>
-                  <td class="num">{{ rp(labaRugi.total_pendapatan) }}</td>
-                </tr>
+                <tbody>
+                  <tr v-for="r in labaRugi.pendapatan" :key="r.kode_akun">
+                    <td>{{ r.kode_akun }} — {{ r.nama_akun }}</td>
+                    <td class="num">{{ rp(r.saldo_akhir) }}</td>
+                  </tr>
+                  <tr class="total">
+                    <td>Total Pendapatan</td>
+                    <td class="num">{{ rp(labaRugi.total_pendapatan) }}</td>
+                  </tr>
+                </tbody>
               </table>
             </section>
             <section>
               <h3>Beban</h3>
               <table class="report">
-                <tr v-for="r in labaRugi.beban" :key="r.kode_akun">
-                  <td>{{ r.kode_akun }} — {{ r.nama_akun }}</td>
-                  <td class="num">{{ rp(r.saldo_akhir) }}</td>
-                </tr>
-                <tr class="total">
-                  <td>Total Beban</td>
-                  <td class="num">{{ rp(labaRugi.total_beban) }}</td>
-                </tr>
+                <tbody>
+                  <tr v-for="r in labaRugi.beban" :key="r.kode_akun">
+                    <td>{{ r.kode_akun }} — {{ r.nama_akun }}</td>
+                    <td class="num">{{ rp(r.saldo_akhir) }}</td>
+                  </tr>
+                  <tr class="total">
+                    <td>Total Beban</td>
+                    <td class="num">{{ rp(labaRugi.total_beban) }}</td>
+                  </tr>
+                </tbody>
               </table>
             </section>
             <div class="lr-result" :class="{ negatif: Number(labaRugi.laba_rugi) < 0 }">
@@ -193,25 +244,29 @@ watch(tab, async (t) => {
             <section>
               <h3>Aset</h3>
               <table class="report">
-                <tr v-for="r in posisi.aset" :key="r.kode_akun">
-                  <td>{{ r.kode_akun }} — {{ r.nama_akun }}</td>
-                  <td class="num">{{ rp(r.saldo_akhir) }}</td>
-                </tr>
-                <tr class="total"><td>Total Aset</td><td class="num">{{ rp(totalAset) }}</td></tr>
+                <tbody>
+                  <tr v-for="r in posisi.aset" :key="r.kode_akun">
+                    <td>{{ r.kode_akun }} — {{ r.nama_akun }}</td>
+                    <td class="num">{{ rp(r.saldo_akhir) }}</td>
+                  </tr>
+                  <tr class="total"><td>Total Aset</td><td class="num">{{ rp(totalAset) }}</td></tr>
+                </tbody>
               </table>
             </section>
             <section>
               <h3>Liabilitas + Ekuitas</h3>
               <table class="report">
-                <tr v-for="r in posisi.liabilitas" :key="r.kode_akun">
-                  <td>L · {{ r.kode_akun }} — {{ r.nama_akun }}</td>
-                  <td class="num">{{ rp(r.saldo_akhir) }}</td>
-                </tr>
-                <tr v-for="r in posisi.ekuitas" :key="r.kode_akun">
-                  <td>E · {{ r.kode_akun }} — {{ r.nama_akun }}</td>
-                  <td class="num">{{ rp(r.saldo_akhir) }}</td>
-                </tr>
-                <tr class="total"><td>Total Liab. + Ekuitas</td><td class="num">{{ rp(totalLiabEkuitas) }}</td></tr>
+                <tbody>
+                  <tr v-for="r in posisi.liabilitas" :key="r.kode_akun">
+                    <td>L · {{ r.kode_akun }} — {{ r.nama_akun }}</td>
+                    <td class="num">{{ rp(r.saldo_akhir) }}</td>
+                  </tr>
+                  <tr v-for="r in posisi.ekuitas" :key="r.kode_akun">
+                    <td>E · {{ r.kode_akun }} — {{ r.nama_akun }}</td>
+                    <td class="num">{{ rp(r.saldo_akhir) }}</td>
+                  </tr>
+                  <tr class="total"><td>Total Liab. + Ekuitas</td><td class="num">{{ rp(totalLiabEkuitas) }}</td></tr>
+                </tbody>
               </table>
             </section>
           </div>
@@ -220,11 +275,6 @@ watch(tab, async (t) => {
 
         <!-- Realisasi Anggaran -->
         <TabPanel value="ra">
-          <div class="toolbar">
-            <label>Tahun</label>
-            <InputNumber v-model="tahun" :min="2020" :max="2100" :use-grouping="false" />
-            <Button label="Tampilkan" icon="pi pi-search" @click="loadRealisasi" />
-          </div>
           <DataTable :value="realisasi" :loading="loadingRA" striped-rows>
             <template #empty>Belum ada data anggaran untuk tahun ini.</template>
             <Column field="kode_akun" header="Akun" />
@@ -271,7 +321,8 @@ watch(tab, async (t) => {
         </TabPanel>
       </TabPanels>
     </Tabs>
-  </div>
+    </div>
+  </PageLayout>
 </template>
 
 <style scoped>
@@ -294,4 +345,19 @@ section h3 { margin: 0 0 0.5rem; }
 .lr-result.negatif strong { color: var(--bee-magenta); }
 .negatif { color: var(--bee-magenta); }
 .muted { color: var(--app-text-muted); padding: 1rem; }
+.mb { margin-bottom: 1rem; }
+</style>
+
+<style>
+@media print {
+  .bee-page__header,
+  .p-tablist,
+  .p-message,
+  .bee-page__filters {
+    display: none !important;
+  }
+  .laporan-print {
+    padding: 0;
+  }
+}
 </style>

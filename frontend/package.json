@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
+    "deploy": "npm run build && wrangler deploy --keep-vars",
     "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "gen:types": "openapi-typescript ../backend/schema.yml -o src/types/openapi.d.ts"
   },
   "dependencies": {
@@ -24,10 +27,14 @@
   "devDependencies": {
     "@types/node": "^24.12.3",
     "@vitejs/plugin-vue": "^6.0.6",
+    "@vue/test-utils": "^2.4.6",
     "@vue/tsconfig": "^0.9.1",
+    "happy-dom": "^20.0.11",
     "openapi-typescript": "^7.13.0",
     "typescript": "~6.0.2",
     "vite": "^8.0.12",
-    "vue-tsc": "^3.2.8"
+    "vitest": "^4.0.18",
+    "vue-tsc": "^3.2.8",
+    "wrangler": "^4.149.0"
   }
 }

@@ -35,6 +35,7 @@ def post_realisasi_kegiatan(kegiatan, tanggal, deskripsi, nominal, user=None,
                     (akun_kas, Decimal(0), nominal),
                 ],
                 user=user,
+                fiscal_period=getattr(kegiatan, "periode", None),
             )
             realisasi = RealisasiKegiatan.objects.create(
                 kegiatan=kegiatan, tanggal=tanggal, deskripsi=deskripsi,

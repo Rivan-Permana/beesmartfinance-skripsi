@@ -7,7 +7,7 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
-from accounts.permissions import IsTeacherOrPrincipal
+from accounts.permissions import IsFinance, IsPrincipal, IsTeacherOrPrincipal
 
 from operations.models import Kegiatan
 from operations.serializers import KegiatanSerializer
@@ -15,10 +15,18 @@ from operations.services import post_realisasi_kegiatan
 
 
 class KegiatanViewSet(viewsets.ModelViewSet):
-    queryset = Kegiatan.objects.select_related("penanggung_jawab").order_by("-id")
+    queryset = Kegiatan.objects.select_related("penanggung_jawab", "periode").order_by("-id")
     serializer_class = KegiatanSerializer
     permission_classes = [IsTeacherOrPrincipal]
-    filterset_fields = ["status", "penanggung_jawab"]
+    filterset_fields = ["status", "penanggung_jawab", "periode"]
+
+    def get_permissions(self):
+        # Buat/ubah/hapus kegiatan: Kepsek. Guru PIC: realisasi + lihat saja. Finance: lihat saja.
+        if self.action in ("create", "update", "partial_update", "destroy"):
+            return [IsPrincipal()]
+        if self.action == "realisasi":
+            return [IsTeacherOrPrincipal()]
+        return [(IsTeacherOrPrincipal | IsFinance)()]
 
     @action(detail=True, methods=["post"])
     def realisasi(self, request, pk=None):

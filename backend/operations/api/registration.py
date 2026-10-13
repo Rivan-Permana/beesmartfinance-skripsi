@@ -26,7 +26,7 @@ class PendaftaranSiswaViewSet(viewsets.ModelViewSet):
         try:
             jurnal = post_bayar_sitin(self.get_object(), user=request.user)
         except ValueError as exc:
-            raise ValidationError(str(exc))
+            raise ValidationError({"detail": str(exc)})
         return Response({
             "detail": "Pembayaran sit-in tercatat dan dijurnal sebagai DRAFT.",
             "jurnal_id": str(jurnal.id),
@@ -41,5 +41,5 @@ class PendaftaranSiswaViewSet(viewsets.ModelViewSet):
                 spp_nominal=Decimal(str(request.data.get("spp_nominal", 0))),
             )
         except ValueError as exc:
-            raise ValidationError(str(exc))
+            raise ValidationError({"detail": str(exc)})
         return Response(self.get_serializer(p).data)

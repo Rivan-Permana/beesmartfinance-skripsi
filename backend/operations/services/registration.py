@@ -14,7 +14,7 @@ def post_bayar_sitin(pendaftaran, user=None, akun_kas=None):
     if pendaftaran.biaya_sitin <= 0:
         raise ValueError("Biaya sit-in nol.")
     akun_kas = akun_kas or akun_sistem("KAS", "1101")
-    akun_pendapatan = akun_rule("SITIN")
+    akun_pendapatan = akun_rule("SITIN", event_code="REGISTRASI")
     with transaction.atomic():
         with audit_user(user):
             jurnal = buat_jurnal(
@@ -42,7 +42,7 @@ def finalisasi_pendaftaran(pendaftaran, user=None, akun_kas=None, spp_nominal=De
     if pendaftaran.biaya_pendaftaran <= 0:
         raise ValueError("Biaya pendaftaran nol.")
     akun_kas = akun_kas or akun_sistem("KAS", "1101")
-    akun_pendapatan = akun_rule("PENDAFTARAN")
+    akun_pendapatan = akun_rule("PENDAFTARAN", event_code="REGISTRASI")
 
     with transaction.atomic():
         with audit_user(user):

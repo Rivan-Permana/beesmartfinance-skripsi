@@ -14,6 +14,18 @@ class AccountsTests(TestCase):
         self.assertEqual(settings.AUTH_USER_MODEL, "accounts.User")
         self.assertEqual(User._meta.db_table, "accounts_user")
 
+    def test_seed_demo_creates_four_users(self):
+        from django.core.management import call_command
+
+        call_command("seed_demo", "--users-only", "--password", "LebahMadu2026!")
+        self.assertTrue(User.objects.filter(username="admin.tu").exists())
+        self.assertTrue(User.objects.filter(username="keuangan").exists())
+        self.assertTrue(User.objects.filter(username="kepsek").exists())
+        self.assertTrue(User.objects.filter(username="guru.kegiatan").exists())
+        admin = User.objects.get(username="admin.tu")
+        self.assertIn("Administration", admin.groups.values_list("name", flat=True))
+        self.assertTrue(admin.check_password("LebahMadu2026!"))
+
     def test_role_groups_terseed(self):
         for nama in ["Finance", "SchoolPrincipal", "Administration", "TeacherInCharge"]:
             self.assertTrue(Group.objects.filter(name=nama).exists(), nama)

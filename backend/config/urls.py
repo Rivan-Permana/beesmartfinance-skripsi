@@ -1,3 +1,5 @@
+from django.conf import settings
+from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
@@ -12,7 +14,9 @@ class ThrottledTokenObtainPairView(TokenObtainPairView):
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "login"
 
-from accounts.api import MeView
+from accounts.api import MeView, UserLabelsView
+from operations.api.legacy_export import LegacyExportJemputView, LegacyExportKateringView
+from operations.api.school_services import TarifKateringView
 from accounting.api import (
     MsCoaViewSet,
     MsGolonganViewSet,
@@ -27,6 +31,7 @@ from accounting.reports import (
     DashboardRingkasanView,
     LabaRugiBulananView,
     LabaRugiView,
+    MenuKateringHariIniView,
     NeracaSaldoView,
     PosisiKeuanganView,
     PrediksiKasView,
@@ -83,6 +88,10 @@ api_v1 = [
     path("auth/token/", ThrottledTokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("auth/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("auth/me/", MeView.as_view(), name="me"),
+    path("auth/user-labels/", UserLabelsView.as_view(), name="user_labels"),
+    path("tarif-katering/", TarifKateringView.as_view(), name="tarif_katering"),
+    path("export/legacy/katering/", LegacyExportKateringView.as_view(), name="export_legacy_katering"),
+    path("export/legacy/jemput/", LegacyExportJemputView.as_view(), name="export_legacy_jemput"),
     # resources
     path("", include(router.urls)),
     # laporan & dashboard
@@ -94,6 +103,7 @@ api_v1 = [
     path("dashboard/ringkasan/", DashboardRingkasanView.as_view()),
     path("dashboard/prediksi-kas/", PrediksiKasView.as_view()),
     path("dashboard/laba-rugi-bulanan/", LabaRugiBulananView.as_view()),
+    path("dashboard/menu-katering/", MenuKateringHariIniView.as_view()),
 ]
 
 urlpatterns = [
@@ -103,3 +113,6 @@ urlpatterns = [
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="docs"),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

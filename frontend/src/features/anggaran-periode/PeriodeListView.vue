@@ -5,6 +5,7 @@ import DataTable from "primevue/datatable"
 import DatePicker from "primevue/datepicker"
 import Dialog from "primevue/dialog"
 import InputText from "primevue/inputtext"
+import Message from "primevue/message"
 import Tag from "primevue/tag"
 import { useConfirm } from "primevue/useconfirm"
 import { useToast } from "primevue/usetoast"
@@ -12,6 +13,7 @@ import { computed, onMounted, reactive, ref } from "vue"
 
 import { periodeApi } from "./api"
 import { notifyError, notifySuccess } from "@/core/errors"
+import PageLayout from "@/shared/components/PageLayout.vue"
 import { useAuthStore } from "@/stores/auth"
 import type { PeriodeAkuntansi } from "@/types/api"
 
@@ -90,11 +92,15 @@ onMounted(load)
 </script>
 
 <template>
-  <div class="page">
-    <div class="page-head">
-      <h1>Periode Akuntansi</h1>
+  <PageLayout title="Periode Akuntansi" subtitle="Kelola periode buku terbuka dan tutup buku">
+    <template #actions>
       <Button v-if="canCreate" label="Tambah Periode" icon="pi pi-plus" @click="openCreate" />
-    </div>
+    </template>
+
+    <Message severity="info" :closable="false" class="periode-hint">
+      Satu periode = satu <strong>tahun pelajaran</strong> (Juli–Juni), mis. 2025/2026.
+      Kegiatan sekolah dan jurnal realisasi dapat dikaitkan ke periode terbuka.
+    </Message>
 
     <DataTable :value="rows" :loading="loading" paginator :rows="10" data-key="id" striped-rows>
       <template #empty>Belum ada periode terdaftar.</template>
@@ -109,16 +115,18 @@ onMounted(load)
           />
         </template>
       </Column>
-      <Column header="Aksi" style="width: 12rem">
+      <Column header="Aksi" headerClass="bee-col-actions--md" bodyClass="bee-col-actions--md">
         <template #body="{ data }">
-          <Button
-            v-if="canClose && data.status === 'OPEN'"
-            label="Tutup Buku"
-            size="small"
-            severity="danger"
-            text
-            @click="tutup(data)"
-          />
+          <div class="bee-actions">
+            <Button
+              v-if="canClose && data.status === 'OPEN'"
+              label="Tutup Buku"
+              size="small"
+              severity="danger"
+              text
+              @click="tutup(data)"
+            />
+          </div>
         </template>
       </Column>
     </DataTable>
@@ -143,11 +151,13 @@ onMounted(load)
         <Button label="Simpan" :loading="saving" @click="save" />
       </template>
     </Dialog>
-  </div>
+  </PageLayout>
 </template>
 
 <style scoped>
-.page-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+.periode-hint {
+  margin-bottom: 1rem;
+}
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; }
 .field { display: flex; flex-direction: column; gap: 0.3rem; }
 .field.span2 { grid-column: 1 / -1; }

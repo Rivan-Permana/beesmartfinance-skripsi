@@ -39,9 +39,12 @@ class GajiPegawai(SoftDeleteModel, TimeStampedModel):
     gaji_pokok = models.DecimalField(max_digits=18, decimal_places=2, default=0)
     tunjangan_jabatan = models.DecimalField(max_digits=18, decimal_places=2, default=0)
     tunjangan_pengabdian = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+    tunjangan_asuransi = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+    uang_makan = models.DecimalField(max_digits=18, decimal_places=2, default=0)
     transport = models.DecimalField(max_digits=18, decimal_places=2, default=0)
     bonus_insentif = models.DecimalField(max_digits=18, decimal_places=2, default=0)
     thr = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+    hari_hadir = models.PositiveSmallIntegerField(default=0)
 
     potongan_pinjaman = models.DecimalField(max_digits=18, decimal_places=2, default=0)
     potongan_asuransi = models.DecimalField(max_digits=18, decimal_places=2, default=0)
@@ -60,7 +63,8 @@ class GajiPegawai(SoftDeleteModel, TimeStampedModel):
     def total_bruto(self) -> Decimal:
         return (
             self.gaji_pokok + self.tunjangan_jabatan + self.tunjangan_pengabdian
-            + self.transport + self.bonus_insentif + self.thr
+            + self.tunjangan_asuransi + self.uang_makan + self.transport
+            + self.bonus_insentif + self.thr
         )
 
     @property

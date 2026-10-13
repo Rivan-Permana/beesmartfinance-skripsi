@@ -1,0 +1,16 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "beesmartfinance-skripsi",
+  "main": "./worker/index.js",
+  "compatibility_date": "2026-10-12",
+  "workers_dev": true,
+  "vars": {
+    "BACKEND_ORIGIN": "https://srv2054916.hstgr.cloud"
+  },
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api", "/api/*", "/media", "/media/*"]
+  }
+}

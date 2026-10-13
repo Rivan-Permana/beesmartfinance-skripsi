@@ -6,16 +6,22 @@ import DatePicker from "primevue/datepicker"
 import Dialog from "primevue/dialog"
 import InputNumber from "primevue/inputnumber"
 import InputText from "primevue/inputtext"
+import Message from "primevue/message"
 import ProgressBar from "primevue/progressbar"
 import Select from "primevue/select"
 import Tag from "primevue/tag"
+import { useConfirm } from "primevue/useconfirm"
 import { useToast } from "primevue/usetoast"
 import { computed, onMounted, reactive, ref } from "vue"
 
 import { kegiatanApi } from "./api"
 import { notifyError, notifySuccess } from "@/core/errors"
+import { formatRp } from "@/core/format"
+import { periodeApi } from "@/features/anggaran-periode/api"
 import { coaApi } from "@/features/jurnal/api"
+import { filterCoaBeban } from "@/features/coa/filters"
 import { pegawaiApi } from "@/features/kepegawaian/api"
+import PageLayout from "@/shared/components/PageLayout.vue"
 import { useAuthStore } from "@/stores/auth"
 import type {
   Coa,
@@ -23,14 +29,19 @@ import type {
   KegiatanStatus,
   LaporanKegiatan,
   Pegawai,
+  PeriodeAkuntansi,
 } from "@/types/api"
 
 const auth = useAuthStore()
 const toast = useToast()
+const confirm = useConfirm()
 
 const rows = ref<Kegiatan[]>([])
 const coaList = ref<Coa[]>([])
+const coaBebanOptions = computed(() => filterCoaBeban(coaList.value))
 const pegawaiList = ref<Pegawai[]>([])
+const periodeList = ref<PeriodeAkuntansi[]>([])
+const periodeFilter = ref<number | null>(null)
 const loading = ref(false)
 
 const canManage = computed(() => auth.hasRole(["SchoolPrincipal"]))
@@ -46,7 +57,7 @@ const statusSeverity: Record<KegiatanStatus, string> = {
 }
 
 function rp(v: string | number | null | undefined) {
-  return "Rp " + Number(v ?? 0).toLocaleString("id-ID")
+  return formatRp(v)
 }
 function pct(v: number) {
   return Math.round(v * 100)
@@ -55,7 +66,9 @@ function pct(v: number) {
 async function load() {
   loading.value = true
   try {
-    rows.value = (await kegiatanApi.list()).results
+    const params: Record<string, unknown> = {}
+    if (periodeFilter.value) params.periode = periodeFilter.value
+    rows.value = (await kegiatanApi.list(params)).results
   } catch (e) {
     notifyError(toast, e, "Gagal memuat data kegiatan.")
   } finally {
@@ -63,27 +76,44 @@ async function load() {
   }
 }
 
-// --- form: buat kegiatan (Principal) ---
+// --- form: buat / edit kegiatan (Principal) ---
 const dialog = ref(false)
+const editingId = ref<number | null>(null)
 const saving = ref(false)
 const form = reactive<{
   nama: string
   akun_beban: string | null
   pagu: number
   penanggung_jawab: number | null
+  periode: number | null
   tanggal_mulai: Date | null
   tanggal_selesai: Date | null
   status: KegiatanStatus
 }>({
-  nama: "", akun_beban: null, pagu: 0, penanggung_jawab: null,
+  nama: "", akun_beban: null, pagu: 0, penanggung_jawab: null, periode: null,
   tanggal_mulai: null, tanggal_selesai: null, status: "RENCANA",
 })
 
 function openCreate() {
+  editingId.value = null
   form.nama = ""; form.akun_beban = null; form.pagu = 0
   form.penanggung_jawab = null
+  form.periode = periodeList.value.find((p) => p.status === "OPEN")?.id ?? null
   form.tanggal_mulai = null; form.tanggal_selesai = null
   form.status = "RENCANA"
+  dialog.value = true
+}
+
+function openEdit(k: Kegiatan) {
+  editingId.value = k.id
+  form.nama = k.nama
+  form.akun_beban = k.akun_beban
+  form.pagu = Number(k.pagu)
+  form.penanggung_jawab = k.penanggung_jawab
+  form.periode = k.periode
+  form.tanggal_mulai = k.tanggal_mulai ? new Date(k.tanggal_mulai + "T12:00:00") : null
+  form.tanggal_selesai = k.tanggal_selesai ? new Date(k.tanggal_selesai + "T12:00:00") : null
+  form.status = k.status
   dialog.value = true
 }
 
@@ -91,16 +121,23 @@ async function save() {
   if (!form.nama || !form.akun_beban || form.pagu <= 0) return
   saving.value = true
   try {
-    await kegiatanApi.create({
+    const payload = {
       nama: form.nama,
       akun_beban: form.akun_beban,
       pagu: String(form.pagu),
       penanggung_jawab: form.penanggung_jawab,
+      periode: form.periode,
       tanggal_mulai: form.tanggal_mulai?.toISOString().slice(0, 10) ?? null,
       tanggal_selesai: form.tanggal_selesai?.toISOString().slice(0, 10) ?? null,
       status: form.status,
-    })
-    notifySuccess(toast, "Kegiatan berhasil dibuat")
+    }
+    if (editingId.value) {
+      await kegiatanApi.update(editingId.value, payload)
+      notifySuccess(toast, "Kegiatan diperbarui")
+    } else {
+      await kegiatanApi.create(payload)
+      notifySuccess(toast, "Kegiatan berhasil dibuat")
+    }
     dialog.value = false
     await load()
   } catch (e) {
@@ -108,6 +145,26 @@ async function save() {
   } finally {
     saving.value = false
   }
+}
+
+function confirmDelete(k: Kegiatan) {
+  confirm.require({
+    message: `Hapus kegiatan "${k.nama}"? Hanya bisa jika belum ada realisasi.`,
+    header: "Konfirmasi Hapus",
+    icon: "pi pi-trash",
+    rejectLabel: "Batal",
+    acceptLabel: "Hapus",
+    acceptClass: "p-button-danger",
+    accept: async () => {
+      try {
+        await kegiatanApi.remove(k.id)
+        notifySuccess(toast, "Kegiatan dihapus.")
+        await load()
+      } catch (e) {
+        notifyError(toast, e, "Gagal menghapus kegiatan.")
+      }
+    },
+  })
 }
 
 // --- realisasi (Teacher/Principal) ---
@@ -163,19 +220,38 @@ onMounted(async () => {
   try {
     pegawaiList.value = (await pegawaiApi.list()).results
   } catch { /* fallback dropdown kosong */ }
+  try {
+    periodeList.value = (await periodeApi.list()).results
+  } catch { /* fallback dropdown kosong */ }
 })
 </script>
 
 <template>
-  <div class="page">
-    <div class="page-head">
-      <h1>Kegiatan Sekolah</h1>
+  <PageLayout title="Kegiatan Sekolah" subtitle="Kelola pagu dan realisasi kegiatan per tahun pelajaran">
+    <template #actions>
+      <Select
+        v-model="periodeFilter"
+        :options="[{ label: 'Semua TA', value: null }, ...periodeList.map(p => ({ label: p.kode, value: p.id }))]"
+        option-label="label"
+        option-value="value"
+        placeholder="Filter TA"
+        show-clear
+        @change="load"
+      />
       <Button v-if="canManage" label="Buat Kegiatan" icon="pi pi-plus" @click="openCreate" />
-    </div>
+    </template>
+
+    <Message severity="info" :closable="false" class="kegiatan-hint">
+      Realisasi kegiatan otomatis dijurnal ke <strong>akun beban</strong> yang dipilih dan terikat
+      <strong>tahun pelajaran (periode akuntansi)</strong> jika diisi.
+    </Message>
 
     <DataTable :value="rows" :loading="loading" paginator :rows="10" data-key="id" striped-rows>
       <template #empty>Belum ada kegiatan terdaftar.</template>
       <Column field="nama" header="Kegiatan" />
+      <Column header="TA">
+        <template #body="{ data }">{{ data.periode_kode ?? "—" }}</template>
+      </Column>
       <Column header="Pagu"><template #body="{ data }">{{ rp(data.pagu) }}</template></Column>
       <Column header="Realisasi">
         <template #body="{ data }">{{ rp(data.realisasi) }}</template>
@@ -193,22 +269,46 @@ onMounted(async () => {
           <Tag :value="data.status" :severity="statusSeverity[data.status as KegiatanStatus]" />
         </template>
       </Column>
-      <Column header="Aksi" style="width: 14rem">
+      <Column header="Aksi" headerClass="bee-col-actions--xl" bodyClass="bee-col-actions--xl">
         <template #body="{ data }">
-          <Button
-            v-if="canRealisasi"
-            label="Realisasi"
-            size="small"
-            text
-            @click="openRealisasi(data)"
-          />
-          <Button label="Laporan" size="small" text severity="secondary" @click="lihatLaporan(data)" />
+          <div class="bee-actions">
+            <Button
+              v-if="canManage"
+              icon="pi pi-pencil"
+              text
+              rounded
+              aria-label="Edit kegiatan"
+              @click="openEdit(data)"
+            />
+            <Button
+              v-if="canRealisasi"
+              label="Realisasi"
+              size="small"
+              text
+              @click="openRealisasi(data)"
+            />
+            <Button label="Laporan" size="small" text severity="secondary" @click="lihatLaporan(data)" />
+            <Button
+              v-if="canManage && Number(data.realisasi) === 0"
+              icon="pi pi-trash"
+              text
+              rounded
+              severity="danger"
+              aria-label="Hapus kegiatan"
+              @click="confirmDelete(data)"
+            />
+          </div>
         </template>
       </Column>
     </DataTable>
 
-    <!-- Buat Kegiatan -->
-    <Dialog v-model:visible="dialog" header="Buat Kegiatan" modal :style="{ width: '32rem' }">
+    <!-- Buat / Edit Kegiatan -->
+    <Dialog
+      v-model:visible="dialog"
+      :header="editingId ? 'Edit Kegiatan' : 'Buat Kegiatan'"
+      modal
+      :style="{ width: '32rem' }"
+    >
       <div class="form-grid">
         <div class="field span2">
           <label>Nama Kegiatan *</label>
@@ -216,7 +316,7 @@ onMounted(async () => {
         </div>
         <div class="field span2">
           <label>Akun Beban *</label>
-          <Select v-model="form.akun_beban" :options="coaList" option-label="nama_akun" option-value="kode_akun" filter placeholder="Pilih akun beban" fluid />
+          <Select v-model="form.akun_beban" :options="coaBebanOptions" option-label="nama_akun" option-value="kode_akun" filter placeholder="Pilih akun beban" fluid />
         </div>
         <div class="field">
           <label>Pagu *</label>
@@ -225,6 +325,19 @@ onMounted(async () => {
         <div class="field">
           <label>Penanggung Jawab</label>
           <Select v-model="form.penanggung_jawab" :options="pegawaiList" option-label="nama" option-value="id" filter show-clear placeholder="Pilih guru" fluid />
+        </div>
+        <div class="field span2">
+          <label>Tahun Pelajaran</label>
+          <Select
+            v-model="form.periode"
+            :options="periodeList"
+            option-label="kode"
+            option-value="id"
+            filter
+            show-clear
+            placeholder="Pilih periode TA"
+            fluid
+          />
         </div>
         <div class="field">
           <label>Tanggal Mulai</label>
@@ -295,11 +408,13 @@ onMounted(async () => {
         </table>
       </div>
     </Dialog>
-  </div>
+  </PageLayout>
 </template>
 
 <style scoped>
-.page-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+.kegiatan-hint {
+  margin-bottom: 1rem;
+}
 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; }
 .field { display: flex; flex-direction: column; gap: 0.3rem; }
 .field.span2 { grid-column: 1 / -1; }

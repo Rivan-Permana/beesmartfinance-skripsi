@@ -1,0 +1,23 @@
+{$API_HOST} {
+    encode zstd gzip
+    header {
+        -Server
+        X-Content-Type-Options nosniff
+    }
+
+    handle_path /media/* {
+        root * /srv/media
+        file_server
+    }
+
+    handle_path /static/* {
+        root * /srv/staticfiles
+        file_server
+    }
+
+    handle {
+        reverse_proxy backend:8000 {
+            header_up X-Forwarded-Proto https
+        }
+    }
+}

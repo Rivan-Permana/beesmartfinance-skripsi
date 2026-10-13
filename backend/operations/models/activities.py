@@ -23,6 +23,11 @@ class Kegiatan(SoftDeleteModel, TimeStampedModel):
     tanggal_mulai = models.DateField(blank=True, null=True)
     tanggal_selesai = models.DateField(blank=True, null=True)
     status = models.CharField(max_length=10, choices=STATUS, default="RENCANA")
+    periode = models.ForeignKey(
+        "accounting.MsPeriodeAkuntansi", on_delete=models.SET_NULL,
+        blank=True, null=True, related_name="kegiatan",
+        db_constraint=False,
+    )
 
     history = HistoricalRecords()
 

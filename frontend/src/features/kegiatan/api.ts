@@ -2,10 +2,13 @@ import { api } from "@/core/api"
 import type { Kegiatan, LaporanKegiatan, Paginated } from "@/types/api"
 
 export const kegiatanApi = {
-  list: () =>
-    api.get<Paginated<Kegiatan>>("/kegiatan/").then((r) => r.data),
+  list: (params?: Record<string, unknown>) =>
+    api.get<Paginated<Kegiatan>>("/kegiatan/", { params }).then((r) => r.data),
   create: (payload: Partial<Kegiatan>) =>
     api.post<Kegiatan>("/kegiatan/", payload).then((r) => r.data),
+  update: (id: number, payload: Partial<Kegiatan>) =>
+    api.put<Kegiatan>(`/kegiatan/${id}/`, payload).then((r) => r.data),
+  remove: (id: number) => api.delete(`/kegiatan/${id}/`),
   realisasi: (id: number, body: { tanggal: string; deskripsi: string; nominal: number }) =>
     api
       .post<{ detail: string; realisasi_id: number; jurnal_id: string }>(

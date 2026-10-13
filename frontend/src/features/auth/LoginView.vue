@@ -6,7 +6,9 @@ import Password from "primevue/password"
 import { ref } from "vue"
 import { useRoute, useRouter } from "vue-router"
 
+import { roleHome } from "@/core/navigation"
 import { useAuthStore } from "@/stores/auth"
+import type { Role } from "@/types/api"
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -22,8 +24,16 @@ async function submit() {
   loading.value = true
   try {
     await auth.login(username.value, password.value)
-    const next = (route.query.next as string) || "/"
-    router.push(next)
+    const next = route.query.next as string | undefined
+    if (next && next !== "/") {
+      const resolved = router.resolve(next)
+      const req = resolved.meta.roles as Role[] | undefined
+      if (!req || auth.hasRole(req)) {
+        await router.push(next)
+        return
+      }
+    }
+    await router.push(roleHome(auth.roles))
   } catch (e: any) {
     error.value =
       e?.response?.status === 401
@@ -38,7 +48,7 @@ async function submit() {
 <template>
   <div class="login-wrap">
     <form class="login-card" @submit.prevent="submit">
-      <div class="logo">🐝</div>
+      <img src="/logo-lebah.svg" alt="" class="logo" width="64" height="64" />
       <h1>Sekolah Lebah Madu</h1>
       <p class="sub">Sistem Informasi Akuntansi</p>
 
@@ -88,14 +98,9 @@ async function submit() {
   flex-direction: column;
 }
 .logo {
-  font-size: 2.5rem;
-  background: var(--bee-orange);
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
   margin: 0 auto 0.5rem;
+  display: block;
+  border-radius: 50%;
 }
 h1 {
   text-align: center;

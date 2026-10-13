@@ -121,6 +121,70 @@ class JurnalApiTests(APITestCase):
         self.assertEqual(self.client.delete(f"/api/v1/jurnal/{jid}/").status_code, 403)
 
 
+class DashboardRingkasanTests(APITestCase):
+    def setUp(self):
+        self.principal = User.objects.create_user("principal_dash", password="x")
+        self.principal.groups.add(Group.objects.get(name="SchoolPrincipal"))
+        _coa("1101", "KAS", "D")
+
+    def test_ringkasan_menyertakan_operasional(self):
+        self.client.force_authenticate(self.principal)
+        r = self.client.get("/api/v1/dashboard/ringkasan/")
+        self.assertEqual(r.status_code, 200)
+        self.assertIn("operasional", r.data)
+        ops = r.data["operasional"]
+        self.assertIn("siswa_aktif", ops)
+        self.assertIn("absensi_sparkline", ops)
+        self.assertEqual(len(ops["absensi_sparkline"]), 6)
+
+
+class AuditLogApiTests(APITestCase):
+    def setUp(self):
+        import uuid as _uuid
+
+        from accounting.models import AuditLog, TrJurnal, TrJurnalDetail
+
+        self.finance = User.objects.create_user("finance_audit", password="x")
+        self.finance.groups.add(Group.objects.get(name="Finance"))
+        self.principal = User.objects.create_user("principal_audit", password="x")
+        self.principal.groups.add(Group.objects.get(name="SchoolPrincipal"))
+        self.admin = User.objects.create_user("admin_audit", password="x")
+        self.admin.groups.add(Group.objects.get(name="Administration"))
+        _coa("1101", "KAS", "D")
+        _coa("4101", "PENDAPATAN", "K")
+
+        j = TrJurnal.objects.create(
+            id=_uuid.uuid4(), no_bukti="AUD1", tanggal="2026-02-01", status="DRAFT",
+        )
+        TrJurnalDetail.objects.create(
+            jurnal=j, kode_akun_id="1101", debit=1000, kredit=0,
+        )
+        self.audit_id = AuditLog.objects.filter(table_name="tr_jurnal").first().id
+
+    def test_finance_dan_principal_boleh_baca(self):
+        for user in (self.finance, self.principal):
+            self.client.force_authenticate(user)
+            r = self.client.get("/api/v1/audit-log/")
+            self.assertEqual(r.status_code, 200)
+            self.assertGreaterEqual(r.data["count"], 1)
+
+    def test_administration_ditolak(self):
+        self.client.force_authenticate(self.admin)
+        self.assertEqual(self.client.get("/api/v1/audit-log/").status_code, 403)
+
+    def test_filter_table_name(self):
+        self.client.force_authenticate(self.principal)
+        r = self.client.get("/api/v1/audit-log/", {"table_name": "tr_jurnal"})
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue(all(x["table_name"] == "tr_jurnal" for x in r.data["results"]))
+
+    def test_detail_menyertakan_username(self):
+        self.client.force_authenticate(self.finance)
+        r = self.client.get(f"/api/v1/audit-log/{self.audit_id}/")
+        self.assertEqual(r.status_code, 200)
+        self.assertIn("changed_by_username", r.data)
+
+
 class ClosingApiTests(APITestCase):
     def setUp(self):
         from datetime import date

@@ -1,18 +1,35 @@
 :root {
-  /* Palette brand Sekolah Lebah Madu */
-  --bee-orange: #f5a623;
-  --bee-magenta: #e5197f;
-  --bee-navy: #2e2a6e;
-  --bee-navy-700: #3a3690;
-  --bee-blue: #4fb0db;
+  --bee-primary: #e5197f;
+  --bee-primary-foreground: #ffffff;
+  --bee-secondary: #2e2a6e;
+  --bee-accent: #f5a623;
+  --bee-accent-foreground: #1a1208;
+  --bee-sky: #4fb0db;
   --bee-cream: #f5edd6;
+  --bee-success: #2e9e5b;
+  --bee-warning: #f5a623;
+  --bee-danger: #c4116b;
+  --bee-workspace: #f6f7fb;
+  --bee-text-muted: #6b7280;
 
-  /* Workspace (Branded-Professional: terang & kontras tinggi) */
-  --app-bg: #f6f7fb;
+  /* legacy aliases */
+  --bee-magenta: var(--bee-primary);
+  --bee-navy: var(--bee-secondary);
+  --bee-orange: var(--bee-accent);
+  --bee-navy-700: #3a3690;
+  --bee-blue: var(--bee-sky);
+
+  --app-bg: var(--bee-workspace);
   --app-surface: #ffffff;
   --app-border: #e5e7eb;
   --app-text: #1f2430;
-  --app-text-muted: #6b7280;
+  --app-text-muted: var(--bee-text-muted);
+
+  --bee-sidebar-width: 260px;
+  --bee-sidebar-collapsed: 72px;
+  --bee-radius-sm: 8px;
+  --bee-radius-md: 10px;
+  --bee-radius-lg: 18px;
 }
 
 * {
@@ -34,14 +51,158 @@ body {
   line-height: 1.5;
 }
 
-/* Heading sedikit lebih berkarakter (brand) tapi tetap terbaca */
 h1, h2, h3 {
   font-family: "Baloo 2", "Nunito Sans", system-ui, sans-serif;
-  color: var(--bee-navy);
+  color: var(--bee-secondary);
   margin: 0 0 0.25rem;
 }
 
+.bee-section-title {
+  font-family: "Baloo 2", "Nunito Sans", system-ui, sans-serif;
+  font-weight: 700;
+  color: var(--bee-secondary);
+}
+
+/* Nama kartu / baris absensi — konsisten dengan judul halaman */
+.bee-card-name {
+  font-family: "Baloo 2", "Nunito Sans", system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--bee-secondary);
+}
+
+/* Label field di kartu absensi, form, dll. */
+.bee-field-label {
+  font-family: "Nunito Sans", system-ui, sans-serif;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--app-text-muted);
+}
+
+/* Kartu pilihan jenjang/kelompok — sama tipografi dengan nama di absensi */
+.bee-pick-card {
+  border: 1px solid var(--app-border);
+  border-radius: var(--bee-radius-md, 12px);
+  padding: 1rem;
+  background: var(--app-surface);
+  cursor: pointer;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  font-family: inherit;
+}
+
+.bee-pick-card:hover {
+  border-color: var(--bee-navy);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.bee-pick-card__code {
+  font-family: "Baloo 2", "Nunito Sans", system-ui, sans-serif;
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: var(--bee-secondary);
+}
+
+.bee-pick-card__name {
+  font-family: "Nunito Sans", system-ui, sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--app-text-muted);
+}
+
 a {
-  color: var(--bee-magenta);
+  color: var(--bee-primary);
   text-decoration: none;
+}
+
+/* PageLayout */
+.bee-page__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.bee-page__titles h1 {
+  font-size: 1.45rem;
+  margin: 0;
+}
+
+.bee-page__subtitle {
+  color: var(--app-text-muted);
+  font-size: 0.9rem;
+  margin: 0.15rem 0 0;
+}
+
+.bee-page__actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.bee-page__filters {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.bee-page__filters .bee-search-field {
+  flex: 1 1 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.bee-page__card {
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  border-radius: var(--bee-radius-md);
+  padding: 1rem;
+  box-shadow: 0 1px 3px rgba(46, 42, 110, 0.06);
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.form-grid .field.full {
+  grid-column: 1 / -1;
+}
+
+.form-grid label {
+  display: block;
+  font-weight: 600;
+  font-size: 0.85rem;
+  margin-bottom: 0.25rem;
+}
+
+@media (max-width: 767px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media print {
+  .shell-sidebar,
+  .shell-topbar,
+  .bee-page__actions,
+  .bee-page__filters {
+    display: none !important;
+  }
+  .bee-page__card {
+    border: none;
+    box-shadow: none;
+    padding: 0;
+  }
 }

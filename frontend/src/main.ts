@@ -13,6 +13,7 @@ import router from "./core/router"
 
 import "primeicons/primeicons.css"
 import "./assets/main.css"
+import "./assets/primevue-overrides.css"
 
 const app = createApp(App)
 

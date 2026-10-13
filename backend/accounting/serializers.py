@@ -24,6 +24,13 @@ class MsSubGolonganSerializer(serializers.ModelSerializer):
 
 
 class MsCoaSerializer(serializers.ModelSerializer):
+    sub_golongan = serializers.SlugRelatedField(
+        slug_field="kode_sub",
+        queryset=MsSubGolongan.objects.all(),
+        allow_null=True,
+        required=False,
+    )
+
     class Meta:
         model = MsCoa
         fields = ["kode_akun", "sub_golongan", "nama_akun", "posisi_normal", "is_active"]
@@ -85,3 +92,16 @@ class TrJurnalSerializer(serializers.ModelSerializer):
         for d in detail_data:
             TrJurnalDetail.objects.create(jurnal=jurnal, **d)
         return jurnal
+
+    def update(self, instance, validated_data):
+        if instance.status != "DRAFT":
+            raise serializers.ValidationError("Hanya jurnal DRAFT yang bisa diubah.")
+        detail_data = validated_data.pop("detail", None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        if detail_data is not None:
+            instance.detail.all().delete()
+            for d in detail_data:
+                TrJurnalDetail.objects.create(jurnal=instance, **d)
+        return instance

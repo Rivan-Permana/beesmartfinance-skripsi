@@ -1,0 +1,30 @@
+# Git
+.git
+.github
+
+# Python
+.venv
+__pycache__
+*.pyc
+.pytest_cache
+
+# Node
+frontend/node_modules
+frontend/dist
+
+# Env & secrets
+.env
+frontend/.env
+.env.*
+**/.env
+**/.env.*
+.dev.vars*
+media
+staticfiles
+backups
+
+# IDE & OS
+.cursor
+.DS_Store
+_bmad-output
+.agents

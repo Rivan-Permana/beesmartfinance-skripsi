@@ -49,9 +49,102 @@ export interface Siswa {
 
 export type SiswaInput = Omit<Siswa, "id">
 
+export type PendaftaranSiswaStatus = "TRIAL" | "REGISTERED" | "BATAL"
+
+export interface PendaftaranSiswa {
+  id: number
+  nama_calon: string
+  jenjang: number | null
+  tanggal_daftar: string
+  biaya_sitin: string
+  biaya_pendaftaran: string
+  status: PendaftaranSiswaStatus
+  siswa: number | null
+  jurnal_sitin: string | null
+  jurnal_pendaftaran: string | null
+}
+
+export type PendaftaranSiswaInput = Pick<
+  PendaftaranSiswa,
+  "nama_calon" | "jenjang" | "tanggal_daftar" | "biaya_sitin" | "biaya_pendaftaran"
+>
+
+export interface Jenjang {
+  id: number
+  kode: string
+  nama: string
+}
+
+export interface Kelompok {
+  id: number
+  nama: string
+  jenjang: number
+  jenjang_kode?: string
+  jenjang_nama?: string
+  siswa_aktif?: number
+}
+
+export type KehadiranStatus = "hadir" | "izin" | "sakit" | "tidak_hadir"
+
+export interface KehadiranSiswa {
+  id: number
+  siswa: number
+  tanggal: string
+  status: KehadiranStatus
+  ikut_katering: boolean
+  jemput_datang: boolean
+  jemput_pulang: boolean
+}
+
+export type KehadiranSiswaInput = Omit<KehadiranSiswa, "id">
+
+export interface MenuKatering {
+  id: number
+  tanggal: string
+  gambar?: string | null
+  gambar_url?: string | null
+  keterangan?: string
+}
+
+export type MenuKateringInput = Omit<MenuKatering, "id" | "gambar">
+
+export interface ArmadaJemputan {
+  id: number
+  nama_supir: string
+  jenis_mobil?: string
+  kapasitas?: number
+  keterangan?: string
+}
+
+export type ArmadaJemputanInput = Omit<ArmadaJemputan, "id">
+
+export interface PendaftaranJemputan {
+  id: number
+  siswa: number
+  armada: number | null
+  harga: string
+}
+
+export type PendaftaranJemputanInput = Omit<PendaftaranJemputan, "id">
+
 // --- Accounting ---
+export interface Golongan {
+  id: number
+  kode_golongan: string
+  nama_golongan: string
+  deskripsi?: string | null
+}
+
+export interface SubGolongan {
+  id: number
+  golongan: number
+  kode_sub: string
+  nama_sub: string
+}
+
 export interface Coa {
   kode_akun: string
+  sub_golongan: string | null
   nama_akun: string
   posisi_normal: "D" | "K"
   is_active: boolean
@@ -89,9 +182,13 @@ export interface JurnalInput {
 
 export type TagihanStatus = "BELUM" | "SEBAGIAN" | "LUNAS"
 
+export type TagihanKategori = "BULANAN" | "TAHUNAN" | "LAIN"
+
 export interface TagihanDetail {
   id?: number
   komponen: "SPP" | "KATERING" | "JEMPUTAN" | "LAIN"
+  kategori: TagihanKategori
+  keterangan: string
   akun_pendapatan: string
   nominal: string
 }
@@ -99,6 +196,7 @@ export interface TagihanDetail {
 export interface Tagihan {
   id: number
   siswa: number
+  siswa_nama?: string
   periode_bulan: number
   periode_tahun: number
   total: string
@@ -107,13 +205,40 @@ export interface Tagihan {
   detail: TagihanDetail[]
 }
 
+export interface TagihanPreview {
+  siswa: number
+  periode_bulan: number
+  periode_tahun: number
+  periode_label: string
+  detail: TagihanDetail[]
+  total: string
+  meta: {
+    hari_katering: number
+    tarif_katering: string
+    siswa_nama: string
+    nis: string | null
+    kelompok: string | null
+  }
+}
+
+export interface StrukSection {
+  kategori: TagihanKategori
+  label: string
+  lines: { komponen: string; label: string; nominal: string }[]
+}
+
 export interface StrukTagihan {
   no_tagihan: number
+  sekolah: string
   siswa: string
   nis: string | null
+  kelompok: string | null
   periode: string
+  periode_bulan: number
+  periode_tahun: number
   status: TagihanStatus
-  rincian: { komponen: string; nominal: string }[]
+  sections: StrukSection[]
+  rincian: { komponen: string; label: string; nominal: string }[]
   total: string
   no_jurnal: string | null
 }
@@ -127,9 +252,32 @@ export interface Pegawai {
   nomor_hp: string | null
   alamat: string | null
   status_aktif: boolean
+  tanggal_mulai_kerja: string | null
+  tanggal_selesai_kerja: string | null
   user: number | null
 }
 export type PegawaiInput = Omit<Pegawai, "id">
+
+export type AbsenPegawaiStatus = "hadir" | "izin" | "sakit" | "terlambat" | "none"
+
+export interface AbsenPegawai {
+  id: number
+  pegawai: number
+  tanggal: string
+  hadir: number
+  izin: number
+  sakit: number
+  terlambat: number
+}
+
+export interface AbsenPegawaiRekap {
+  pegawai: number
+  nama: string
+  hadir: number
+  izin: number
+  sakit: number
+  terlambat: number
+}
 
 export interface Gaji {
   id: number
@@ -139,12 +287,16 @@ export interface Gaji {
   gaji_pokok: string
   tunjangan_jabatan: string
   tunjangan_pengabdian: string
+  tunjangan_asuransi: string
+  uang_makan: string
   transport: string
   bonus_insentif: string
   thr: string
+  hari_hadir: number
   potongan_pinjaman: string
   potongan_asuransi: string
   total_bruto: string
+  total_potongan: string
   total_netto: string
   jurnal: string | null
 }
@@ -187,6 +339,8 @@ export interface Kegiatan {
   tanggal_mulai: string | null
   tanggal_selesai: string | null
   status: KegiatanStatus
+  periode: number | null
+  periode_kode?: string | null
   realisasi: string
   sisa_pagu: string
   rasio_utilisasi: number
@@ -202,6 +356,18 @@ export interface LaporanKegiatan {
 }
 
 // --- Laporan ---
+export interface AuditLog {
+  id: number
+  table_name: string
+  row_pk: string | null
+  action: string
+  old_data: unknown
+  new_data: unknown
+  changed_by: number | null
+  changed_by_username?: string | null
+  changed_at: string
+}
+
 export interface SaldoRow {
   kode_akun: string
   nama_akun: string
@@ -262,12 +428,32 @@ export interface PeriodeAkuntansi {
   status: "OPEN" | "CLOSED"
 }
 
+export interface DashboardOperasional {
+  siswa_aktif: number
+  hadir_bulan_ini: number
+  katering_bulan_ini: number
+  tagihan_belum: number
+  tagihan_belum_nominal: string | number
+  collection_rate_pct: number
+  jurnal_menunggu_approve: number
+  absensi_sparkline: { bulan: number; tahun: number; label: string; hadir: number }[]
+  periode_ops_label: string
+}
+
 export interface DashboardRingkasan {
   kas: string
   total_pendapatan: string
   total_beban: string
   surplus_defisit: string
   anggaran: { pagu: string | number; realisasi: string | number }
+  operasional?: DashboardOperasional
+  periode_filter?: {
+    mode: "day" | "month" | "year"
+    tahun: number
+    bulan: number | null
+    tanggal: string | null
+    label: string
+  }
 }
 
 export interface LabaRugiBulananRow {
