@@ -40,3 +40,12 @@ htmlcov/
 
 # Git
 *.orig
+
+# Local tooling and private research material
+.agents/
+_bmad/
+_bmad-output/**/.memlog.md
+external-docs/
+legacy-data/
+docs/SKRIPSI RIVAN (1).docx
+docs/draft_ed_sak_emkm_kompilasi.pdf
