@@ -23,12 +23,14 @@ sha=$(git -C "$source_dir" rev-parse FETCH_HEAD)
 
 if [ "$(cat "$state_dir/backend_sha" 2>/dev/null || true)" != "$sha" ]; then
     echo "$(date -u +%FT%TZ) Deploy backend $sha"
+    umask 022
     git -C "$source_dir" archive "$sha" \
         .dockerignore backend docker database/schemas \
         database/raw_data/coa.csv database/raw_data/T_AKUN.csv \
         database/raw_data/T_GOLKUN.csv database/raw_data/T_SUBGOL.csv \
         pyproject.toml uv.lock README.md docker-compose.production.yml \
         scripts/deploy_vps.sh | tar -xf - -C "$app"
+    umask 077
     sh "$app/scripts/deploy_vps.sh"
     curl --fail --silent --show-error --retry 10 --retry-delay 3 \
         --retry-all-errors -o /dev/null https://srv2054916.hstgr.cloud/api/schema/
@@ -37,7 +39,9 @@ fi
 
 if [ "$(cat "$state_dir/frontend_sha" 2>/dev/null || true)" != "$sha" ]; then
     echo "$(date -u +%FT%TZ) Deploy frontend $sha"
+    umask 022
     git -C "$source_dir" archive "$sha" frontend | tar -xf - -C "$app"
+    umask 077
     docker run --rm --user "$(id -u):$(id -g)" \
         --env-file "$cloudflare_env" \
         -e HOME=/tmp -e CI=1 -e VITE_API_BASE_URL=/api/v1 \
