@@ -3,6 +3,7 @@ import Button from "primevue/button"
 import Column from "primevue/column"
 import DataTable from "primevue/datatable"
 import Dialog from "primevue/dialog"
+import DatePicker from "primevue/datepicker"
 import InputNumber from "primevue/inputnumber"
 import InputText from "primevue/inputtext"
 import Message from "primevue/message"
@@ -10,7 +11,7 @@ import Select from "primevue/select"
 import Tag from "primevue/tag"
 import { useConfirm } from "primevue/useconfirm"
 import { useToast } from "primevue/usetoast"
-import { computed, onMounted, reactive, ref, watch } from "vue"
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue"
 
 import { tagihanApi } from "./api"
 import InvoicePreview from "./InvoicePreview.vue"
@@ -24,6 +25,7 @@ import PageLayout from "@/shared/components/PageLayout.vue"
 import SearchField from "@/shared/components/SearchField.vue"
 import { useTableSearch } from "@/shared/composables/useTableSearch"
 import type {
+  Coa,
   Jenjang,
   Kelompok,
   Siswa,
@@ -41,6 +43,7 @@ const rows = ref<Tagihan[]>([])
 const siswaList = ref<Siswa[]>([])
 const loading = ref(false)
 const defaultAkunPendapatan = ref("411")
+const kasOptions = ref<Coa[]>([])
 
 const BULAN = [
   "Januari", "Februari", "Maret", "April", "Mei", "Juni",
@@ -83,8 +86,7 @@ function prevMonth(): { bulan: number; tahun: number } {
 async function load() {
   loading.value = true
   try {
-    const data = await tagihanApi.list()
-    rows.value = data.results
+    rows.value = await tagihanApi.listAll()
   } catch (e) {
     notifyError(toast, e, "Gagal memuat tagihan.")
   } finally {
@@ -428,23 +430,75 @@ async function saveEditor() {
   }
 }
 
-function bayar(t: Tagihan) {
-  confirm.require({
-    message: `Catat pembayaran tagihan ${siswaNama.value.get(t.siswa) ?? ""} bulan ${BULAN[t.periode_bulan - 1]}? Sistem akan membuat jurnal pendapatan otomatis.`,
-    header: "Konfirmasi Pembayaran",
-    icon: "pi pi-wallet",
-    rejectLabel: "Batal",
-    acceptLabel: "Bayar",
-    accept: async () => {
-      try {
-        const res = await tagihanApi.bayar(t.id)
-        notifySuccess(toast, "Pembayaran tercatat", res)
-        await load()
-      } catch (e) {
-        notifyError(toast, e, "Gagal mencatat pembayaran.")
-      }
-    },
-  })
+const bayarDialog = ref(false)
+const bayarTarget = ref<Tagihan | null>(null)
+const bayarSaving = ref(false)
+const bayarForm = reactive({
+  tanggal: new Date(), no_bukti: "", akun_kas: "", request_id: "",
+  alokasi: [] as { detail: number; label: string; nominal: number; sisa: number }[],
+})
+const nominalBayar = computed(() => bayarForm.alokasi.reduce((n, a) => n + Math.round(a.nominal * 100), 0) / 100)
+const bayarValid = computed(() =>
+  !!bayarForm.no_bukti.trim() && !!bayarForm.akun_kas && !!bayarForm.tanggal && nominalBayar.value > 0 &&
+  bayarForm.alokasi.every((a) => a.nominal >= 0 && a.nominal <= a.sisa),
+)
+
+async function bayar(t: Tagihan) {
+  try {
+    const full = await tagihanApi.get(t.id)
+    if (full.perlu_rekonsiliasi) {
+      notifyError(toast, new Error("Pembayaran lama perlu direkonsiliasi sebelum menerima pembayaran baru."))
+      return
+    }
+    if (full.detail.some((d) => Number(d.nominal) < 0)) {
+      notifyError(toast, new Error("Sesuaikan potongan menjadi rincian netto sebelum pembayaran."))
+      return
+    }
+    bayarTarget.value = full
+    bayarForm.tanggal = new Date()
+    bayarForm.no_bukti = ""
+    bayarForm.akun_kas = kasOptions.value[0]?.kode_akun ?? ""
+    bayarForm.request_id = crypto.randomUUID()
+    bayarForm.alokasi = full.detail.filter((d) => d.id && Number(d.nominal) > Number(d.total_terbayar ?? 0)).map((d) => ({
+      detail: d.id!, label: d.keterangan || d.komponen, nominal: 0,
+      sisa: Number(d.nominal) - Number(d.total_terbayar ?? 0),
+    }))
+    bayarDialog.value = true
+  } catch (e) {
+    notifyError(toast, e, "Gagal memuat rincian pembayaran.")
+  }
+}
+
+function lunasiSisa() {
+  bayarForm.alokasi.forEach((a) => { a.nominal = a.sisa })
+}
+
+async function simpanPembayaran() {
+  if (!bayarTarget.value || !bayarValid.value || bayarSaving.value) return
+  bayarSaving.value = true
+  try {
+    const d = bayarForm.tanggal
+    const tanggal = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+    const res = await tagihanApi.bayar(bayarTarget.value.id, {
+      tanggal, no_bukti: bayarForm.no_bukti.trim(), akun_kas: bayarForm.akun_kas,
+      request_id: bayarForm.request_id, nominal: nominalBayar.value.toFixed(2),
+      alokasi: bayarForm.alokasi.filter((a) => a.nominal > 0).map((a) => ({ detail: a.detail, nominal: a.nominal.toFixed(2) })),
+    })
+    notifySuccess(toast, "Pembayaran tersimpan", res)
+    bayarDialog.value = false
+    bayarTarget.value = res.tagihan
+    await load()
+  } catch (e) {
+    notifyError(toast, e, "Gagal menyimpan pembayaran. Periksa kembali sebelum mencoba ulang.")
+  } finally {
+    bayarSaving.value = false
+  }
+}
+
+const riwayatTarget = ref<Tagihan | null>(null)
+async function lihatRiwayat(t: Tagihan) {
+  try { riwayatTarget.value = await tagihanApi.get(t.id) }
+  catch (e) { notifyError(toast, e, "Gagal memuat riwayat pembayaran.") }
 }
 
 // --- struk / cetak ---
@@ -460,14 +514,23 @@ async function lihatStruk(t: Tagihan) {
   }
 }
 
+function selesaiCetak() {
+  document.body.classList.remove("bee-print-struk")
+  window.removeEventListener("afterprint", selesaiCetak)
+}
+
 function cetak() {
   document.body.classList.add("bee-print-struk")
-  window.print()
-  window.onafterprint = () => {
-    document.body.classList.remove("bee-print-struk")
-    window.onafterprint = null
+  window.addEventListener("afterprint", selesaiCetak, { once: true })
+  try {
+    window.print()
+  } catch (e) {
+    selesaiCetak()
+    notifyError(toast, e, "Gagal membuka dialog cetak.")
   }
 }
+
+onBeforeUnmount(selesaiCetak)
 
 onMounted(async () => {
   await load()
@@ -478,10 +541,11 @@ onMounted(async () => {
   }
   try {
     const coa = await coaApi.list()
+    kasOptions.value = coa.filter((c) => c.is_active && ["111", "112", "1011", "1101", "1102"].includes(c.kode_akun))
     const pend = coa.find((c) => c.kode_akun.startsWith("41"))
     if (pend) defaultAkunPendapatan.value = pend.kode_akun
-  } catch {
-    /* fallback 411 */
+  } catch (e) {
+    notifyError(toast, e, "Gagal memuat akun pembayaran.")
   }
 })
 </script>
@@ -510,41 +574,81 @@ onMounted(async () => {
       <Column header="Total">
         <template #body="{ data }">{{ formatRp(data.total) }}</template>
       </Column>
+      <Column header="Dibayar">
+        <template #body="{ data }">{{ data.total_terbayar === null ? 'Perlu rekonsiliasi' : formatRp(data.total_terbayar) }}</template>
+      </Column>
+      <Column header="Sisa">
+        <template #body="{ data }">{{ data.sisa_tagihan === null ? 'Perlu rekonsiliasi' : formatRp(data.sisa_tagihan) }}</template>
+      </Column>
       <Column header="Status">
         <template #body="{ data }">
-          <Tag :value="data.status" :severity="statusSeverity[data.status as TagihanStatus]" />
+          <Tag :value="data.perlu_rekonsiliasi ? 'Perlu rekonsiliasi' : data.status === 'SEBAGIAN' ? 'Belum lunas — sebagian' : data.status" :severity="data.perlu_rekonsiliasi ? 'warn' : statusSeverity[data.status as TagihanStatus]" />
         </template>
       </Column>
       <Column header="Aksi" headerClass="bee-col-actions--xl" bodyClass="bee-col-actions--xl">
         <template #body="{ data }">
           <div class="bee-actions">
             <Button
-              v-if="data.status === 'BELUM'"
+              v-if="data.status === 'BELUM' && !data.perlu_rekonsiliasi && !data.pembayaran.length"
               label="Edit"
               size="small"
               text
               @click="editTagihan(data)"
             />
             <Button
-              v-if="data.status !== 'LUNAS'"
+              v-if="!data.perlu_rekonsiliasi && Number(data.sisa_tagihan) > 0"
               label="Bayar"
               size="small"
               text
               @click="bayar(data)"
             />
             <Button
-              v-if="data.status === 'BELUM'"
+              v-if="data.status === 'BELUM' && !data.perlu_rekonsiliasi && !data.pembayaran.length"
               label="Batalkan"
               size="small"
               text
               severity="danger"
               @click="batalkanTagihan(data)"
             />
+            <Button label="Riwayat" size="small" text @click="lihatRiwayat(data)" />
             <Button label="Cetak" size="small" text severity="secondary" @click="lihatStruk(data)" />
           </div>
         </template>
       </Column>
     </DataTable>
+
+    <Dialog v-model:visible="bayarDialog" header="Catat pembayaran" modal :closable="!bayarSaving" :style="{ width: '48rem' }">
+      <p v-if="bayarTarget">{{ siswaNama.get(bayarTarget.siswa) ?? bayarTarget.siswa_nama }} — {{ BULAN[bayarTarget.periode_bulan - 1] }} {{ bayarTarget.periode_tahun }}</p>
+      <Message severity="info" :closable="false">Masukkan pembayaran per komponen. Finance mencatat jurnalnya ke buku besar tanpa approval Kepsek.</Message>
+      <div class="form">
+        <div class="field"><label for="tanggal-bayar">Tanggal pembayaran</label><DatePicker input-id="tanggal-bayar" v-model="bayarForm.tanggal" date-format="dd/mm/yy" fluid /></div>
+        <div class="field"><label for="bukti-bayar">No. bukti penerimaan</label><InputText id="bukti-bayar" v-model="bayarForm.no_bukti" :maxlength="100" fluid /></div>
+        <div class="field"><label for="kas-bayar">Kas/Bank penerima</label><Select input-id="kas-bayar" v-model="bayarForm.akun_kas" :options="kasOptions" option-label="nama_akun" option-value="kode_akun" fluid /></div>
+      </div>
+      <DataTable :value="bayarForm.alokasi">
+        <Column field="label" header="Komponen" />
+        <Column header="Sisa"><template #body="{ data }">{{ formatRp(data.sisa) }}</template></Column>
+        <Column header="Bayar sekarang"><template #body="{ data }"><InputNumber v-model="data.nominal" :min="0" :max="data.sisa" :min-fraction-digits="0" :max-fraction-digits="2" locale="id-ID" :aria-label="`Bayar ${data.label}`" fluid /></template></Column>
+      </DataTable>
+      <p>Total pembayaran: <strong>{{ formatRp(nominalBayar) }}</strong></p>
+      <template #footer>
+        <Button label="Lunasi sisa" text :disabled="bayarSaving" @click="lunasiSisa" />
+        <Button label="Tutup" text :disabled="bayarSaving" @click="bayarDialog = false" />
+        <Button label="Simpan pembayaran" :disabled="!bayarValid" :loading="bayarSaving" @click="simpanPembayaran" />
+      </template>
+    </Dialog>
+
+    <Dialog :visible="!!riwayatTarget" header="Riwayat pembayaran" modal :style="{ width: '48rem' }" @update:visible="riwayatTarget = null">
+      <Message v-if="riwayatTarget?.perlu_rekonsiliasi" severity="warn" :closable="false">Nominal pembayaran lama perlu dicocokkan dengan bukti penerimaan. Riwayat cicilan berikut belum mewakili pembayaran lama.</Message>
+      <DataTable :value="riwayatTarget?.pembayaran ?? []">
+        <template #empty>Belum ada record pembayaran pada alur baru.</template>
+        <Column field="tanggal" header="Tanggal" />
+        <Column field="no_bukti" header="Bukti" />
+        <Column header="Nominal"><template #body="{ data }">{{ formatRp(data.nominal) }}</template></Column>
+        <Column header="Komponen"><template #body="{ data }"><div v-for="a in data.alokasi" :key="a.detail">{{ riwayatTarget?.detail.find((d) => d.id === a.detail)?.keterangan || riwayatTarget?.detail.find((d) => d.id === a.detail)?.komponen }}: {{ formatRp(a.nominal) }}</div></template></Column>
+        <Column header="Pencatatan"><template #body="{ data }">{{ data.dibatalkan ? `Dibatalkan: ${data.alasan_batal}` : data.jurnal_status === 'POSTED' ? 'Sudah dicatat' : 'Menunggu Finance' }}</template></Column>
+      </DataTable>
+    </Dialog>
 
     <!-- Generate -->
     <Dialog v-model:visible="genDialog" header="Buat Tagihan" modal :style="{ width: '32rem' }">
@@ -795,12 +899,13 @@ onMounted(async () => {
       modal
       :style="{ width: '32rem' }"
       class="struk-dialog"
+      :pt="{ mask: { class: 'struk-print-mask' } }"
       :dismissable-mask="true"
     >
       <InvoicePreview v-if="struk" id="struk-print-area" :invoice="struk" printable />
       <template #footer>
         <Button label="Tutup" severity="secondary" text @click="strukDialog = false" />
-        <Button label="Cetak" icon="pi pi-print" @click="cetak" />
+        <Button label="Cetak" icon="pi pi-print" :disabled="!struk" @click="cetak" />
       </template>
     </Dialog>
   </PageLayout>

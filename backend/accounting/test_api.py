@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 from rest_framework.test import APITestCase
 
-from accounting.models import MsCoa, MsGolongan, MsSubGolongan
+from accounting.models import MsCoa, MsGolongan, MsSubGolongan, TrJurnal
 
 User = get_user_model()
 
@@ -66,6 +66,7 @@ class JurnalApiTests(APITestCase):
         self.client.force_authenticate(self.finance)
         jid = self.client.post("/api/v1/jurnal/", self._payload(), format="json").data["id"]
         # submit oleh finance
+        TrJurnal.objects.filter(pk=jid).update(tipe_sumber="AUTO_PAYROLL")
         r = self.client.post(f"/api/v1/jurnal/{jid}/submit/")
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.data["status"], "PENDING")

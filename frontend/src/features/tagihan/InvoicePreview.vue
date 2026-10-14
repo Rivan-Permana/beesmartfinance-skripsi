@@ -47,7 +47,7 @@ const sections = computed(() => {
     <header class="invoice__head">
       <img src="/logo-lebah.svg" alt="" class="invoice__logo" width="48" height="48" />
       <div>
-        <h2 class="invoice__school">{{ invoice.sekolah ?? "TK Lebah Madu" }}</h2>
+        <h2 class="invoice__school">{{ invoice.sekolah ?? "RA Lebah Madu" }}</h2>
         <p class="invoice__tagline">Faktur Tagihan Siswa</p>
       </div>
     </header>
@@ -82,11 +82,16 @@ const sections = computed(() => {
     </div>
 
     <footer class="invoice__foot">
-      <Tag :value="invoice.status" :severity="statusSeverity[invoice.status]" />
+      <Tag :value="invoice.perlu_rekonsiliasi ? 'Perlu rekonsiliasi' : invoice.status === 'SEBAGIAN' ? 'Belum lunas — dibayar sebagian' : invoice.status" :severity="invoice.perlu_rekonsiliasi ? 'warn' : statusSeverity[invoice.status]" />
       <span v-if="invoice.no_jurnal" class="muted">
         Jurnal: {{ invoice.no_jurnal.slice(0, 8) }}…
       </span>
     </footer>
+    <p v-if="invoice.perlu_rekonsiliasi" class="muted">Nominal pembayaran lama perlu dicocokkan dengan bukti penerimaan.</p>
+    <div v-else class="invoice__total">
+      <span>Dibayar: {{ formatRp(invoice.total_terbayar ?? 0) }}</span>
+      <strong>Sisa: {{ formatRp(invoice.sisa_tagihan ?? invoice.total) }}</strong>
+    </div>
   </div>
 </template>
 
@@ -174,6 +179,13 @@ const sections = computed(() => {
 @media print {
   .invoice--print {
     padding: 0;
+  }
+  .invoice__head,
+  .invoice__meta,
+  .invoice__table tr,
+  .invoice__total,
+  .invoice__foot {
+    break-inside: avoid;
   }
 }
 </style>

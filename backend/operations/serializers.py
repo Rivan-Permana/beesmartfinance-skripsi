@@ -1,4 +1,5 @@
 from decimal import Decimal
+from django.db import transaction
 
 from rest_framework import serializers
 
@@ -19,6 +20,8 @@ from .models import (
     Siswa,
     Tagihan,
     TagihanDetail,
+    PembayaranTagihan,
+    AlokasiPembayaranTagihan,
 )
 
 
@@ -170,32 +173,66 @@ class SiswaSerializer(serializers.ModelSerializer):
 
 
 class TagihanDetailSerializer(serializers.ModelSerializer):
+    total_terbayar = serializers.DecimalField(max_digits=18, decimal_places=2, read_only=True)
     class Meta:
         model = TagihanDetail
-        fields = ["id", "komponen", "kategori", "keterangan", "akun_pendapatan", "nominal"]
+        fields = ["id", "komponen", "kategori", "keterangan", "akun_pendapatan", "nominal", "total_terbayar"]
+
+
+class AlokasiPembayaranTagihanSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AlokasiPembayaranTagihan
+        fields = ["detail", "nominal"]
+
+
+class PembayaranTagihanSerializer(serializers.ModelSerializer):
+    alokasi = AlokasiPembayaranTagihanSerializer(many=True, read_only=True)
+    jurnal_status = serializers.CharField(source="jurnal.status", read_only=True)
+
+    class Meta:
+        model = PembayaranTagihan
+        fields = ["id", "tanggal", "no_bukti", "nominal", "akun_kas", "jurnal", "jurnal_status", "created_by", "dibatalkan", "alasan_batal", "dibatalkan_pada", "alokasi"]
+
+
+class AlokasiPembayaranInputSerializer(serializers.Serializer):
+    detail = serializers.IntegerField(min_value=1)
+    nominal = serializers.DecimalField(max_digits=18, decimal_places=2, min_value=Decimal("0.01"))
+
+
+class BayarTagihanInputSerializer(serializers.Serializer):
+    tanggal = serializers.DateField()
+    no_bukti = serializers.CharField(max_length=100)
+    nominal = serializers.DecimalField(max_digits=18, decimal_places=2, min_value=Decimal("0.01"))
+    akun_kas = serializers.CharField(max_length=20)
+    request_id = serializers.UUIDField()
+    alokasi = AlokasiPembayaranInputSerializer(many=True, allow_empty=False)
 
 
 class TagihanSerializer(serializers.ModelSerializer):
     detail = TagihanDetailSerializer(many=True)
     siswa_nama = serializers.CharField(source="siswa.nama", read_only=True)
+    total_terbayar = serializers.DecimalField(max_digits=18, decimal_places=2, read_only=True, allow_null=True)
+    sisa_tagihan = serializers.DecimalField(max_digits=18, decimal_places=2, read_only=True, allow_null=True)
+    pembayaran = PembayaranTagihanSerializer(many=True, read_only=True)
 
     class Meta:
         model = Tagihan
         fields = [
             "id", "siswa", "siswa_nama", "periode_bulan", "periode_tahun",
-            "total", "status", "jurnal", "detail",
+            "total", "status", "jurnal", "detail", "total_terbayar", "sisa_tagihan", "perlu_rekonsiliasi", "pembayaran",
         ]
-        read_only_fields = ["status", "jurnal", "total"]
+        read_only_fields = ["status", "jurnal", "total", "perlu_rekonsiliasi"]
 
     def validate(self, attrs):
         instance = getattr(self, "instance", None)
-        if instance and (instance.status == "LUNAS" or instance.jurnal_id):
-            raise serializers.ValidationError("Tagihan lunas tidak dapat diubah.")
+        if instance and (instance.perlu_rekonsiliasi or instance.jurnal_id or instance.pembayaran.exists()):
+            raise serializers.ValidationError("Tagihan dengan riwayat pembayaran tidak dapat diubah.")
         detail = attrs.get("detail")
         if detail is not None and not detail:
             raise serializers.ValidationError("Tagihan harus memiliki minimal satu rincian.")
         return attrs
 
+    @transaction.atomic
     def create(self, validated_data):
         detail_data = validated_data.pop("detail")
         total = sum((d["nominal"] for d in detail_data), Decimal(0))
@@ -206,7 +243,11 @@ class TagihanSerializer(serializers.ModelSerializer):
             TagihanDetail.objects.create(tagihan=tagihan, **d)
         return tagihan
 
+    @transaction.atomic
     def update(self, instance, validated_data):
+        instance = Tagihan.objects.select_for_update().get(pk=instance.pk)
+        self.instance = instance
+        self.validate(validated_data)
         detail_data = validated_data.pop("detail", None)
         for attr, val in validated_data.items():
             setattr(instance, attr, val)
@@ -221,3 +262,10 @@ class TagihanSerializer(serializers.ModelSerializer):
             instance.total = total
         instance.save()
         return instance
+
+
+class BayarTagihanResponseSerializer(serializers.Serializer):
+    detail = serializers.CharField()
+    tagihan = TagihanSerializer()
+    pembayaran = PembayaranTagihanSerializer()
+    jurnal_id = serializers.UUIDField()

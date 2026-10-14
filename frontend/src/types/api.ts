@@ -171,6 +171,8 @@ export interface Jurnal {
   posted_at: string | null
   is_deleted: boolean
   detail: JurnalDetail[]
+  can_finance_post: boolean
+  perlu_rekonsiliasi: boolean
 }
 
 export interface JurnalInput {
@@ -191,6 +193,7 @@ export interface TagihanDetail {
   keterangan: string
   akun_pendapatan: string
   nominal: string
+  total_terbayar?: string
 }
 
 export interface Tagihan {
@@ -203,6 +206,25 @@ export interface Tagihan {
   status: TagihanStatus
   jurnal: string | null
   detail: TagihanDetail[]
+  total_terbayar: string | null
+  sisa_tagihan: string | null
+  perlu_rekonsiliasi: boolean
+  pembayaran: PembayaranTagihan[]
+}
+
+export interface PembayaranTagihan {
+  id: number
+  tanggal: string
+  no_bukti: string
+  nominal: string
+  akun_kas: string
+  jurnal: string
+  jurnal_status: JurnalStatus
+  created_by: number | null
+  dibatalkan: boolean
+  alasan_batal: string
+  dibatalkan_pada: string | null
+  alokasi: { detail: number; nominal: string }[]
 }
 
 export interface TagihanPreview {
@@ -241,6 +263,9 @@ export interface StrukTagihan {
   rincian: { komponen: string; label: string; nominal: string }[]
   total: string
   no_jurnal: string | null
+  total_terbayar: string | null
+  sisa_tagihan: string | null
+  perlu_rekonsiliasi: boolean
 }
 
 // --- Kepegawaian ---
@@ -434,6 +459,7 @@ export interface DashboardOperasional {
   katering_bulan_ini: number
   tagihan_belum: number
   tagihan_belum_nominal: string | number
+  tagihan_perlu_rekonsiliasi: number
   collection_rate_pct: number
   jurnal_menunggu_approve: number
   absensi_sparkline: { bulan: number; tahun: number; label: string; hadir: number }[]

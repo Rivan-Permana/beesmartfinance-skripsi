@@ -1,5 +1,8 @@
 """Domain billing: posting rule & tagihan siswa (siklus pendapatan)."""
 
+from decimal import Decimal
+
+from django.conf import settings
 from django.db import models
 from simple_history.models import HistoricalRecords
 
@@ -39,6 +42,7 @@ class Tagihan(SoftDeleteModel, TimeStampedModel):
     periode_tahun = models.PositiveIntegerField()
     total = models.DecimalField(max_digits=18, decimal_places=2, default=0)
     status = models.CharField(max_length=10, choices=STATUS, default="BELUM")
+    perlu_rekonsiliasi = models.BooleanField(default=False)
     # tautan ke jurnal core setelah dibayar (sub-ledger <-> general ledger)
     jurnal = models.ForeignKey(
         "accounting.TrJurnal", on_delete=models.SET_NULL, db_constraint=False,
@@ -52,6 +56,17 @@ class Tagihan(SoftDeleteModel, TimeStampedModel):
 
     def __str__(self):
         return f"Tagihan {self.siswa} {self.periode_bulan}/{self.periode_tahun}"
+
+    @property
+    def total_terbayar(self):
+        if self.perlu_rekonsiliasi:
+            return None
+        return sum((p.nominal for p in self.pembayaran.all() if not p.dibatalkan), Decimal(0))
+
+    @property
+    def sisa_tagihan(self):
+        terbayar = self.total_terbayar
+        return None if terbayar is None else self.total - terbayar
 
 
 class KomponenBiayaTemplate(models.Model):
@@ -112,3 +127,48 @@ class TagihanDetail(models.Model):
         related_name="tagihan_detail", db_column="akun_pendapatan",
     )
     nominal = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+
+    @property
+    def total_terbayar(self):
+        return sum((a.nominal for a in self.alokasi.all() if not a.pembayaran.dibatalkan), Decimal(0))
+
+
+class PembayaranTagihan(TimeStampedModel):
+    tagihan = models.ForeignKey(Tagihan, on_delete=models.PROTECT, related_name="pembayaran")
+    tanggal = models.DateField()
+    no_bukti = models.CharField(max_length=100)
+    nominal = models.DecimalField(max_digits=18, decimal_places=2)
+    request_id = models.UUIDField(unique=True)
+    akun_kas = models.ForeignKey("accounting.MsCoa", on_delete=models.PROTECT, db_constraint=False)
+    jurnal = models.OneToOneField(
+        "accounting.TrJurnal", on_delete=models.PROTECT, db_constraint=False,
+        related_name="pembayaran_tagihan",
+    )
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True)
+    dibatalkan = models.BooleanField(default=False)
+    alasan_batal = models.TextField(blank=True)
+    dibatalkan_pada = models.DateTimeField(null=True, blank=True)
+    dibatalkan_oleh = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True, blank=True,
+        related_name="pembayaran_tagihan_dibatalkan",
+    )
+    history = HistoricalRecords()
+
+    class Meta:
+        ordering = ["tanggal", "pk"]
+        constraints = [
+            models.CheckConstraint(condition=models.Q(nominal__gt=0), name="pembayaran_tagihan_positif"),
+            models.UniqueConstraint(fields=["tagihan", "no_bukti"], name="bukti_pembayaran_tagihan_unik"),
+        ]
+
+
+class AlokasiPembayaranTagihan(models.Model):
+    pembayaran = models.ForeignKey(PembayaranTagihan, on_delete=models.PROTECT, related_name="alokasi")
+    detail = models.ForeignKey(TagihanDetail, on_delete=models.PROTECT, related_name="alokasi")
+    nominal = models.DecimalField(max_digits=18, decimal_places=2)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=["pembayaran", "detail"], name="alokasi_pembayaran_detail_unik"),
+            models.CheckConstraint(condition=models.Q(nominal__gt=0), name="alokasi_tagihan_positif"),
+        ]

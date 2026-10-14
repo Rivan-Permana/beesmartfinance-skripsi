@@ -300,30 +300,47 @@ td.bee-col-actions--xl { min-width: 16rem; width: 16rem; }
 
 /* Print faktur tagihan */
 @media print {
-  body.bee-print-struk .shell-sidebar,
-  body.bee-print-struk .shell-topbar,
-  body.bee-print-struk .p-dialog-mask {
+  body.bee-print-struk {
+    height: auto !important;
+    overflow: visible !important;
+    background: #fff;
+  }
+
+  body.bee-print-struk > :not(.struk-print-mask) {
     display: none !important;
   }
 
-  body.bee-print-struk .p-dialog {
+  body.bee-print-struk .struk-print-mask {
+    position: static !important;
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    background: transparent !important;
+  }
+
+  body.bee-print-struk .struk-dialog {
+    display: block !important;
     position: static !important;
     transform: none !important;
     width: 100% !important;
     max-width: 100% !important;
+    max-height: none !important;
+    height: auto !important;
+    overflow: visible !important;
     box-shadow: none !important;
     border: none !important;
     margin: 0 !important;
     padding: 0 !important;
   }
 
-  body.bee-print-struk .p-dialog-header,
-  body.bee-print-struk .p-dialog-footer {
+  body.bee-print-struk .struk-dialog .p-dialog-header,
+  body.bee-print-struk .struk-dialog .p-dialog-footer {
     display: none !important;
   }
 
-  body.bee-print-struk .p-dialog-content {
+  body.bee-print-struk .struk-dialog .p-dialog-content {
     padding: 0 !important;
+    max-height: none !important;
     overflow: visible !important;
   }
 }

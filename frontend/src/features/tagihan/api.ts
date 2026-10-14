@@ -1,5 +1,5 @@
 import { api } from "@/core/api"
-import type { Paginated, StrukTagihan, Tagihan, TagihanPreview } from "@/types/api"
+import type { Paginated, PembayaranTagihan, StrukTagihan, Tagihan, TagihanPreview } from "@/types/api"
 
 export interface GenerateInput {
   siswa: number
@@ -41,9 +41,30 @@ export interface TagihanWriteInput {
   }[]
 }
 
+export interface BayarTagihanInput {
+  tanggal: string
+  no_bukti: string
+  nominal: string
+  akun_kas: string
+  request_id: string
+  alokasi: { detail: number; nominal: string }[]
+}
+
 export const tagihanApi = {
   list: (params?: Record<string, unknown>) =>
     api.get<Paginated<Tagihan>>("/tagihan/", { params }).then((r) => r.data),
+  async listAll(params?: Record<string, unknown>): Promise<Tagihan[]> {
+    const out: Tagihan[] = []
+    let page = 1
+    let hasNext = true
+    while (hasNext) {
+      const data = await tagihanApi.list({ ...params, page })
+      out.push(...data.results)
+      hasNext = !!data.next
+      page += 1
+    }
+    return out
+  },
   get: (id: number) =>
     api.get<Tagihan>(`/tagihan/${id}/`).then((r) => r.data),
   create: (payload: TagihanWriteInput) =>
@@ -60,8 +81,8 @@ export const tagihanApi = {
     api.post<BatchGenerateResult>("/tagihan/generate-batch/", payload).then((r) => r.data),
   remove: (id: number) =>
     api.delete(`/tagihan/${id}/`).then((r) => r.data),
-  bayar: (id: number) =>
-    api.post(`/tagihan/${id}/bayar/`).then((r) => r.data),
+  bayar: (id: number, payload: BayarTagihanInput) =>
+    api.post<{ detail: string; tagihan: Tagihan; pembayaran: PembayaranTagihan; jurnal_id: string }>(`/tagihan/${id}/bayar/`, payload).then((r) => r.data),
   struk: (id: number) =>
     api.get<StrukTagihan>(`/tagihan/${id}/struk/`).then((r) => r.data),
 }

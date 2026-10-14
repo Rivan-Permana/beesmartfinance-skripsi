@@ -1,6 +1,7 @@
 """Test modul operasional: soft-delete, history, dan auto-posting tagihan."""
 
 from decimal import Decimal
+import uuid
 
 from django.test import TestCase
 
@@ -65,11 +66,13 @@ class AutoPostingTests(TestCase):
             akun_pendapatan=self.spp, nominal=Decimal("500000"),
         )
 
-        jurnal = post_pembayaran_tagihan(tagihan, user=None)
+        pembayaran = post_pembayaran_tagihan(tagihan, tanggal=date(2026, 2, 1), no_bukti="P1", nominal=tagihan.total,
+            alokasi=[{"detail": tagihan.detail.first().pk, "nominal": tagihan.total}], request_id=uuid.uuid4(), user=None)
+        jurnal = pembayaran.jurnal
 
         tagihan.refresh_from_db()
         self.assertEqual(tagihan.status, "LUNAS")
-        self.assertEqual(tagihan.jurnal_id, jurnal.id)
+        self.assertEqual(tagihan.pembayaran.first().jurnal_id, jurnal.id)
         self.assertEqual(jurnal.status, "DRAFT")  # menunggu approval (maker-checker)
 
         total_debit = sum(d.debit for d in jurnal.detail.all())
@@ -84,9 +87,12 @@ class AutoPostingTests(TestCase):
         TagihanDetail.objects.create(
             tagihan=tagihan, komponen="SPP", akun_pendapatan=self.spp, nominal=Decimal("100"),
         )
-        post_pembayaran_tagihan(tagihan, user=None)
+        payload = dict(tanggal=date(2026, 3, 1), no_bukti="P2", nominal=tagihan.total,
+            alokasi=[{"detail": tagihan.detail.first().pk, "nominal": tagihan.total}], request_id=uuid.uuid4())
+        post_pembayaran_tagihan(tagihan, user=None, **payload)
+        payload["request_id"] = uuid.uuid4()
         with self.assertRaises(ValueError):
-            post_pembayaran_tagihan(tagihan, user=None)
+            post_pembayaran_tagihan(tagihan, user=None, **payload)
 
 
 class ExpenseCycleTests(TestCase):

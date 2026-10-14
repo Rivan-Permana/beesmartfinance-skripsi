@@ -113,9 +113,9 @@ watch(tanggal, loadDay)
 
 onMounted(async () => {
   try {
-    pegawaiList.value = (await pegawaiApi.list()).results
-  } catch {
-    /* kosong */
+    pegawaiList.value = await pegawaiApi.listAll()
+  } catch (e) {
+    notifyError(toast, e, "Gagal memuat daftar pegawai.")
   }
   await loadDay()
 })

@@ -29,8 +29,7 @@ const canWrite = computed(() => auth.hasRole(["Administration", "Finance"]))
 async function load() {
   loading.value = true
   try {
-    const data = await pegawaiApi.list()
-    rows.value = data.results
+    rows.value = await pegawaiApi.listAll()
   } catch (e) {
     notifyError(toast, e, "Gagal memuat data pegawai.")
   } finally {

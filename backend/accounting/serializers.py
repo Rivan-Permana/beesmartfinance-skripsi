@@ -1,4 +1,6 @@
 from rest_framework import serializers
+from django.db import transaction
+from .services import can_finance_post
 
 from .models import (
     MsCoa,
@@ -53,6 +55,14 @@ class TrAnggaranSerializer(serializers.ModelSerializer):
 
 
 class TrJurnalDetailSerializer(serializers.ModelSerializer):
+    kode_akun = serializers.PrimaryKeyRelatedField(queryset=MsCoa.objects.filter(is_active=True))
+
+    def validate(self, attrs):
+        debit, kredit = attrs["debit"], attrs["kredit"]
+        if debit < 0 or kredit < 0 or (debit > 0 and kredit > 0):
+            raise serializers.ValidationError("Setiap baris hanya boleh memiliki debit atau kredit nonnegatif.")
+        return attrs
+
     class Meta:
         model = TrJurnalDetail
         fields = ["id", "kode_akun", "debit", "kredit"]
@@ -60,18 +70,31 @@ class TrJurnalDetailSerializer(serializers.ModelSerializer):
 
 class TrJurnalSerializer(serializers.ModelSerializer):
     detail = TrJurnalDetailSerializer(many=True)
+    can_finance_post = serializers.SerializerMethodField()
+    perlu_rekonsiliasi = serializers.SerializerMethodField()
+
+    def get_can_finance_post(self, obj) -> bool:
+        return can_finance_post(obj)
+
+    def get_perlu_rekonsiliasi(self, obj) -> bool:
+        if obj.tipe_sumber != "AUTO_BILLING":
+            return False
+        pembayaran = getattr(obj, "pembayaran_tagihan", None)
+        return pembayaran is None or pembayaran.tagihan.perlu_rekonsiliasi
 
     class Meta:
         model = TrJurnal
         fields = [
             "id", "no_bukti", "tanggal", "keterangan", "tipe_sumber",
             "status", "created_by", "approved_by", "posted_at", "is_deleted",
-            "detail",
+            "detail", "can_finance_post", "perlu_rekonsiliasi",
         ]
-        read_only_fields = ["id", "status", "created_by", "approved_by", "posted_at"]
+        read_only_fields = ["id", "status", "created_by", "approved_by", "posted_at", "tipe_sumber", "is_deleted"]
 
     def validate(self, attrs):
-        detail = attrs.get("detail", [])
+        detail = attrs.get("detail")
+        if detail is None:
+            detail = list(self.instance.detail.values("debit", "kredit")) if self.instance else []
         total_debit = sum((d["debit"] for d in detail), 0)
         total_kredit = sum((d["kredit"] for d in detail), 0)
         if total_debit != total_kredit:
@@ -82,6 +105,7 @@ class TrJurnalSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Jurnal kosong.")
         return attrs
 
+    @transaction.atomic
     def create(self, validated_data):
         import uuid
 
@@ -93,9 +117,13 @@ class TrJurnalSerializer(serializers.ModelSerializer):
             TrJurnalDetail.objects.create(jurnal=jurnal, **d)
         return jurnal
 
+    @transaction.atomic
     def update(self, instance, validated_data):
+        instance = TrJurnal.objects.select_for_update().get(pk=instance.pk)
         if instance.status != "DRAFT":
             raise serializers.ValidationError("Hanya jurnal DRAFT yang bisa diubah.")
+        if instance.tipe_sumber != "MANUAL":
+            raise serializers.ValidationError("Jurnal otomatis harus dikoreksi melalui transaksi sumbernya.")
         detail_data = validated_data.pop("detail", None)
         for attr, value in validated_data.items():
             setattr(instance, attr, value)

@@ -32,7 +32,7 @@ const BULAN = [
 
 const outstanding = computed(() =>
   rows.value.filter((t) => {
-    if (t.status !== "BELUM" && t.status !== "SEBAGIAN") return false
+    if (!t.perlu_rekonsiliasi && t.status !== "BELUM" && t.status !== "SEBAGIAN") return false
     if (filterSiswa.value && t.siswa !== filterSiswa.value) return false
     if (usePeriodFilter.value) {
       if (t.periode_tahun !== filterTahun.value) return false
@@ -43,14 +43,13 @@ const outstanding = computed(() =>
 )
 
 const totalTunggakan = computed(() =>
-  outstanding.value.reduce((s, t) => s + Number(t.total), 0),
+  outstanding.value.reduce((s, t) => s + Number(t.sisa_tagihan ?? 0), 0),
 )
 
 async function load() {
   loading.value = true
   try {
-    const tagihan = await tagihanApi.list()
-    rows.value = tagihan.results
+    rows.value = await tagihanApi.listAll()
   } catch (e) {
     notifyError(toast, e, "Gagal memuat tunggakan tagihan.")
   } finally {
@@ -114,6 +113,7 @@ onMounted(load)
     <div v-if="outstanding.length" class="summary">
       Total tunggakan: <strong>{{ formatRp(totalTunggakan) }}</strong>
       ({{ outstanding.length }} tagihan)
+      <span v-if="outstanding.some((t) => t.perlu_rekonsiliasi)"> — nominal pembayaran lama yang belum direkonsiliasi belum termasuk.</span>
     </div>
 
     <DataTable
@@ -133,14 +133,14 @@ onMounted(load)
       <Column header="Periode">
         <template #body="{ data }">{{ periodeLabel(data) }}</template>
       </Column>
-      <Column header="Total">
+      <Column header="Sisa tagihan">
         <template #body="{ data }">
-          <span class="tabular-nums">{{ formatRp(data.total) }}</span>
+          <span class="tabular-nums">{{ data.sisa_tagihan === null ? 'Perlu rekonsiliasi' : formatRp(data.sisa_tagihan) }}</span>
         </template>
       </Column>
       <Column header="Status">
         <template #body="{ data }">
-          <Tag :value="data.status" :severity="data.status === 'SEBAGIAN' ? 'warn' : 'danger'" />
+          <Tag :value="data.perlu_rekonsiliasi ? 'Perlu rekonsiliasi' : data.status" :severity="data.status === 'SEBAGIAN' || data.perlu_rekonsiliasi ? 'warn' : 'danger'" />
         </template>
       </Column>
     </DataTable>

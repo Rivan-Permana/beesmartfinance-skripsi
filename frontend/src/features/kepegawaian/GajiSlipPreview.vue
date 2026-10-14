@@ -33,7 +33,7 @@ const potongan = computed(() => [
     <header class="slip__head">
       <img src="/logo-lebah.svg" alt="" width="40" height="40" />
       <div>
-        <h2>TK Lebah Madu</h2>
+        <h2>RA Lebah Madu</h2>
         <p>Slip Gaji — {{ bulanLabel }} {{ slip.periode_tahun }}</p>
       </div>
     </header>

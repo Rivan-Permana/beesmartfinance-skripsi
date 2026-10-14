@@ -194,13 +194,13 @@ onMounted(async () => {
   await load()
   try {
     const [pegawai, pinjaman] = await Promise.all([
-      pegawaiApi.list(),
+      pegawaiApi.listAll(),
       pinjamanApi.list(),
     ])
-    pegawaiList.value = pegawai.results
+    pegawaiList.value = pegawai
     pinjamanList.value = pinjaman.results
-  } catch {
-    /* dropdown kosong */
+  } catch (e) {
+    notifyError(toast, e, "Gagal memuat daftar pegawai atau pinjaman.")
   }
 })
 </script>

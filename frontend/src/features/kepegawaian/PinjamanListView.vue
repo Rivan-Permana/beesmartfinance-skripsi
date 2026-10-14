@@ -155,9 +155,9 @@ function cairkan(p: Pinjaman) {
 onMounted(async () => {
   await load()
   try {
-    pegawaiList.value = (await pegawaiApi.list()).results
-  } catch {
-    /* dropdown kosong jika gagal */
+    pegawaiList.value = await pegawaiApi.listAll()
+  } catch (e) {
+    notifyError(toast, e, "Gagal memuat daftar pegawai.")
   }
 })
 </script>

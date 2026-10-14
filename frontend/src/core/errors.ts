@@ -142,13 +142,18 @@ function extractSuccessDetail(data: unknown): string | undefined {
 
 /** Pesan sukses ramah untuk aksi jurnal (response body = objek jurnal). */
 export function jurnalActionSuccessMessage(
-  action: "submit" | "approve" | "void",
+  action: "submit" | "approve" | "void" | "catat",
   data: unknown,
 ): { summary: string; detail?: string } {
-  const j = data as { no_bukti?: string; keterangan?: string }
+  const j = data as { no_bukti?: string; keterangan?: string; status?: string }
   const bukti = j.no_bukti ? `No. bukti ${j.no_bukti}` : "Jurnal"
   switch (action) {
+    case "catat":
+      return { summary: "Jurnal dicatat", detail: `${bukti} sudah masuk buku besar.` }
     case "submit":
+      if (j.status === "POSTED") {
+        return { summary: "Jurnal dicatat", detail: `${bukti} sudah masuk buku besar.` }
+      }
       return {
         summary: "Jurnal diajukan",
         detail: `${bukti} menunggu persetujuan Kepala Sekolah.`,

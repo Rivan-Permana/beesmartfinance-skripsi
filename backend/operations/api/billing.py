@@ -1,6 +1,8 @@
 """API domain billing/tagihan (+ generate, bayar, struk)."""
 
 from decimal import Decimal
+from django.db import transaction
+from drf_spectacular.utils import extend_schema
 
 from rest_framework import viewsets
 from rest_framework.decorators import action
@@ -10,7 +12,7 @@ from rest_framework.response import Response
 from accounts.permissions import IsAdministrationWriteFinancePrincipalRead
 
 from operations.models import Siswa, Tagihan
-from operations.serializers import TagihanSerializer
+from operations.serializers import BayarTagihanInputSerializer, BayarTagihanResponseSerializer, PembayaranTagihanSerializer, TagihanSerializer
 from operations.services import (
     generate_batch_tagihan,
     generate_tagihan,
@@ -24,28 +26,41 @@ from operations.services import (
 class TagihanViewSet(viewsets.ModelViewSet):
     serializer_class = TagihanSerializer
     permission_classes = [IsAdministrationWriteFinancePrincipalRead]
-    filterset_fields = ["status", "periode_tahun", "siswa"]
+    filterset_fields = ["status", "periode_tahun", "periode_bulan", "siswa"]
 
     def get_queryset(self):
         return (
             Tagihan.objects.select_related("siswa")
-            .prefetch_related("detail")
-            .order_by("-periode_tahun", "-periode_bulan")
+            .prefetch_related("detail__alokasi__pembayaran", "pembayaran__alokasi", "pembayaran__jurnal")
+            .order_by("-periode_tahun", "-periode_bulan", "pk")
         )
 
+    @extend_schema(request=BayarTagihanInputSerializer, responses=BayarTagihanResponseSerializer)
     @action(detail=True, methods=["post"])
     def bayar(self, request, pk=None):
         """Catat pembayaran -> auto-journal DRAFT (siklus pendapatan)."""
         tagihan = self.get_object()
+        payload = BayarTagihanInputSerializer(data=request.data)
+        payload.is_valid(raise_exception=True)
+        data = dict(payload.validated_data)
+        data["akun_kas_kode"] = data.pop("akun_kas")
         try:
-            jurnal = post_pembayaran_tagihan(tagihan, user=request.user)
+            pembayaran = post_pembayaran_tagihan(tagihan, user=request.user, **data)
         except ValueError as exc:
             raise ValidationError(str(exc))
         return Response({
-            "detail": "Pembayaran tercatat — jurnal pendapatan DRAFT telah dibuat.",
-            "tagihan": self.get_serializer(tagihan).data,
-            "jurnal_id": str(jurnal.id),
+            "detail": "Pembayaran tersimpan. Finance dapat mencatat jurnal ke buku besar tanpa approval Kepsek.",
+            "tagihan": self.get_serializer(self.get_object()).data,
+            "pembayaran": PembayaranTagihanSerializer(pembayaran).data,
+            "jurnal_id": str(pembayaran.jurnal_id),
         })
+
+    def perform_destroy(self, instance):
+        with transaction.atomic():
+            instance = Tagihan.objects.select_for_update().get(pk=instance.pk)
+            if instance.perlu_rekonsiliasi or instance.jurnal_id or instance.pembayaran.exists():
+                raise ValidationError("Tagihan dengan riwayat pembayaran tidak dapat dihapus.")
+            instance.delete()
 
     @action(detail=False, methods=["post"])
     def preview(self, request):

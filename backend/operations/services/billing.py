@@ -1,14 +1,13 @@
 """Service siklus pendapatan: rekap tagihan, pembayaran, struk."""
 
-import uuid
-from datetime import date
 from decimal import Decimal
 
 from django.db import transaction
+from django.utils import timezone
 
-from accounting.models import TrJurnal, TrJurnalDetail
+from accounting.models import MsCoa, TrJurnal
 
-from .common import akun_rule, akun_sistem, audit_user
+from .common import akun_rule, akun_sistem, audit_user, buat_jurnal
 
 BULAN_NAMA = [
     "Januari", "Februari", "Maret", "April", "Mei", "Juni",
@@ -299,40 +298,106 @@ def generate_batch_tagihan(
     return {"created_ids": created, "skipped": skipped, "count": len(created)}
 
 
-def post_pembayaran_tagihan(tagihan, user=None, akun_kas_kode=None):
-    """Jurnal DRAFT saat tagihan dibayar (Dr Kas, Cr Pendapatan per komponen)."""
-    if tagihan.jurnal_id:
-        raise ValueError("Tagihan ini sudah memiliki jurnal.")
-    akun_kas_kode = akun_kas_kode or akun_sistem("KAS", "1101")
+def perbarui_status_tagihan(tagihan):
+    terbayar = tagihan.total_terbayar
+    if terbayar is None:
+        return
+    tagihan.status = "LUNAS" if terbayar == tagihan.total else "SEBAGIAN" if terbayar > 0 else "BELUM"
+    tagihan.save(update_fields=["status", "updated_at"])
 
-    detail = list(tagihan.detail.all())
-    if not detail:
-        raise ValueError("Tagihan tidak memiliki rincian komponen.")
 
-    total_kredit = sum((d.nominal for d in detail), Decimal(0))
+def post_pembayaran_tagihan(tagihan, *, tanggal, no_bukti, nominal, alokasi, request_id, user=None, akun_kas_kode=None):
+    """Catat satu penerimaan dan jurnal DRAFT, menunggu pencatatan Finance."""
+    from operations.models import AlokasiPembayaranTagihan, PembayaranTagihan, Tagihan
 
-    with transaction.atomic():
-        with audit_user(user):
-            jurnal = TrJurnal.objects.create(
-                id=uuid.uuid4(),
-                no_bukti=f"BL-{tagihan.id}-{tagihan.periode_tahun}{tagihan.periode_bulan:02d}",
-                tanggal=date.today(),
-                keterangan=f"Pembayaran tagihan {tagihan.siswa} "
-                           f"periode {tagihan.periode_bulan}/{tagihan.periode_tahun}",
-                tipe_sumber="AUTO_BILLING", status="DRAFT", created_by=user,
-            )
-            TrJurnalDetail.objects.create(
-                jurnal=jurnal, kode_akun_id=akun_kas_kode, debit=total_kredit, kredit=0
-            )
-            for d in detail:
-                TrJurnalDetail.objects.create(
-                    jurnal=jurnal, kode_akun=d.akun_pendapatan, debit=0, kredit=d.nominal
-                )
-            tagihan.jurnal = jurnal
-            tagihan.status = "LUNAS"
-            tagihan.total = total_kredit
-            tagihan.save(update_fields=["jurnal", "status", "total", "updated_at"])
-    return jurnal
+    with transaction.atomic(), audit_user(user):
+        tagihan = Tagihan.all_objects.select_for_update().get(pk=tagihan.pk)
+        if tagihan.is_deleted:
+            raise ValueError("Tagihan sudah dibatalkan.")
+        akun_kas_kode = akun_kas_kode or akun_sistem("KAS", "1101")
+        existing = PembayaranTagihan.objects.filter(request_id=request_id).first()
+        if existing:
+            lama = {a.detail_id: a.nominal for a in existing.alokasi.all()}
+            baru = {a["detail"]: a["nominal"] for a in alokasi}
+            if (existing.tagihan_id != tagihan.pk or existing.tanggal != tanggal
+                    or existing.no_bukti != no_bukti or existing.nominal != nominal
+                    or existing.akun_kas_id != akun_kas_kode or lama != baru
+                    or len(baru) != len(alokasi)):
+                raise ValueError("Kunci pembayaran sudah digunakan untuk transaksi berbeda.")
+            return existing
+        if tagihan.perlu_rekonsiliasi:
+            raise ValueError("Pembayaran lama perlu direkonsiliasi sebelum menerima pembayaran baru.")
+        if PembayaranTagihan.objects.filter(tagihan=tagihan, no_bukti=no_bukti).exists():
+            raise ValueError("Nomor bukti penerimaan sudah digunakan pada tagihan ini.")
+        detail = {d.pk: d for d in tagihan.detail.prefetch_related("alokasi__pembayaran")}
+        # shortcut: potongan negatif belum dialokasikan, gunakan rincian netto sampai kebijakan diskon ditetapkan.
+        if any(d.nominal < 0 for d in detail.values()):
+            raise ValueError("Tagihan mengandung potongan negatif. Sesuaikan rincian menjadi nilai netto sebelum pembayaran.")
+        if not detail or sum((d.nominal for d in detail.values()), Decimal(0)) != tagihan.total:
+            raise ValueError("Total tagihan tidak cocok dengan rincian.")
+        if not nominal.is_finite() or nominal <= 0 or nominal > tagihan.sisa_tagihan:
+            raise ValueError("Nominal bayar harus positif dan tidak melebihi sisa tagihan.")
+        if not MsCoa.objects.filter(pk=akun_kas_kode, is_active=True, kode_akun__in=["111", "112", "1011", "1101", "1102"]).exists():
+            raise ValueError("Pilih akun kas/bank aktif yang dipakai sekolah.")
+        seen = set()
+        baris = [(akun_kas_kode, nominal, Decimal(0))]
+        for a in alokasi:
+            d = detail.get(a["detail"])
+            n = a["nominal"]
+            if d is None or d.pk in seen:
+                raise ValueError("Rincian pembayaran tidak valid atau berulang.")
+            if not n.is_finite() or n <= 0 or n > d.nominal - d.total_terbayar:
+                raise ValueError("Pembayaran komponen harus positif dan tidak melebihi sisanya.")
+            if not d.akun_pendapatan.is_active or not d.akun_pendapatan_id.startswith("4"):
+                raise ValueError("Akun pendapatan komponen harus aktif dan termasuk kelompok pendapatan.")
+            seen.add(d.pk)
+            baris.append((d.akun_pendapatan_id, Decimal(0), n))
+        if sum((a["nominal"] for a in alokasi), Decimal(0)) != nominal:
+            raise ValueError("Jumlah alokasi harus sama dengan nominal pembayaran.")
+        jurnal = buat_jurnal(
+            no_bukti=f"BL-{request_id}", tanggal=tanggal,
+            keterangan=f"Pembayaran {no_bukti}: {tagihan.siswa.nama}, periode {tagihan.periode_bulan}/{tagihan.periode_tahun}",
+            tipe="AUTO_BILLING", baris=baris, user=user,
+        )
+        pembayaran = PembayaranTagihan.objects.create(
+            tagihan=tagihan, tanggal=tanggal, no_bukti=no_bukti, nominal=nominal,
+            akun_kas_id=akun_kas_kode, request_id=request_id, jurnal=jurnal, created_by=user,
+        )
+        for a in alokasi:
+            AlokasiPembayaranTagihan.objects.create(pembayaran=pembayaran, detail_id=a["detail"], nominal=a["nominal"])
+        perbarui_status_tagihan(tagihan)
+        return pembayaran
+
+
+def batalkan_pembayaran_jurnal(jurnal, user, alasan):
+    """Dipanggil dalam transaksi pembatalan/reversal jurnal."""
+    from operations.models import PembayaranTagihan, Tagihan
+
+    pembayaran = PembayaranTagihan.objects.filter(jurnal=jurnal).first()
+    if not pembayaran:
+        return
+    tagihan = Tagihan.objects.select_for_update().get(pk=pembayaran.tagihan_id)
+    if pembayaran.dibatalkan:
+        raise ValueError("Pembayaran sudah dibatalkan.")
+    pembayaran.dibatalkan = True
+    pembayaran.alasan_batal = alasan
+    pembayaran.dibatalkan_pada = timezone.now()
+    pembayaran.dibatalkan_oleh = user
+    pembayaran.save(update_fields=["dibatalkan", "alasan_batal", "dibatalkan_pada", "dibatalkan_oleh", "updated_at"])
+    perbarui_status_tagihan(tagihan)
+
+
+def batalkan_pembayaran_draft(jurnal, user, alasan):
+    with transaction.atomic(), audit_user(user):
+        jurnal = TrJurnal.objects.select_for_update().get(pk=jurnal.pk)
+        if jurnal.tipe_sumber != "AUTO_BILLING" or jurnal.status not in ("DRAFT", "PENDING"):
+            raise ValueError("Hanya penerimaan tagihan yang belum POSTED dapat dibatalkan oleh Finance.")
+        if not hasattr(jurnal, "pembayaran_tagihan"):
+            raise ValueError("Pembayaran lama perlu direkonsiliasi terlebih dahulu.")
+        batalkan_pembayaran_jurnal(jurnal, user, alasan)
+        jurnal.status = "VOID"
+        jurnal.save(update_fields=["status"])
+        return jurnal
 
 
 def _struk_sections(details):
@@ -362,7 +427,7 @@ def struk_tagihan(tagihan):
     bulan = BULAN_NAMA[tagihan.periode_bulan - 1]
     return {
         "no_tagihan": tagihan.id,
-        "sekolah": "TK Lebah Madu",
+        "sekolah": "RA Lebah Madu",
         "siswa": str(tagihan.siswa),
         "nis": tagihan.siswa.nis,
         "kelompok": str(tagihan.siswa.kelompok) if tagihan.siswa.kelompok_id else None,
@@ -380,5 +445,8 @@ def struk_tagihan(tagihan):
             for d in details
         ],
         "total": tagihan.total,
+        "total_terbayar": tagihan.total_terbayar,
+        "sisa_tagihan": tagihan.sisa_tagihan,
+        "perlu_rekonsiliasi": tagihan.perlu_rekonsiliasi,
         "no_jurnal": str(tagihan.jurnal_id) if tagihan.jurnal_id else None,
     }

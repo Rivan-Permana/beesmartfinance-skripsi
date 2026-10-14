@@ -12,6 +12,18 @@ import type {
 export const pegawaiApi = {
   list: (params?: Record<string, unknown>) =>
     api.get<Paginated<Pegawai>>("/pegawai/", { params }).then((r) => r.data),
+  async listAll(params?: Record<string, unknown>): Promise<Pegawai[]> {
+    const out: Pegawai[] = []
+    let page = 1
+    let hasNext = true
+    while (hasNext) {
+      const data = await pegawaiApi.list({ ...params, page })
+      out.push(...data.results)
+      hasNext = !!data.next
+      page += 1
+    }
+    return out
+  },
   create: (payload: Partial<PegawaiInput>) =>
     api.post<Pegawai>("/pegawai/", payload).then((r) => r.data),
   update: (id: number, payload: Partial<PegawaiInput>) =>

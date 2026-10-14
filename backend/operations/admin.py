@@ -18,6 +18,7 @@ from .models import (
     Siswa,
     Tagihan,
     TagihanDetail,
+    PembayaranTagihan,
 )
 
 admin.site.register(Jenjang)
@@ -60,6 +61,28 @@ class TagihanAdmin(SimpleHistoryAdmin):
     list_filter = ("status", "periode_tahun")
     search_fields = ("siswa__nama",)
     inlines = [TagihanDetailInline]
+
+    def has_change_permission(self, request, obj=None):
+        if obj and (obj.perlu_rekonsiliasi or obj.jurnal_id or obj.pembayaran.exists()):
+            return False
+        return super().has_change_permission(request, obj)
+
+    def has_delete_permission(self, request, obj=None):
+        if obj and (obj.perlu_rekonsiliasi or obj.jurnal_id or obj.pembayaran.exists()):
+            return False
+        return super().has_delete_permission(request, obj)
+
+
+@admin.register(PembayaranTagihan)
+class PembayaranTagihanAdmin(SimpleHistoryAdmin):
+    list_display = ("tagihan", "tanggal", "no_bukti", "nominal", "jurnal", "dibatalkan")
+    readonly_fields = [f.name for f in PembayaranTagihan._meta.fields]
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(PinjamanPegawai)

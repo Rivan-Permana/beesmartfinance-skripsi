@@ -120,8 +120,9 @@ const opsCards = computed(() => {
     { label: hadirLabel, value: String(o.hadir_bulan_ini), icon: "pi pi-check-circle", tone: "green" as const },
     { label: "Hari Katering", value: String(o.katering_bulan_ini), icon: "pi pi-calendar", tone: "orange" as const },
     { label: "Tunggakan Tagihan", value: String(o.tagihan_belum), icon: "pi pi-exclamation-circle", tone: "magenta" as const },
-    { label: "Collection Rate", value: `${o.collection_rate_pct}%`, icon: "pi pi-percentage", tone: "navy" as const },
-    { label: "Jurnal Draft", value: String(o.jurnal_menunggu_approve), icon: "pi pi-inbox", tone: "orange" as const },
+    { label: "Tagihan Terverifikasi Lunas", value: `${o.collection_rate_pct}%`, icon: "pi pi-percentage", tone: "navy" as const },
+    { label: "Jurnal Belum Dicatat", value: String(o.jurnal_menunggu_approve), icon: "pi pi-inbox", tone: "orange" as const },
+    { label: "Pembayaran Perlu Rekonsiliasi", value: String(o.tagihan_perlu_rekonsiliasi), icon: "pi pi-search", tone: "orange" as const },
   ]
 })
 

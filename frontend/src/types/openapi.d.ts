@@ -36,6 +36,40 @@ export interface paths {
         patch: operations["v1_absen_pegawai_partial_update"];
         trace?: never;
     };
+    "/api/v1/absen-pegawai/bulk-save/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Simpan absensi harian banyak pegawai sekaligus. */
+        post: operations["v1_absen_pegawai_bulk_save_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/absen-pegawai/rekap-bulanan/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Agregat hadir/izin/sakit/terlambat per pegawai dalam satu bulan. */
+        get: operations["v1_absen_pegawai_rekap_bulanan_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/anggaran/": {
         parameters: {
             query?: never;
@@ -234,6 +268,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/auth/user-labels/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Peta ID pengguna → username/nama (untuk audit log & laporan). */
+        get: operations["v1_auth_user_labels_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/coa/": {
         parameters: {
             query?: never;
@@ -283,6 +334,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/dashboard/menu-katering/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Menu katering hari ini (atau tanggal tertentu) — untuk widget dashboard. */
+        get: operations["v1_dashboard_menu_katering_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/dashboard/prediksi-kas/": {
         parameters: {
             query?: never;
@@ -307,6 +375,38 @@ export interface paths {
             cookie?: never;
         };
         get: operations["v1_dashboard_ringkasan_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/export/legacy/jemput/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["v1_export_legacy_jemput_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/export/legacy/katering/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["v1_export_legacy_katering_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -477,6 +577,39 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/jurnal/{id}/batal-penerimaan/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["v1_jurnal_batal_penerimaan_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/jurnal/{id}/catat/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Finance mencatat pemasukan/pengeluaran tanpa approval Kepsek. */
+        post: operations["v1_jurnal_catat_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/jurnal/{id}/submit/": {
         parameters: {
             query?: never;
@@ -639,6 +772,23 @@ export interface paths {
         options?: never;
         head?: never;
         patch: operations["v1_kelompok_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/kelompok/{id}/pindah-siswa/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Pindahkan beberapa siswa ke kelompok ini. */
+        post: operations["v1_kelompok_pindah_siswa_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/laporan/buku-besar/{kode_akun}/": {
@@ -1128,6 +1278,75 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tagihan/generate-batch/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Generate tagihan batch per jenjang/kelompok. */
+        post: operations["v1_tagihan_generate_batch_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tagihan/preview/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Preview komponen tagihan tanpa menyimpan. */
+        post: operations["v1_tagihan_preview_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tagihan/preview-batch/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Preview tagihan batch per jenjang/kelompok. */
+        post: operations["v1_tagihan_preview_batch_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tarif-katering/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Tarif katering per hari per bulan — diset Staf TU, dipakai rekap & tagihan. */
+        get: operations["v1_tarif_katering_retrieve"];
+        /** @description Tarif katering per hari per bulan — diset Staf TU, dipakai rekap & tagihan. */
+        put: operations["v1_tarif_katering_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1141,6 +1360,16 @@ export interface components {
             sakit?: number;
             terlambat?: number;
             pegawai: number;
+        };
+        AlokasiPembayaranInput: {
+            detail: number;
+            /** Format: decimal */
+            nominal: string;
+        };
+        AlokasiPembayaranTagihan: {
+            detail: number;
+            /** Format: decimal */
+            nominal: string;
         };
         ArmadaJemputan: {
             readonly id: number;
@@ -1157,8 +1386,30 @@ export interface components {
             old_data?: unknown;
             new_data?: unknown;
             changed_by?: number | null;
+            readonly changed_by_username: string;
             /** Format: date-time */
             changed_at: string;
+        };
+        BatalPenerimaanInput: {
+            alasan: string;
+        };
+        BayarTagihanInput: {
+            /** Format: date */
+            tanggal: string;
+            no_bukti: string;
+            /** Format: decimal */
+            nominal: string;
+            akun_kas: string;
+            /** Format: uuid */
+            request_id: string;
+            alokasi: components["schemas"]["AlokasiPembayaranInput"][];
+        };
+        BayarTagihanResponse: {
+            detail: string;
+            tagihan: components["schemas"]["Tagihan"];
+            pembayaran: components["schemas"]["PembayaranTagihan"];
+            /** Format: uuid */
+            jurnal_id: string;
         };
         FixedAsset: {
             readonly id: number;
@@ -1189,17 +1440,24 @@ export interface components {
             /** Format: decimal */
             tunjangan_pengabdian?: string;
             /** Format: decimal */
+            tunjangan_asuransi?: string;
+            /** Format: decimal */
+            uang_makan?: string;
+            /** Format: decimal */
             transport?: string;
             /** Format: decimal */
             bonus_insentif?: string;
             /** Format: decimal */
             thr?: string;
+            hari_hadir?: number;
             /** Format: decimal */
             potongan_pinjaman?: string;
             /** Format: decimal */
             potongan_asuransi?: string;
             /** Format: double */
             readonly total_bruto: number;
+            /** Format: double */
+            readonly total_potongan: number;
             /** Format: double */
             readonly total_netto: number;
             /** Format: uuid */
@@ -1210,6 +1468,13 @@ export interface components {
             kode: string;
             nama: string;
         };
+        /**
+         * @description * `BULANAN` - Biaya Bulanan
+         *     * `TAHUNAN` - Biaya Tahunan
+         *     * `LAIN` - Lain-lain
+         * @enum {string}
+         */
+        KategoriEnum: "BULANAN" | "TAHUNAN" | "LAIN";
         Kegiatan: {
             readonly id: number;
             nama: string;
@@ -1222,6 +1487,8 @@ export interface components {
             /** Format: date */
             tanggal_selesai?: string | null;
             status?: components["schemas"]["KegiatanStatusEnum"];
+            periode?: number | null;
+            readonly periode_kode: string;
             /** Format: double */
             readonly realisasi: number;
             /** Format: double */
@@ -1258,21 +1525,32 @@ export interface components {
             readonly id: number;
             nama: string;
             jenjang: number;
+            readonly jenjang_kode: string;
+            readonly jenjang_nama: string;
+            readonly siswa_aktif: string;
         };
         /**
          * @description * `SPP` - SPP
          *     * `KATERING` - Katering
          *     * `JEMPUTAN` - Jemputan
+         *     * `UANG_MASUK` - Uang Masuk
+         *     * `KEGIATAN` - Uang Kegiatan
+         *     * `PENGEMBANGAN` - Uang Pengembangan
+         *     * `SERAGAM` - Seragam
+         *     * `KOMITE` - Iuran Komite
+         *     * `PORTOFOLIO` - Portofolio & Rapor
+         *     * `POTONGAN` - Potongan
          *     * `LAIN` - Lain-lain
          * @enum {string}
          */
-        KomponenEnum: "SPP" | "KATERING" | "JEMPUTAN" | "LAIN";
+        KomponenEnum: "SPP" | "KATERING" | "JEMPUTAN" | "UANG_MASUK" | "KEGIATAN" | "PENGEMBANGAN" | "SERAGAM" | "KOMITE" | "PORTOFOLIO" | "POTONGAN" | "LAIN";
         MenuKatering: {
             readonly id: number;
             /** Format: date */
             tanggal: string;
             /** Format: uri */
             gambar?: string | null;
+            readonly gambar_url: string;
             keterangan?: string;
         };
         /**
@@ -1282,7 +1560,7 @@ export interface components {
         MetodeEnum: "garis_lurus";
         MsCoa: {
             kode_akun: string;
-            sub_golongan?: number | null;
+            sub_golongan?: string | null;
             nama_akun: string;
             posisi_normal: components["schemas"]["PosisiNormalEnum"];
             is_active?: boolean;
@@ -1690,17 +1968,24 @@ export interface components {
             /** Format: decimal */
             tunjangan_pengabdian?: string;
             /** Format: decimal */
+            tunjangan_asuransi?: string;
+            /** Format: decimal */
+            uang_makan?: string;
+            /** Format: decimal */
             transport?: string;
             /** Format: decimal */
             bonus_insentif?: string;
             /** Format: decimal */
             thr?: string;
+            hari_hadir?: number;
             /** Format: decimal */
             potongan_pinjaman?: string;
             /** Format: decimal */
             potongan_asuransi?: string;
             /** Format: double */
             readonly total_bruto?: number;
+            /** Format: double */
+            readonly total_potongan?: number;
             /** Format: double */
             readonly total_netto?: number;
             /** Format: uuid */
@@ -1723,6 +2008,8 @@ export interface components {
             /** Format: date */
             tanggal_selesai?: string | null;
             status?: components["schemas"]["KegiatanStatusEnum"];
+            periode?: number | null;
+            readonly periode_kode?: string;
             /** Format: double */
             readonly realisasi?: number;
             /** Format: double */
@@ -1744,6 +2031,9 @@ export interface components {
             readonly id?: number;
             nama?: string;
             jenjang?: number;
+            readonly jenjang_kode?: string;
+            readonly jenjang_nama?: string;
+            readonly siswa_aktif?: string;
         };
         PatchedMenuKatering: {
             readonly id?: number;
@@ -1751,11 +2041,12 @@ export interface components {
             tanggal?: string;
             /** Format: uri */
             gambar?: string | null;
+            readonly gambar_url?: string;
             keterangan?: string;
         };
         PatchedMsCoa: {
             kode_akun?: string;
-            sub_golongan?: number | null;
+            sub_golongan?: string | null;
             nama_akun?: string;
             posisi_normal?: components["schemas"]["PosisiNormalEnum"];
             is_active?: boolean;
@@ -1789,6 +2080,10 @@ export interface components {
             nomor_hp?: string | null;
             alamat?: string | null;
             status_aktif?: boolean;
+            /** Format: date */
+            tanggal_mulai_kerja?: string | null;
+            /** Format: date */
+            tanggal_selesai_kerja?: string | null;
             user?: number | null;
         };
         PatchedPendaftaranJemputan: {
@@ -1852,14 +2147,21 @@ export interface components {
         PatchedTagihan: {
             readonly id?: number;
             siswa?: number;
+            readonly siswa_nama?: string;
             periode_bulan?: number;
             periode_tahun?: number;
             /** Format: decimal */
-            total?: string;
+            readonly total?: string;
             readonly status?: components["schemas"]["TagihanStatusEnum"];
             /** Format: uuid */
             readonly jurnal?: string | null;
             detail?: components["schemas"]["TagihanDetail"][];
+            /** Format: decimal */
+            readonly total_terbayar?: string | null;
+            /** Format: decimal */
+            readonly sisa_tagihan?: string | null;
+            readonly perlu_rekonsiliasi?: boolean;
+            readonly pembayaran?: components["schemas"]["PembayaranTagihan"][];
         };
         PatchedTrAnggaran: {
             readonly id?: number;
@@ -1879,14 +2181,16 @@ export interface components {
             /** Format: date */
             tanggal?: string;
             keterangan?: string | null;
-            tipe_sumber?: string;
+            readonly tipe_sumber?: string;
             readonly status?: components["schemas"]["TrJurnalStatusEnum"];
             readonly created_by?: number | null;
             readonly approved_by?: number | null;
             /** Format: date-time */
             readonly posted_at?: string | null;
-            is_deleted?: boolean;
+            readonly is_deleted?: boolean;
             detail?: components["schemas"]["TrJurnalDetail"][];
+            readonly can_finance_post?: boolean;
+            readonly perlu_rekonsiliasi?: boolean;
         };
         Pegawai: {
             readonly id: number;
@@ -1896,7 +2200,29 @@ export interface components {
             nomor_hp?: string | null;
             alamat?: string | null;
             status_aktif?: boolean;
+            /** Format: date */
+            tanggal_mulai_kerja?: string | null;
+            /** Format: date */
+            tanggal_selesai_kerja?: string | null;
             user?: number | null;
+        };
+        PembayaranTagihan: {
+            readonly id: number;
+            /** Format: date */
+            tanggal: string;
+            no_bukti: string;
+            /** Format: decimal */
+            nominal: string;
+            akun_kas: string;
+            /** Format: uuid */
+            jurnal: string;
+            readonly jurnal_status: string;
+            created_by?: number | null;
+            dibatalkan?: boolean;
+            alasan_batal?: string;
+            /** Format: date-time */
+            dibatalkan_pada?: string | null;
+            readonly alokasi: components["schemas"]["AlokasiPembayaranTagihan"][];
         };
         PendaftaranJemputan: {
             readonly id: number;
@@ -1982,21 +2308,32 @@ export interface components {
         Tagihan: {
             readonly id: number;
             siswa: number;
+            readonly siswa_nama: string;
             periode_bulan: number;
             periode_tahun: number;
             /** Format: decimal */
-            total?: string;
+            readonly total: string;
             readonly status: components["schemas"]["TagihanStatusEnum"];
             /** Format: uuid */
             readonly jurnal: string | null;
             detail: components["schemas"]["TagihanDetail"][];
+            /** Format: decimal */
+            readonly total_terbayar: string | null;
+            /** Format: decimal */
+            readonly sisa_tagihan: string | null;
+            readonly perlu_rekonsiliasi: boolean;
+            readonly pembayaran: components["schemas"]["PembayaranTagihan"][];
         };
         TagihanDetail: {
             readonly id: number;
             komponen: components["schemas"]["KomponenEnum"];
+            kategori?: components["schemas"]["KategoriEnum"];
+            keterangan?: string;
             akun_pendapatan: string;
             /** Format: decimal */
             nominal?: string;
+            /** Format: decimal */
+            readonly total_terbayar: string;
         };
         /**
          * @description * `BELUM` - Belum Lunas
@@ -2005,6 +2342,15 @@ export interface components {
          * @enum {string}
          */
         TagihanStatusEnum: "BELUM" | "SEBAGIAN" | "LUNAS";
+        TarifKatering: {
+            periode_bulan: number;
+            periode_tahun: number;
+            /** Format: decimal */
+            tarif_harian: string;
+            /** Format: decimal */
+            tarif_jumat?: string;
+            readonly is_default: boolean;
+        };
         TokenObtainPair: {
             username: string;
             password: string;
@@ -2033,14 +2379,16 @@ export interface components {
             /** Format: date */
             tanggal: string;
             keterangan?: string | null;
-            tipe_sumber?: string;
+            readonly tipe_sumber: string;
             readonly status: components["schemas"]["TrJurnalStatusEnum"];
             readonly created_by: number | null;
             readonly approved_by: number | null;
             /** Format: date-time */
             readonly posted_at: string | null;
-            is_deleted?: boolean;
+            readonly is_deleted: boolean;
             detail: components["schemas"]["TrJurnalDetail"][];
+            readonly can_finance_post: boolean;
+            readonly perlu_rekonsiliasi: boolean;
         };
         TrJurnalDetail: {
             readonly id: number;
@@ -2074,8 +2422,10 @@ export interface operations {
                 ordering?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
+                pegawai?: number;
                 /** @description A search term. */
                 search?: string;
+                tanggal?: string;
             };
             header?: never;
             path?: never;
@@ -2206,6 +2556,50 @@ export interface operations {
                 "multipart/form-data": components["schemas"]["PatchedAbsenPegawai"];
             };
         };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AbsenPegawai"];
+                };
+            };
+        };
+    };
+    v1_absen_pegawai_bulk_save_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AbsenPegawai"];
+                "application/x-www-form-urlencoded": components["schemas"]["AbsenPegawai"];
+                "multipart/form-data": components["schemas"]["AbsenPegawai"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AbsenPegawai"];
+                };
+            };
+        };
+    };
+    v1_absen_pegawai_rekap_bulanan_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             200: {
                 headers: {
@@ -2698,12 +3092,17 @@ export interface operations {
     v1_audit_log_list: {
         parameters: {
             query?: {
+                action?: string;
+                changed_at__gte?: string;
+                changed_at__lte?: string;
+                changed_by?: number;
                 /** @description Which field to use when ordering the results. */
                 ordering?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
                 /** @description A search term. */
                 search?: string;
+                table_name?: string;
             };
             header?: never;
             path?: never;
@@ -2810,6 +3209,27 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TokenRefresh"];
+                };
+            };
+        };
+    };
+    v1_auth_user_labels_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
         };
@@ -2985,6 +3405,27 @@ export interface operations {
             };
         };
     };
+    v1_dashboard_menu_katering_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
     v1_dashboard_prediksi_kas_retrieve: {
         parameters: {
             query?: never;
@@ -3023,6 +3464,44 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+        };
+    };
+    v1_export_legacy_jemput_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+        };
+    };
+    v1_export_legacy_katering_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
                 };
             };
         };
@@ -3508,10 +3987,13 @@ export interface operations {
     v1_jurnal_list: {
         parameters: {
             query?: {
+                jenis?: "keluar" | "masuk";
                 /** @description Which field to use when ordering the results. */
                 ordering?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
                 /** @description A search term. */
                 search?: string;
                 /**
@@ -3691,6 +4173,56 @@ export interface operations {
             };
         };
     };
+    v1_jurnal_batal_penerimaan_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A UUID string identifying this tr jurnal. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BatalPenerimaanInput"];
+                "application/x-www-form-urlencoded": components["schemas"]["BatalPenerimaanInput"];
+                "multipart/form-data": components["schemas"]["BatalPenerimaanInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrJurnal"];
+                };
+            };
+        };
+    };
+    v1_jurnal_catat_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A UUID string identifying this tr jurnal. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrJurnal"];
+                };
+            };
+        };
+    };
     v1_jurnal_submit_create: {
         parameters: {
             query?: never;
@@ -3755,6 +4287,7 @@ export interface operations {
                 /** @description A page number within the paginated result set. */
                 page?: number;
                 penanggung_jawab?: number;
+                periode?: number;
                 /** @description A search term. */
                 search?: string;
                 /**
@@ -3957,12 +4490,24 @@ export interface operations {
     v1_kehadiran_siswa_list: {
         parameters: {
             query?: {
+                kelompok?: number;
                 /** @description Which field to use when ordering the results. */
                 ordering?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
                 /** @description A search term. */
                 search?: string;
+                siswa?: number;
+                /**
+                 * @description * `hadir` - Hadir
+                 *     * `izin` - Izin
+                 *     * `sakit` - Sakit
+                 *     * `tidak_hadir` - Tidak Hadir
+                 */
+                status?: "hadir" | "izin" | "sakit" | "tidak_hadir";
+                tanggal?: string;
+                tanggal__gte?: string;
+                tanggal__lte?: string;
             };
             header?: never;
             path?: never;
@@ -4107,6 +4652,7 @@ export interface operations {
     v1_kelompok_list: {
         parameters: {
             query?: {
+                jenjang?: number;
                 /** @description Which field to use when ordering the results. */
                 ordering?: string;
                 /** @description A page number within the paginated result set. */
@@ -4254,6 +4800,34 @@ export interface operations {
             };
         };
     };
+    v1_kelompok_pindah_siswa_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A unique integer value identifying this kelompok. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Kelompok"];
+                "application/x-www-form-urlencoded": components["schemas"]["Kelompok"];
+                "multipart/form-data": components["schemas"]["Kelompok"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Kelompok"];
+                };
+            };
+        };
+    };
     v1_laporan_buku_besar_retrieve: {
         parameters: {
             query?: never;
@@ -4370,6 +4944,9 @@ export interface operations {
                 page?: number;
                 /** @description A search term. */
                 search?: string;
+                tanggal?: string;
+                tanggal__gte?: string;
+                tanggal__lte?: string;
             };
             header?: never;
             path?: never;
@@ -4664,12 +5241,14 @@ export interface operations {
     v1_pendaftaran_jemputan_list: {
         parameters: {
             query?: {
+                armada?: number;
                 /** @description Which field to use when ordering the results. */
                 ordering?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
                 /** @description A search term. */
                 search?: string;
+                siswa?: number;
             };
             header?: never;
             path?: never;
@@ -5696,6 +6275,7 @@ export interface operations {
                 ordering?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
+                periode_bulan?: number;
                 periode_tahun?: number;
                 /** @description A search term. */
                 search?: string;
@@ -5859,9 +6439,9 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["Tagihan"];
-                "application/x-www-form-urlencoded": components["schemas"]["Tagihan"];
-                "multipart/form-data": components["schemas"]["Tagihan"];
+                "application/json": components["schemas"]["BayarTagihanInput"];
+                "application/x-www-form-urlencoded": components["schemas"]["BayarTagihanInput"];
+                "multipart/form-data": components["schemas"]["BayarTagihanInput"];
             };
         };
         responses: {
@@ -5870,7 +6450,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Tagihan"];
+                    "application/json": components["schemas"]["BayarTagihanResponse"];
                 };
             };
         };
@@ -5918,6 +6498,119 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Tagihan"];
+                };
+            };
+        };
+    };
+    v1_tagihan_generate_batch_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Tagihan"];
+                "application/x-www-form-urlencoded": components["schemas"]["Tagihan"];
+                "multipart/form-data": components["schemas"]["Tagihan"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Tagihan"];
+                };
+            };
+        };
+    };
+    v1_tagihan_preview_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Tagihan"];
+                "application/x-www-form-urlencoded": components["schemas"]["Tagihan"];
+                "multipart/form-data": components["schemas"]["Tagihan"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Tagihan"];
+                };
+            };
+        };
+    };
+    v1_tagihan_preview_batch_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Tagihan"];
+                "application/x-www-form-urlencoded": components["schemas"]["Tagihan"];
+                "multipart/form-data": components["schemas"]["Tagihan"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Tagihan"];
+                };
+            };
+        };
+    };
+    v1_tarif_katering_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TarifKatering"];
+                };
+            };
+        };
+    };
+    v1_tarif_katering_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TarifKatering"];
                 };
             };
         };

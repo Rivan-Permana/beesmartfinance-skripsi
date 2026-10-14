@@ -13,6 +13,10 @@ export const jurnalApi = {
     api.post<Jurnal>(`/jurnal/${id}/submit/`).then((r) => r.data),
   approve: (id: string) =>
     api.post<Jurnal>(`/jurnal/${id}/approve/`).then((r) => r.data),
+  catat: (id: string) =>
+    api.post<Jurnal>(`/jurnal/${id}/catat/`).then((r) => r.data),
+  batalPenerimaan: (id: string, alasan: string) =>
+    api.post<Jurnal>(`/jurnal/${id}/batal-penerimaan/`, { alasan }).then((r) => r.data),
   void: (id: string) => api.post(`/jurnal/${id}/void/`).then((r) => r.data),
 }
 

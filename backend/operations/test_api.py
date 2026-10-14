@@ -1,4 +1,5 @@
 from decimal import Decimal
+import uuid
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
@@ -59,7 +60,11 @@ class TagihanApiTests(APITestCase):
         self.assertEqual(r.status_code, 201)
         tid = r.data["id"]
 
-        r = self.client.post(f"/api/v1/tagihan/{tid}/bayar/")
+        tagihan = self.client.get(f"/api/v1/tagihan/{tid}/").data
+        r = self.client.post(f"/api/v1/tagihan/{tid}/bayar/", {
+            "tanggal": "2026-02-01", "no_bukti": "PAY-1", "nominal": "500000", "akun_kas": "1101",
+            "request_id": str(uuid.uuid4()), "alokasi": [{"detail": tagihan["detail"][0]["id"], "nominal": "500000"}],
+        }, format="json")
         self.assertEqual(r.status_code, 200)
         self.assertIn("jurnal_id", r.data)
         self.assertEqual(r.data["tagihan"]["status"], "LUNAS")

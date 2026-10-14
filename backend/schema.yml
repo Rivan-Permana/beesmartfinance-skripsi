@@ -20,12 +20,21 @@ paths:
         description: A page number within the paginated result set.
         schema:
           type: integer
+      - in: query
+        name: pegawai
+        schema:
+          type: integer
       - name: search
         required: false
         in: query
         description: A search term.
         schema:
           type: string
+      - in: query
+        name: tanggal
+        schema:
+          type: string
+          format: date
       tags:
       - v1
       security:
@@ -162,6 +171,48 @@ paths:
       responses:
         '204':
           description: No response body
+  /api/v1/absen-pegawai/bulk-save/:
+    post:
+      operationId: v1_absen_pegawai_bulk_save_create
+      description: Simpan absensi harian banyak pegawai sekaligus.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AbsenPegawai'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AbsenPegawai'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AbsenPegawai'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AbsenPegawai'
+          description: ''
+  /api/v1/absen-pegawai/rekap-bulanan/:
+    get:
+      operationId: v1_absen_pegawai_rekap_bulanan_retrieve
+      description: Agregat hadir/izin/sakit/terlambat per pegawai dalam satu bulan.
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AbsenPegawai'
+          description: ''
   /api/v1/anggaran/:
     get:
       operationId: v1_anggaran_list
@@ -674,6 +725,24 @@ paths:
     get:
       operationId: v1_audit_log_list
       parameters:
+      - in: query
+        name: action
+        schema:
+          type: string
+      - in: query
+        name: changed_at__gte
+        schema:
+          type: string
+          format: date-time
+      - in: query
+        name: changed_at__lte
+        schema:
+          type: string
+          format: date-time
+      - in: query
+        name: changed_by
+        schema:
+          type: integer
       - name: ordering
         required: false
         in: query
@@ -690,6 +759,10 @@ paths:
         required: false
         in: query
         description: A search term.
+        schema:
+          type: string
+      - in: query
+        name: table_name
         schema:
           type: string
       tags:
@@ -790,6 +863,22 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TokenRefresh'
+          description: ''
+  /api/v1/auth/user-labels/:
+    get:
+      operationId: v1_auth_user_labels_retrieve
+      description: Peta ID pengguna → username/nama (untuk audit log & laporan).
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
           description: ''
   /api/v1/coa/:
     get:
@@ -965,6 +1054,22 @@ paths:
                 type: object
                 additionalProperties: {}
           description: ''
+  /api/v1/dashboard/menu-katering/:
+    get:
+      operationId: v1_dashboard_menu_katering_retrieve
+      description: Menu katering hari ini (atau tanggal tertentu) — untuk widget dashboard.
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
   /api/v1/dashboard/prediksi-kas/:
     get:
       operationId: v1_dashboard_prediksi_kas_retrieve
@@ -994,6 +1099,34 @@ paths:
               schema:
                 type: object
                 additionalProperties: {}
+          description: ''
+  /api/v1/export/legacy/jemput/:
+    get:
+      operationId: v1_export_legacy_jemput_retrieve
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            text/csv:
+              schema:
+                type: string
+          description: ''
+  /api/v1/export/legacy/katering/:
+    get:
+      operationId: v1_export_legacy_katering_retrieve
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            text/csv:
+              schema:
+                type: string
           description: ''
   /api/v1/gaji/:
     get:
@@ -1507,6 +1640,13 @@ paths:
     get:
       operationId: v1_jurnal_list
       parameters:
+      - in: query
+        name: jenis
+        schema:
+          type: string
+          enum:
+          - keluar
+          - masuk
       - name: ordering
         required: false
         in: query
@@ -1517,6 +1657,12 @@ paths:
         required: false
         in: query
         description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
         schema:
           type: integer
       - name: search
@@ -1718,6 +1864,63 @@ paths:
               schema:
                 $ref: '#/components/schemas/TrJurnal'
           description: ''
+  /api/v1/jurnal/{id}/batal-penerimaan/:
+    post:
+      operationId: v1_jurnal_batal_penerimaan_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this tr jurnal.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatalPenerimaanInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/BatalPenerimaanInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BatalPenerimaanInput'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrJurnal'
+          description: ''
+  /api/v1/jurnal/{id}/catat/:
+    post:
+      operationId: v1_jurnal_catat_create
+      description: Finance mencatat pemasukan/pengeluaran tanpa approval Kepsek.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this tr jurnal.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrJurnal'
+          description: ''
   /api/v1/jurnal/{id}/submit/:
     post:
       operationId: v1_jurnal_submit_create
@@ -1806,6 +2009,10 @@ paths:
           type: integer
       - in: query
         name: penanggung_jawab
+        schema:
+          type: integer
+      - in: query
+        name: periode
         schema:
           type: integer
       - name: search
@@ -2023,6 +2230,10 @@ paths:
     get:
       operationId: v1_kehadiran_siswa_list
       parameters:
+      - in: query
+        name: kelompok
+        schema:
+          type: integer
       - name: ordering
         required: false
         in: query
@@ -2041,6 +2252,39 @@ paths:
         description: A search term.
         schema:
           type: string
+      - in: query
+        name: siswa
+        schema:
+          type: integer
+      - in: query
+        name: status
+        schema:
+          type: string
+          enum:
+          - hadir
+          - izin
+          - sakit
+          - tidak_hadir
+        description: |-
+          * `hadir` - Hadir
+          * `izin` - Izin
+          * `sakit` - Sakit
+          * `tidak_hadir` - Tidak Hadir
+      - in: query
+        name: tanggal
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: tanggal__gte
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: tanggal__lte
+        schema:
+          type: string
+          format: date
       tags:
       - v1
       security:
@@ -2181,6 +2425,10 @@ paths:
     get:
       operationId: v1_kelompok_list
       parameters:
+      - in: query
+        name: jenjang
+        schema:
+          type: integer
       - name: ordering
         required: false
         in: query
@@ -2335,6 +2583,40 @@ paths:
       responses:
         '204':
           description: No response body
+  /api/v1/kelompok/{id}/pindah-siswa/:
+    post:
+      operationId: v1_kelompok_pindah_siswa_create
+      description: Pindahkan beberapa siswa ke kelompok ini.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this kelompok.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Kelompok'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Kelompok'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Kelompok'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Kelompok'
+          description: ''
   /api/v1/laporan/buku-besar/{kode_akun}/:
     get:
       operationId: v1_laporan_buku_besar_retrieve
@@ -2438,6 +2720,21 @@ paths:
         description: A search term.
         schema:
           type: string
+      - in: query
+        name: tanggal
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: tanggal__gte
+        schema:
+          type: string
+          format: date
+      - in: query
+        name: tanggal__lte
+        schema:
+          type: string
+          format: date
       tags:
       - v1
       security:
@@ -2736,6 +3033,10 @@ paths:
     get:
       operationId: v1_pendaftaran_jemputan_list
       parameters:
+      - in: query
+        name: armada
+        schema:
+          type: integer
       - name: ordering
         required: false
         in: query
@@ -2754,6 +3055,10 @@ paths:
         description: A search term.
         schema:
           type: string
+      - in: query
+        name: siswa
+        schema:
+          type: integer
       tags:
       - v1
       security:
@@ -3867,6 +4172,10 @@ paths:
         schema:
           type: integer
       - in: query
+        name: periode_bulan
+        schema:
+          type: integer
+      - in: query
         name: periode_tahun
         schema:
           type: integer
@@ -4045,13 +4354,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Tagihan'
+              $ref: '#/components/schemas/BayarTagihanInput'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/Tagihan'
+              $ref: '#/components/schemas/BayarTagihanInput'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/Tagihan'
+              $ref: '#/components/schemas/BayarTagihanInput'
         required: true
       security:
       - jwtAuth: []
@@ -4060,7 +4369,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Tagihan'
+                $ref: '#/components/schemas/BayarTagihanResponse'
           description: ''
   /api/v1/tagihan/{id}/struk/:
     get:
@@ -4111,6 +4420,118 @@ paths:
               schema:
                 $ref: '#/components/schemas/Tagihan'
           description: ''
+  /api/v1/tagihan/generate-batch/:
+    post:
+      operationId: v1_tagihan_generate_batch_create
+      description: Generate tagihan batch per jenjang/kelompok.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Tagihan'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Tagihan'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Tagihan'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tagihan'
+          description: ''
+  /api/v1/tagihan/preview/:
+    post:
+      operationId: v1_tagihan_preview_create
+      description: Preview komponen tagihan tanpa menyimpan.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Tagihan'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Tagihan'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Tagihan'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tagihan'
+          description: ''
+  /api/v1/tagihan/preview-batch/:
+    post:
+      operationId: v1_tagihan_preview_batch_create
+      description: Preview tagihan batch per jenjang/kelompok.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Tagihan'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Tagihan'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Tagihan'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tagihan'
+          description: ''
+  /api/v1/tarif-katering/:
+    get:
+      operationId: v1_tarif_katering_retrieve
+      description: Tarif katering per hari per bulan — diset Staf TU, dipakai rekap
+        & tagihan.
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TarifKatering'
+          description: ''
+    put:
+      operationId: v1_tarif_katering_update
+      description: Tarif katering per hari per bulan — diset Staf TU, dipakai rekap
+        & tagihan.
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TarifKatering'
+          description: ''
 components:
   schemas:
     AbsenPegawai:
@@ -4144,6 +4565,31 @@ components:
       - id
       - pegawai
       - tanggal
+    AlokasiPembayaranInput:
+      type: object
+      properties:
+        detail:
+          type: integer
+          minimum: 1
+        nominal:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+      required:
+      - detail
+      - nominal
+    AlokasiPembayaranTagihan:
+      type: object
+      properties:
+        detail:
+          type: integer
+        nominal:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+      required:
+      - detail
+      - nominal
     ArmadaJemputan:
       type: object
       properties:
@@ -4187,14 +4633,73 @@ components:
         changed_by:
           type: integer
           nullable: true
+        changed_by_username:
+          type: string
+          readOnly: true
         changed_at:
           type: string
           format: date-time
       required:
       - action
       - changed_at
+      - changed_by_username
       - id
       - table_name
+    BatalPenerimaanInput:
+      type: object
+      properties:
+        alasan:
+          type: string
+          maxLength: 500
+      required:
+      - alasan
+    BayarTagihanInput:
+      type: object
+      properties:
+        tanggal:
+          type: string
+          format: date
+        no_bukti:
+          type: string
+          maxLength: 100
+        nominal:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+        akun_kas:
+          type: string
+          maxLength: 20
+        request_id:
+          type: string
+          format: uuid
+        alokasi:
+          type: array
+          items:
+            $ref: '#/components/schemas/AlokasiPembayaranInput'
+      required:
+      - akun_kas
+      - alokasi
+      - no_bukti
+      - nominal
+      - request_id
+      - tanggal
+    BayarTagihanResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+        tagihan:
+          $ref: '#/components/schemas/Tagihan'
+        pembayaran:
+          $ref: '#/components/schemas/PembayaranTagihan'
+        jurnal_id:
+          type: string
+          format: uuid
+      required:
+      - detail
+      - jurnal_id
+      - pembayaran
+      - tagihan
     FixedAsset:
       type: object
       properties:
@@ -4269,6 +4774,14 @@ components:
           type: string
           format: decimal
           pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+        tunjangan_asuransi:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+        uang_makan:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
         transport:
           type: string
           format: decimal
@@ -4281,6 +4794,10 @@ components:
           type: string
           format: decimal
           pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+        hari_hadir:
+          type: integer
+          maximum: 32767
+          minimum: 0
         potongan_pinjaman:
           type: string
           format: decimal
@@ -4290,6 +4807,10 @@ components:
           format: decimal
           pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
         total_bruto:
+          type: number
+          format: double
+          readOnly: true
+        total_potongan:
           type: number
           format: double
           readOnly: true
@@ -4310,6 +4831,7 @@ components:
       - periode_tahun
       - total_bruto
       - total_netto
+      - total_potongan
     Jenjang:
       type: object
       properties:
@@ -4326,6 +4848,16 @@ components:
       - id
       - kode
       - nama
+    KategoriEnum:
+      enum:
+      - BULANAN
+      - TAHUNAN
+      - LAIN
+      type: string
+      description: |-
+        * `BULANAN` - Biaya Bulanan
+        * `TAHUNAN` - Biaya Tahunan
+        * `LAIN` - Lain-lain
     Kegiatan:
       type: object
       properties:
@@ -4354,6 +4886,12 @@ components:
           nullable: true
         status:
           $ref: '#/components/schemas/KegiatanStatusEnum'
+        periode:
+          type: integer
+          nullable: true
+        periode_kode:
+          type: string
+          readOnly: true
         realisasi:
           type: number
           format: double
@@ -4370,6 +4908,7 @@ components:
       - akun_beban
       - id
       - nama
+      - periode_kode
       - rasio_utilisasi
       - realisasi
       - sisa_pagu
@@ -4430,21 +4969,47 @@ components:
           maxLength: 50
         jenjang:
           type: integer
+        jenjang_kode:
+          type: string
+          readOnly: true
+        jenjang_nama:
+          type: string
+          readOnly: true
+        siswa_aktif:
+          type: string
+          readOnly: true
       required:
       - id
       - jenjang
+      - jenjang_kode
+      - jenjang_nama
       - nama
+      - siswa_aktif
     KomponenEnum:
       enum:
       - SPP
       - KATERING
       - JEMPUTAN
+      - UANG_MASUK
+      - KEGIATAN
+      - PENGEMBANGAN
+      - SERAGAM
+      - KOMITE
+      - PORTOFOLIO
+      - POTONGAN
       - LAIN
       type: string
       description: |-
         * `SPP` - SPP
         * `KATERING` - Katering
         * `JEMPUTAN` - Jemputan
+        * `UANG_MASUK` - Uang Masuk
+        * `KEGIATAN` - Uang Kegiatan
+        * `PENGEMBANGAN` - Uang Pengembangan
+        * `SERAGAM` - Seragam
+        * `KOMITE` - Iuran Komite
+        * `PORTOFOLIO` - Portofolio & Rapor
+        * `POTONGAN` - Potongan
         * `LAIN` - Lain-lain
     MenuKatering:
       type: object
@@ -4459,10 +5024,14 @@ components:
           type: string
           format: uri
           nullable: true
+        gambar_url:
+          type: string
+          readOnly: true
         keterangan:
           type: string
           maxLength: 255
       required:
+      - gambar_url
       - id
       - tanggal
     MetodeEnum:
@@ -4477,7 +5046,7 @@ components:
           type: string
           maxLength: 20
         sub_golongan:
-          type: integer
+          type: string
           nullable: true
         nama_akun:
           type: string
@@ -5178,6 +5747,14 @@ components:
           type: string
           format: decimal
           pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+        tunjangan_asuransi:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+        uang_makan:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
         transport:
           type: string
           format: decimal
@@ -5190,6 +5767,10 @@ components:
           type: string
           format: decimal
           pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+        hari_hadir:
+          type: integer
+          maximum: 32767
+          minimum: 0
         potongan_pinjaman:
           type: string
           format: decimal
@@ -5199,6 +5780,10 @@ components:
           format: decimal
           pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
         total_bruto:
+          type: number
+          format: double
+          readOnly: true
+        total_potongan:
           type: number
           format: double
           readOnly: true
@@ -5251,6 +5836,12 @@ components:
           nullable: true
         status:
           $ref: '#/components/schemas/KegiatanStatusEnum'
+        periode:
+          type: integer
+          nullable: true
+        periode_kode:
+          type: string
+          readOnly: true
         realisasi:
           type: number
           format: double
@@ -5293,6 +5884,15 @@ components:
           maxLength: 50
         jenjang:
           type: integer
+        jenjang_kode:
+          type: string
+          readOnly: true
+        jenjang_nama:
+          type: string
+          readOnly: true
+        siswa_aktif:
+          type: string
+          readOnly: true
     PatchedMenuKatering:
       type: object
       properties:
@@ -5306,6 +5906,9 @@ components:
           type: string
           format: uri
           nullable: true
+        gambar_url:
+          type: string
+          readOnly: true
         keterangan:
           type: string
           maxLength: 255
@@ -5316,7 +5919,7 @@ components:
           type: string
           maxLength: 20
         sub_golongan:
-          type: integer
+          type: string
           nullable: true
         nama_akun:
           type: string
@@ -5399,6 +6002,14 @@ components:
           nullable: true
         status_aktif:
           type: boolean
+        tanggal_mulai_kerja:
+          type: string
+          format: date
+          nullable: true
+        tanggal_selesai_kerja:
+          type: string
+          format: date
+          nullable: true
         user:
           type: integer
           nullable: true
@@ -5550,6 +6161,9 @@ components:
           readOnly: true
         siswa:
           type: integer
+        siswa_nama:
+          type: string
+          readOnly: true
         periode_bulan:
           type: integer
           maximum: 32767
@@ -5562,6 +6176,7 @@ components:
           type: string
           format: decimal
           pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+          readOnly: true
         status:
           allOf:
           - $ref: '#/components/schemas/TagihanStatusEnum'
@@ -5575,6 +6190,26 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/TagihanDetail'
+        total_terbayar:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+          readOnly: true
+          nullable: true
+        sisa_tagihan:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+          readOnly: true
+          nullable: true
+        perlu_rekonsiliasi:
+          type: boolean
+          readOnly: true
+        pembayaran:
+          type: array
+          items:
+            $ref: '#/components/schemas/PembayaranTagihan'
+          readOnly: true
     PatchedTrAnggaran:
       type: object
       properties:
@@ -5622,7 +6257,7 @@ components:
           nullable: true
         tipe_sumber:
           type: string
-          maxLength: 20
+          readOnly: true
         status:
           allOf:
           - $ref: '#/components/schemas/TrJurnalStatusEnum'
@@ -5642,10 +6277,17 @@ components:
           nullable: true
         is_deleted:
           type: boolean
+          readOnly: true
         detail:
           type: array
           items:
             $ref: '#/components/schemas/TrJurnalDetail'
+        can_finance_post:
+          type: boolean
+          readOnly: true
+        perlu_rekonsiliasi:
+          type: boolean
+          readOnly: true
     Pegawai:
       type: object
       properties:
@@ -5672,12 +6314,69 @@ components:
           nullable: true
         status_aktif:
           type: boolean
+        tanggal_mulai_kerja:
+          type: string
+          format: date
+          nullable: true
+        tanggal_selesai_kerja:
+          type: string
+          format: date
+          nullable: true
         user:
           type: integer
           nullable: true
       required:
       - id
       - nama
+    PembayaranTagihan:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        tanggal:
+          type: string
+          format: date
+        no_bukti:
+          type: string
+          maxLength: 100
+        nominal:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+        akun_kas:
+          type: string
+        jurnal:
+          type: string
+          format: uuid
+        jurnal_status:
+          type: string
+          readOnly: true
+        created_by:
+          type: integer
+          nullable: true
+        dibatalkan:
+          type: boolean
+        alasan_batal:
+          type: string
+        dibatalkan_pada:
+          type: string
+          format: date-time
+          nullable: true
+        alokasi:
+          type: array
+          items:
+            $ref: '#/components/schemas/AlokasiPembayaranTagihan'
+          readOnly: true
+      required:
+      - akun_kas
+      - alokasi
+      - id
+      - jurnal
+      - jurnal_status
+      - no_bukti
+      - nominal
+      - tanggal
     PendaftaranJemputan:
       type: object
       properties:
@@ -5880,6 +6579,9 @@ components:
           readOnly: true
         siswa:
           type: integer
+        siswa_nama:
+          type: string
+          readOnly: true
         periode_bulan:
           type: integer
           maximum: 32767
@@ -5892,6 +6594,7 @@ components:
           type: string
           format: decimal
           pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+          readOnly: true
         status:
           allOf:
           - $ref: '#/components/schemas/TagihanStatusEnum'
@@ -5905,14 +6608,40 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/TagihanDetail'
+        total_terbayar:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+          readOnly: true
+          nullable: true
+        sisa_tagihan:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+          readOnly: true
+          nullable: true
+        perlu_rekonsiliasi:
+          type: boolean
+          readOnly: true
+        pembayaran:
+          type: array
+          items:
+            $ref: '#/components/schemas/PembayaranTagihan'
+          readOnly: true
       required:
       - detail
       - id
       - jurnal
+      - pembayaran
       - periode_bulan
       - periode_tahun
+      - perlu_rekonsiliasi
+      - sisa_tagihan
       - siswa
+      - siswa_nama
       - status
+      - total
+      - total_terbayar
     TagihanDetail:
       type: object
       properties:
@@ -5921,16 +6650,27 @@ components:
           readOnly: true
         komponen:
           $ref: '#/components/schemas/KomponenEnum'
+        kategori:
+          $ref: '#/components/schemas/KategoriEnum'
+        keterangan:
+          type: string
+          maxLength: 120
         akun_pendapatan:
           type: string
         nominal:
           type: string
           format: decimal
           pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+        total_terbayar:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+          readOnly: true
       required:
       - akun_pendapatan
       - id
       - komponen
+      - total_terbayar
     TagihanStatusEnum:
       enum:
       - BELUM
@@ -5941,6 +6681,33 @@ components:
         * `BELUM` - Belum Lunas
         * `SEBAGIAN` - Sebagian
         * `LUNAS` - Lunas
+    TarifKatering:
+      type: object
+      properties:
+        periode_bulan:
+          type: integer
+          maximum: 12
+          minimum: 1
+        periode_tahun:
+          type: integer
+          maximum: 2100
+          minimum: 2000
+        tarif_harian:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+        tarif_jumat:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+        is_default:
+          type: boolean
+          readOnly: true
+      required:
+      - is_default
+      - periode_bulan
+      - periode_tahun
+      - tarif_harian
     TokenObtainPair:
       type: object
       properties:
@@ -6024,7 +6791,7 @@ components:
           nullable: true
         tipe_sumber:
           type: string
-          maxLength: 20
+          readOnly: true
         status:
           allOf:
           - $ref: '#/components/schemas/TrJurnalStatusEnum'
@@ -6044,19 +6811,30 @@ components:
           nullable: true
         is_deleted:
           type: boolean
+          readOnly: true
         detail:
           type: array
           items:
             $ref: '#/components/schemas/TrJurnalDetail'
+        can_finance_post:
+          type: boolean
+          readOnly: true
+        perlu_rekonsiliasi:
+          type: boolean
+          readOnly: true
       required:
       - approved_by
+      - can_finance_post
       - created_by
       - detail
       - id
+      - is_deleted
       - no_bukti
+      - perlu_rekonsiliasi
       - posted_at
       - status
       - tanggal
+      - tipe_sumber
     TrJurnalDetail:
       type: object
       properties:

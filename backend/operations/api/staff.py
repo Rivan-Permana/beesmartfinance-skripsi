@@ -12,7 +12,7 @@ from operations.serializers import AbsenPegawaiSerializer, PegawaiSerializer
 
 
 class PegawaiViewSet(viewsets.ModelViewSet):
-    queryset = Pegawai.objects.all().order_by("nama")
+    queryset = Pegawai.objects.all().order_by("nama", "pk")
     serializer_class = PegawaiSerializer
     permission_classes = [IsAdministrationOrFinanceOrPrincipalRead]
 

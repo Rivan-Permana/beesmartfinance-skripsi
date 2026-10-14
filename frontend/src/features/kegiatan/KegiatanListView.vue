@@ -217,9 +217,13 @@ onMounted(async () => {
   try {
     coaList.value = await coaApi.list()
   } catch { /* fallback dropdown kosong */ }
-  try {
-    pegawaiList.value = (await pegawaiApi.list()).results
-  } catch { /* fallback dropdown kosong */ }
+  if (canManage.value) {
+    try {
+      pegawaiList.value = await pegawaiApi.listAll()
+    } catch (e) {
+      notifyError(toast, e, "Gagal memuat daftar pegawai.")
+    }
+  }
   try {
     periodeList.value = (await periodeApi.list()).results
   } catch { /* fallback dropdown kosong */ }

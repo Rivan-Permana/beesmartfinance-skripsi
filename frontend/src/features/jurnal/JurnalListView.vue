@@ -11,7 +11,7 @@ import Select from "primevue/select"
 import Tag from "primevue/tag"
 import { useConfirm } from "primevue/useconfirm"
 import { useToast } from "primevue/usetoast"
-import { computed, onMounted, reactive, ref } from "vue"
+import { computed, onMounted, reactive, ref, watch } from "vue"
 import { useRoute } from "vue-router"
 
 import { coaApi, jurnalApi } from "./api"
@@ -29,8 +29,14 @@ const confirm = useConfirm()
 
 const rows = ref<Jurnal[]>([])
 const coaList = ref<Coa[]>([])
+const loadingCoa = ref(false)
+const coaError = ref(false)
 const loading = ref(false)
 const statusFilter = ref<JurnalStatus | null>(null)
+const page = ref(1)
+const pageSize = 10
+const total = ref(0)
+let loadSequence = 0
 
 const STATUS_OPTS: { label: string; value: JurnalStatus }[] = [
   { label: "Draft", value: "DRAFT" },
@@ -62,40 +68,62 @@ const pageTitle = computed(() => {
 const pageSubtitle = computed(() => {
   if (jenisFilter.value === "masuk") return "Transaksi pendapatan (akun 4.x)"
   if (jenisFilter.value === "keluar") return "Transaksi beban (akun 5.x)"
-  return "Catat, submit, dan approve jurnal akuntansi"
+  return "Catat transaksi ke buku besar sesuai kewenangan"
 })
 
-const filteredRows = computed(() => {
-  if (!jenisFilter.value) return rows.value
-  const prefix = jenisFilter.value === "masuk" ? "4" : "5"
-  return rows.value.filter((j) =>
-    (j.detail ?? []).some((d) => d.kode_akun.startsWith(prefix)),
-  )
-})
+const coaOptionsForForm = computed(() =>
+  coaList.value.filter((c) =>
+    c.is_active || form.detail.some((d) => d.kode_akun === c.kode_akun),
+  ),
+)
 
-const coaOptionsForForm = computed(() => {
-  if (jenisFilter.value === "masuk") {
-    return coaList.value.filter((c) => c.kode_akun.startsWith("4"))
-  }
-  if (jenisFilter.value === "keluar") {
-    return coaList.value.filter((c) => c.kode_akun.startsWith("5"))
-  }
-  return coaList.value
-})
-
-async function load() {
-  loading.value = true
+async function loadCoa() {
+  loadingCoa.value = true
+  coaError.value = false
   try {
-    const data = await jurnalApi.list(
-      statusFilter.value ? { status: statusFilter.value } : {},
-    )
-    rows.value = data.results
+    coaList.value = await coaApi.list()
   } catch (e) {
-    notifyError(toast, e, "Gagal memuat jurnal.")
+    coaError.value = true
+    notifyError(toast, e, "Gagal memuat daftar akun.")
   } finally {
-    loading.value = false
+    loadingCoa.value = false
   }
 }
+
+async function load() {
+  const sequence = ++loadSequence
+  loading.value = true
+  try {
+    const data = await jurnalApi.list({
+      page: page.value, page_size: pageSize,
+      ...(statusFilter.value ? { status: statusFilter.value } : {}),
+      ...(jenisFilter.value ? { jenis: jenisFilter.value } : {}),
+    })
+    if (sequence !== loadSequence) return
+    rows.value = data.results
+    total.value = data.count
+  } catch (e) {
+    if (sequence !== loadSequence) return
+    if ((e as { response?: { status?: number } }).response?.status === 404 && page.value > 1) {
+      page.value = 1
+      await load()
+      return
+    }
+    notifyError(toast, e, "Gagal memuat jurnal.")
+  } finally {
+    if (sequence === loadSequence) loading.value = false
+  }
+}
+
+function onPage(event: { page: number }) {
+  page.value = event.page + 1
+  void load()
+}
+
+watch([statusFilter, jenisFilter], () => {
+  page.value = 1
+  void load()
+})
 
 // --- form ---
 const dialog = ref(false)
@@ -113,7 +141,10 @@ function openCreate() {
   form.no_bukti = ""
   form.tanggal = new Date()
   form.keterangan = ""
-  const preset = coaOptionsForForm.value[0]?.kode_akun ?? null
+  const prefix = jenisFilter.value === "masuk" ? "4" : jenisFilter.value === "keluar" ? "5" : ""
+  const preset = coaList.value.find((c) =>
+    c.is_active && c.kode_akun.startsWith(prefix),
+  )?.kode_akun ?? null
   form.detail = [
     { kode_akun: preset, debit: 0, kredit: 0 },
     { kode_akun: null, debit: 0, kredit: 0 },
@@ -161,7 +192,9 @@ const formValid = computed(
   () =>
     form.no_bukti.trim() !== "" &&
     balanced.value &&
-    form.detail.every((d) => d.kode_akun),
+    form.detail.every((d) =>
+      coaList.value.some((c) => c.is_active && c.kode_akun === d.kode_akun),
+    ),
 )
 
 function fmt(n: number) {
@@ -219,7 +252,7 @@ function removeDraft(j: Jurnal) {
 
 async function doAction(
   fn: () => Promise<unknown>,
-  action?: "submit" | "approve" | "void",
+  action?: "submit" | "approve" | "void" | "catat",
 ) {
   try {
     const res = await fn()
@@ -230,14 +263,29 @@ async function doAction(
       notifySuccess(toast, "Berhasil")
     }
     await load()
+    return true
   } catch (e) {
     notifyError(toast, e, "Tindakan gagal diproses.")
+    return false
   }
 }
 
 function submit(j: Jurnal) {
   doAction(() => jurnalApi.submit(j.id), "submit")
 }
+function catat(j: Jurnal) {
+  doAction(() => jurnalApi.catat(j.id), "catat")
+}
+
+const batalTarget = ref<Jurnal | null>(null)
+const alasanBatal = ref("")
+async function batalPenerimaan() {
+  if (!batalTarget.value || !alasanBatal.value.trim()) return
+  if (await doAction(() => jurnalApi.batalPenerimaan(batalTarget.value!.id, alasanBatal.value.trim()))) {
+    batalTarget.value = null
+  }
+}
+
 function approve(j: Jurnal) {
   doAction(() => jurnalApi.approve(j.id), "approve")
 }
@@ -254,12 +302,7 @@ function voidJurnal(j: Jurnal) {
 }
 
 onMounted(async () => {
-  await load()
-  try {
-    coaList.value = await coaApi.list()
-  } catch {
-    /* abaikan; select kosong */
-  }
+  await Promise.all([load(), loadCoa()])
 })
 </script>
 
@@ -270,9 +313,15 @@ onMounted(async () => {
         v-if="canCreate"
         label="Buat Jurnal"
         icon="pi pi-plus"
+        :disabled="loadingCoa || coaError || !coaList.some((c) => c.is_active)"
         @click="openCreate"
       />
     </template>
+
+    <Message v-if="coaError" severity="error" :closable="false" class="jurnal-hint">
+      Daftar akun belum berhasil dimuat.
+      <Button label="Coba lagi" text size="small" :loading="loadingCoa" @click="loadCoa" />
+    </Message>
 
     <template #filters>
       <Select
@@ -282,23 +331,22 @@ onMounted(async () => {
         option-value="value"
         placeholder="Semua status"
         show-clear
-        @change="load"
       />
     </template>
 
     <Message severity="info" :closable="false" class="jurnal-hint">
       <template v-if="jenisFilter === 'masuk'">
-        Catat <strong>pemasukan</strong> (akun pendapatan 4.x). Draft bisa diedit sebelum diajukan ke Kepala Sekolah.
+        Catat <strong>pemasukan</strong> (akun pendapatan 4.x). Draft manual dapat diedit. Finance mencatat pemasukan/pengeluaran harian ke buku besar tanpa approval Kepsek.
       </template>
       <template v-else-if="jenisFilter === 'keluar'">
-        Catat <strong>pengeluaran</strong> (akun beban 5.x). Draft bisa diedit sebelum diajukan ke Kepala Sekolah.
+        Catat <strong>pengeluaran</strong> (akun beban 5.x). Draft manual dapat diedit. Finance mencatat pemasukan/pengeluaran harian ke buku besar tanpa approval Kepsek.
       </template>
       <template v-else>
-        Buat jurnal manual, submit untuk approval, lalu approve untuk masuk buku besar (POSTED).
+        Finance mencatat jurnal harian ke buku besar. Payroll, kegiatan, dan jurnal khusus tetap mengikuti persetujuan yang berlaku.
       </template>
     </Message>
 
-    <DataTable :value="filteredRows" :loading="loading" paginator :rows="10" data-key="id" striped-rows>
+    <DataTable :value="rows" :loading="loading" lazy paginator :rows="pageSize" :total-records="total" :first="(page - 1) * pageSize" data-key="id" striped-rows @page="onPage">
       <template #empty>Belum ada jurnal.</template>
       <Column field="no_bukti" header="No. Bukti" />
       <Column field="tanggal" header="Tanggal" />
@@ -310,28 +358,29 @@ onMounted(async () => {
       </Column>
       <Column header="Status">
         <template #body="{ data }">
-          <Tag :value="data.status" :severity="statusSeverity[data.status as JurnalStatus]" />
+          <Tag :value="data.perlu_rekonsiliasi ? 'Perlu rekonsiliasi' : data.status" :severity="data.perlu_rekonsiliasi ? 'warn' : statusSeverity[data.status as JurnalStatus]" />
         </template>
       </Column>
       <Column header="Aksi" headerClass="bee-col-actions--xl" bodyClass="bee-col-actions--xl">
         <template #body="{ data }">
           <div class="bee-actions">
             <Button
-              v-if="data.status === 'DRAFT' && canCreate"
+              v-if="data.status === 'DRAFT' && data.tipe_sumber === 'MANUAL' && canCreate"
               label="Edit"
               size="small"
               text
+              :disabled="loadingCoa || coaError"
               @click="openEdit(data)"
             />
             <Button
-              v-if="data.status === 'DRAFT' && canCreate"
-              label="Submit"
+              v-if="data.status === 'DRAFT' && !data.can_finance_post && !data.perlu_rekonsiliasi && canCreate"
+              label="Ajukan"
               size="small"
               text
               @click="submit(data)"
             />
             <Button
-              v-if="data.status === 'DRAFT' && canCreate"
+              v-if="data.status === 'DRAFT' && data.tipe_sumber === 'MANUAL' && canCreate"
               icon="pi pi-trash"
               size="small"
               severity="danger"
@@ -341,12 +390,21 @@ onMounted(async () => {
               @click="removeDraft(data)"
             />
             <Button
-              v-if="data.status === 'PENDING' && canApprove"
+              v-if="data.status === 'PENDING' && !data.can_finance_post && !data.perlu_rekonsiliasi && canApprove"
               label="Approve"
               size="small"
               severity="success"
               text
               @click="approve(data)"
+            />
+            <Button
+              v-if="['DRAFT', 'PENDING'].includes(data.status) && data.can_finance_post && !data.perlu_rekonsiliasi && canCreate"
+              label="Catat ke Buku Besar" text size="small" @click="catat(data)"
+            />
+            <Button
+              v-if="['DRAFT', 'PENDING'].includes(data.status) && data.tipe_sumber === 'AUTO_BILLING' && !data.perlu_rekonsiliasi && canCreate"
+              label="Batalkan penerimaan" text size="small" severity="danger"
+              @click="batalTarget = data; alasanBatal = ''"
             />
             <Button
               v-if="data.status === 'POSTED' && canApprove"
@@ -360,6 +418,15 @@ onMounted(async () => {
         </template>
       </Column>
     </DataTable>
+
+    <Dialog :visible="!!batalTarget" header="Batalkan penerimaan" modal :style="{ width: '28rem' }" @update:visible="batalTarget = null">
+      <label for="alasan-batal-penerimaan">Alasan pembatalan</label>
+      <InputText id="alasan-batal-penerimaan" v-model="alasanBatal" fluid />
+      <template #footer>
+        <Button label="Tutup" text @click="batalTarget = null" />
+        <Button label="Batalkan penerimaan" severity="danger" :disabled="!alasanBatal.trim()" @click="batalPenerimaan" />
+      </template>
+    </Dialog>
 
     <Dialog
       v-model:visible="dialog"
@@ -399,12 +466,14 @@ onMounted(async () => {
                 :options="coaOptionsForForm"
                 option-label="nama_akun"
                 option-value="kode_akun"
+                :option-disabled="(c: Coa) => !c.is_active"
                 filter
+                :filter-fields="['kode_akun', 'nama_akun']"
                 placeholder="Pilih akun"
                 fluid
               >
                 <template #option="{ option }">
-                  <span>{{ option.kode_akun }} — {{ option.nama_akun }}</span>
+                  <span>{{ option.kode_akun }} — {{ option.nama_akun }}{{ option.is_active ? '' : ' (nonaktif)' }}</span>
                 </template>
               </Select>
             </td>
@@ -433,7 +502,7 @@ onMounted(async () => {
       </table>
       <p v-if="!balanced" class="warn">Debit dan kredit harus seimbang dan &gt; 0.</p>
       <p v-else class="ok-hint">
-        <i class="pi pi-check-circle" /> Jurnal seimbang — akan disimpan sebagai DRAFT, lalu Submit → Approve (Kepsek).
+        <i class="pi pi-check-circle" /> Jurnal seimbang — simpan draft, lalu Finance mencatat jurnal harian ke buku besar.
       </p>
 
       <template #footer>

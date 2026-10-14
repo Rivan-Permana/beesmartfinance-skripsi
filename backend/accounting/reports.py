@@ -218,8 +218,6 @@ class DashboardRingkasanView(APIView):
 
         from datetime import date
 
-        from django.db.models import Sum
-
         from accounting.models import TrJurnal
         from operations.models import KehadiranSiswa, Siswa, Tagihan
 
@@ -245,9 +243,9 @@ class DashboardRingkasanView(APIView):
         elif period["mode"] in ("month", "day"):
             tagihan_qs = tagihan_qs.filter(periode_tahun=tahun, periode_bulan=bulan)
 
-        belum_qs = tagihan_qs.filter(status="BELUM")
-        lunas_count = tagihan_qs.filter(status="LUNAS").count()
-        total_count = tagihan_qs.count()
+        belum_qs = tagihan_qs.filter(status__in=["BELUM", "SEBAGIAN"], perlu_rekonsiliasi=False).prefetch_related("pembayaran")
+        lunas_count = tagihan_qs.filter(status="LUNAS", perlu_rekonsiliasi=False).count()
+        total_count = tagihan_qs.filter(perlu_rekonsiliasi=False).count()
 
         sparkline = []
         if period["mode"] == "day" and period["tanggal"]:
@@ -297,10 +295,11 @@ class DashboardRingkasanView(APIView):
             "hadir_bulan_ini": hadir_qs.count(),
             "katering_bulan_ini": hadir_qs.filter(ikut_katering=True).count(),
             "tagihan_belum": belum_qs.count(),
-            "tagihan_belum_nominal": belum_qs.aggregate(t=Sum("total"))["t"] or Decimal(0),
+            "tagihan_belum_nominal": sum((t.sisa_tagihan for t in belum_qs), Decimal(0)),
+            "tagihan_perlu_rekonsiliasi": tagihan_qs.filter(perlu_rekonsiliasi=True).count(),
             "collection_rate_pct": round(lunas_count / total_count * 100) if total_count else 0,
             "jurnal_menunggu_approve": TrJurnal.objects.filter(
-                status="DRAFT", is_deleted=False,
+                status__in=["DRAFT", "PENDING"], is_deleted=False,
             ).count(),
             "absensi_sparkline": sparkline,
             "periode_ops_label": ops_label,

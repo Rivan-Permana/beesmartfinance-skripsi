@@ -1,11 +1,13 @@
 """API core accounting: COA (read-only) + Jurnal dgn maker-checker."""
 
 from django.db import DatabaseError, transaction
-from django.utils import timezone
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.pagination import PageNumberPagination
+from rest_framework import serializers
+from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
 from rest_framework.response import Response
 
 from accounts.permissions import IsFinance, IsFinanceOrReadOnly, IsPrincipal
@@ -28,7 +30,7 @@ from .serializers import (
     TrAnggaranSerializer,
     TrJurnalSerializer,
 )
-from .services import close_period, post_reversal
+from .services import can_finance_post, close_period, post_jurnal, post_reversal
 from .utils import audit_user
 
 
@@ -76,45 +78,70 @@ class TrAnggaranViewSet(viewsets.ModelViewSet):
     permission_classes = [IsFinanceOrReadOnly]
 
 
+class JurnalPagination(PageNumberPagination):
+    page_size = 10
+    page_size_query_param = "page_size"
+    max_page_size = 100
+
+
+class BatalPenerimaanInputSerializer(serializers.Serializer):
+    alasan = serializers.CharField(max_length=500)
+
+
+@extend_schema_view(list=extend_schema(parameters=[OpenApiParameter("jenis", str, enum=["masuk", "keluar"])]))
 class TrJurnalViewSet(viewsets.ModelViewSet):
     serializer_class = TrJurnalSerializer
+    pagination_class = JurnalPagination
     filterset_fields = ["status", "tipe_sumber"]
     search_fields = ["no_bukti", "keterangan"]
     ordering_fields = ["tanggal", "no_bukti"]
 
     def get_queryset(self):
-        return (
+        queryset = (
             TrJurnal.objects.filter(is_deleted=False)
+            .select_related("pembayaran_tagihan__tagihan")
             .prefetch_related("detail")
             .order_by("-tanggal", "no_bukti")
         )
+        jenis = self.request.query_params.get("jenis")
+        if jenis:
+            if jenis not in ("masuk", "keluar"):
+                raise ValidationError("Jenis jurnal harus masuk atau keluar.")
+            queryset = queryset.filter(detail__kode_akun__kode_akun__startswith="4" if jenis == "masuk" else "5").distinct()
+        return queryset
 
     def get_permissions(self):
         # Finance: buat/ubah draft, submit, hapus draft. Principal: approve, void.
-        if self.action in ("create", "update", "partial_update", "submit", "destroy"):
+        if self.action in ("create", "update", "partial_update", "submit", "destroy", "catat", "batal_penerimaan"):
             return [IsFinance()]
         if self.action in ("approve", "void"):
             return [IsPrincipal()]
         return [IsAuthenticated()]
 
     def perform_create(self, serializer):
-        serializer.save(created_by=self.request.user)
+        with transaction.atomic(), audit_user(self.request.user):
+            serializer.save(created_by=self.request.user)
 
     def perform_destroy(self, instance):
-        if instance.status != "DRAFT":
-            raise ValidationError("Hanya jurnal DRAFT yang bisa dihapus.")
-        instance.detail.all().delete()
-        instance.delete()
+        with transaction.atomic(), audit_user(self.request.user):
+            instance = TrJurnal.objects.select_for_update().get(pk=instance.pk)
+            if instance.status != "DRAFT" or instance.tipe_sumber != "MANUAL":
+                raise ValidationError("Hanya jurnal manual DRAFT yang bisa dihapus.")
+            instance.detail.all().delete()
+            instance.delete()
 
     def perform_update(self, serializer):
         if serializer.instance.status != "DRAFT":
             raise ValidationError("Hanya jurnal DRAFT yang bisa diubah.")
-        serializer.save()
+        with transaction.atomic(), audit_user(self.request.user):
+            serializer.save()
 
     @action(detail=True, methods=["post"])
     def submit(self, request, pk=None):
         """DRAFT -> PENDING (maker mengajukan)."""
         jurnal = self.get_object()
+        if can_finance_post(jurnal):
+            return self.catat(request, pk)
         if jurnal.status != "DRAFT":
             raise ValidationError("Hanya jurnal DRAFT yang bisa di-submit.")
         jurnal.status = "PENDING"
@@ -135,17 +162,35 @@ class TrJurnalViewSet(viewsets.ModelViewSet):
         # (hard-block anggaran, periode CLOSED, dll). Error trigger -> 400.
         try:
             with transaction.atomic(), audit_user(request.user):
-                jurnal.status = "POSTED"
-                jurnal.approved_by = request.user
-                jurnal.approved_at = timezone.now()
-                jurnal.posted_at = timezone.now()
-                jurnal.save(
-                    update_fields=["status", "approved_by", "approved_at", "posted_at"]
-                )
+                jurnal = post_jurnal(jurnal, request.user, approve=True)
+        except ValueError as exc:
+            raise ValidationError(str(exc))
         except DatabaseError as exc:
             msg = str(exc).strip().splitlines()[0] if str(exc).strip() else ""
             raise ValidationError(humanize_db_error(msg))
         return Response(self.get_serializer(jurnal).data, status=status.HTTP_200_OK)
+
+    @extend_schema(request=None)
+    @action(detail=True, methods=["post"])
+    def catat(self, request, pk=None):
+        """Finance mencatat pemasukan/pengeluaran tanpa approval Kepsek."""
+        try:
+            jurnal = post_jurnal(self.get_object(), request.user)
+        except ValueError as exc:
+            raise ValidationError(str(exc))
+        return Response(self.get_serializer(jurnal).data)
+
+    @extend_schema(request=BatalPenerimaanInputSerializer)
+    @action(detail=True, methods=["post"], url_path="batal-penerimaan")
+    def batal_penerimaan(self, request, pk=None):
+        from operations.services.billing import batalkan_pembayaran_draft
+        payload = BatalPenerimaanInputSerializer(data=request.data)
+        payload.is_valid(raise_exception=True)
+        try:
+            jurnal = batalkan_pembayaran_draft(self.get_object(), request.user, payload.validated_data["alasan"])
+        except ValueError as exc:
+            raise ValidationError(str(exc))
+        return Response(self.get_serializer(jurnal).data)
 
     @action(detail=True, methods=["post"], permission_classes=[IsPrincipal])
     def void(self, request, pk=None):
