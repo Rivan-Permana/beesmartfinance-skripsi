@@ -33,9 +33,26 @@ class MsCoaSerializer(serializers.ModelSerializer):
         required=False,
     )
 
+    def validate(self, attrs):
+        if self.instance and attrs.get("kode_akun", self.instance.pk) != self.instance.pk:
+            raise serializers.ValidationError({"kode_akun": "Kode akun tidak dapat diubah."})
+        saldo = attrs.get("saldo_awal", getattr(self.instance, "saldo_awal", 0))
+        tanggal = attrs.get("tanggal_saldo_awal", getattr(self.instance, "tanggal_saldo_awal", None))
+        if saldo != 0 and tanggal is None:
+            raise serializers.ValidationError({"tanggal_saldo_awal": "Isi tanggal acuan untuk saldo awal bukan nol."})
+        return attrs
+
+    def update(self, instance, validated_data):
+        validated_data.pop("kode_akun", None)
+        for field, value in validated_data.items():
+            setattr(instance, field, value)
+        if validated_data:
+            instance.save(update_fields=list(validated_data))
+        return instance
+
     class Meta:
         model = MsCoa
-        fields = ["kode_akun", "sub_golongan", "nama_akun", "posisi_normal", "is_active"]
+        fields = ["kode_akun", "sub_golongan", "nama_akun", "posisi_normal", "is_active", "saldo_awal", "tanggal_saldo_awal"]
 
 
 class MsPeriodeAkuntansiSerializer(serializers.ModelSerializer):

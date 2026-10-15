@@ -110,19 +110,25 @@ def close_period(periode, user=None, akun_ekuitas="3102"):
     with connection.cursor() as cur:
         cur.execute(
             """
-            SELECT d.kode_akun,
-                   substring(c.kode_akun FROM 1 FOR 1) AS gol,
-                   COALESCE(SUM(d.debit), 0)  AS deb,
-                   COALESCE(SUM(d.kredit), 0) AS kre
-            FROM tr_jurnal_detail d
-            JOIN tr_jurnal j ON j.id = d.jurnal_id
-            JOIN ms_coa c ON c.kode_akun = d.kode_akun
-            WHERE j.status = 'POSTED' AND NOT j.is_deleted
-              AND j.tanggal BETWEEN %s AND %s
-              AND substring(c.kode_akun FROM 1 FOR 1) IN ('4', '5')
-            GROUP BY d.kode_akun, gol
+            WITH entries AS (
+                SELECT d.kode_akun, d.debit, d.kredit
+                FROM tr_jurnal_detail d JOIN tr_jurnal j ON j.id = d.jurnal_id
+                JOIN ms_coa c ON c.kode_akun = d.kode_akun
+                WHERE j.status = 'POSTED' AND NOT j.is_deleted
+                  AND j.tanggal BETWEEN %s AND %s
+                  AND (c.tanggal_saldo_awal IS NULL OR j.tanggal >= c.tanggal_saldo_awal)
+                UNION ALL
+                SELECT c.kode_akun,
+                  GREATEST(CASE WHEN c.posisi_normal = 'D' THEN c.saldo_awal ELSE -c.saldo_awal END, 0),
+                  GREATEST(CASE WHEN c.posisi_normal = 'K' THEN c.saldo_awal ELSE -c.saldo_awal END, 0)
+                FROM ms_coa c WHERE c.tanggal_saldo_awal BETWEEN %s AND %s
+            )
+            SELECT kode_akun, substring(kode_akun FROM 1 FOR 1) AS gol,
+              SUM(debit) AS deb, SUM(kredit) AS kre
+            FROM entries WHERE substring(kode_akun FROM 1 FOR 1) IN ('4', '5')
+            GROUP BY kode_akun
             """,
-            [periode.tgl_mulai, periode.tgl_selesai],
+            [periode.tgl_mulai, periode.tgl_selesai, periode.tgl_mulai, periode.tgl_selesai],
         )
         rows = cur.fetchall()
 
@@ -134,12 +140,12 @@ def close_period(periode, user=None, akun_ekuitas="3102"):
         if gol == "4":                       # pendapatan (saldo normal K)
             bal = kre - deb
             if bal != 0:
-                baris.append((kode, bal, Decimal(0)))   # debit utk menutup
+                baris.append((kode, max(bal, Decimal(0)), max(-bal, Decimal(0))))
                 total_pendapatan += bal
         else:                                # beban (saldo normal D)
             bal = deb - kre
             if bal != 0:
-                baris.append((kode, Decimal(0), bal))   # kredit utk menutup
+                baris.append((kode, max(-bal, Decimal(0)), max(bal, Decimal(0))))
                 total_beban += bal
 
     surplus = total_pendapatan - total_beban
@@ -159,12 +165,15 @@ def close_period(periode, user=None, akun_ekuitas="3102"):
                 tanggal=periode.tgl_selesai,
                 keterangan=f"Jurnal penutup periode {periode.kode}",
                 tipe_sumber="CLOSING",
-                status="POSTED",
+                status="DRAFT",
                 approved_by=user,
             )
             for kode, debit, kredit in baris:
                 TrJurnalDetail.objects.create(
                     jurnal=jurnal, kode_akun_id=kode, debit=debit, kredit=kredit
                 )
+            jurnal.status = "POSTED"
+            jurnal.posted_at = timezone.now()
+            jurnal.save(update_fields=["status", "posted_at"])
             MsPeriodeAkuntansi.objects.filter(pk=periode.pk).update(status="CLOSED")
     return jurnal

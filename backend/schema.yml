@@ -5055,6 +5055,14 @@ components:
           $ref: '#/components/schemas/PosisiNormalEnum'
         is_active:
           type: boolean
+        saldo_awal:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+        tanggal_saldo_awal:
+          type: string
+          format: date
+          nullable: true
       required:
       - kode_akun
       - nama_akun
@@ -5928,6 +5936,14 @@ components:
           $ref: '#/components/schemas/PosisiNormalEnum'
         is_active:
           type: boolean
+        saldo_awal:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+        tanggal_saldo_awal:
+          type: string
+          format: date
+          nullable: true
     PatchedMsGolongan:
       type: object
       properties:

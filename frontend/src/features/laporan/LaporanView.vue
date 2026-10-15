@@ -112,9 +112,10 @@ async function loadBukuBesar() {
 }
 const mutasiDenganSaldo = computed(() => {
   let saldo = 0
+  const kreditNormal = coaList.value.find((akun) => akun.kode_akun === kodeAkun.value)?.posisi_normal === "K"
   return mutasi.value.map((m) => {
     saldo += Number(m.debit) - Number(m.kredit)
-    return { ...m, saldo }
+    return { ...m, saldo: kreditNormal ? -saldo : saldo }
   })
 })
 
@@ -168,8 +169,9 @@ function exportNeracaCsv() {
     </template>
 
     <Message severity="info" :closable="false" class="mb">
-      Laporan dihitung dari <strong>jurnal berstatus POSTED</strong> tahun {{ periodeTahun }}.
-      Buku besar bisa difilter per bulan; neraca saldo &amp; laba rugi menampilkan ringkasan tahun berjalan.
+      Laporan mencakup <strong>saldo awal bertanggal dan jurnal berstatus POSTED</strong>.
+      Neraca saldo dan posisi keuangan menampilkan saldo sampai akhir {{ periodeTahun }};
+      laba rugi menampilkan tahun tersebut. Buku besar membawa saldo awal periode saat difilter per bulan.
     </Message>
 
     <div class="laporan-print">

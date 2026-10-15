@@ -14,7 +14,11 @@ async function fetchAll<T>(path: string): Promise<T[]> {
   return out
 }
 
-export type CoaInput = Omit<Coa, "is_active"> & { is_active?: boolean }
+export type CoaInput = Omit<Coa, "is_active" | "saldo_awal" | "tanggal_saldo_awal"> & {
+  is_active?: boolean
+  saldo_awal?: string
+  tanggal_saldo_awal?: string | null
+}
 
 export const coaManageApi = {
   listGolongan: () => fetchAll<Golongan>("/golongan/"),

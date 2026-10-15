@@ -6,6 +6,11 @@ import re
 
 
 _FK_PATTERNS: list[tuple[re.Pattern[str], str]] = [
+    (re.compile(r"saldo awal pada periode CLOSED", re.I), "Saldo awal pada periode yang sudah ditutup tidak dapat diubah."),
+    (re.compile(r"tanggal saldo awal harus", re.I), "Tanggal saldo awal harus sebelum atau sama dengan transaksi yang sudah dicatat pertama kali pada akun ini."),
+    (re.compile(r"tanggal jurnal tidak boleh sebelum tanggal saldo awal", re.I), "Tanggal transaksi tidak boleh sebelum tanggal saldo awal akun."),
+    (re.compile(r"coa_saldo_awal_tanggal", re.I), "Isi tanggal acuan untuk saldo awal bukan nol."),
+    (re.compile(r"akun dengan saldo awal bukan nol", re.I), "Akun dengan saldo awal bukan nol tidak dapat dihapus."),
     (
         re.compile(r"mspostingrule|posting rule|belum diset", re.I),
         "Akun pendapatan untuk komponen tagihan belum dikonfigurasi. Hubungi Staff Keuangan.",

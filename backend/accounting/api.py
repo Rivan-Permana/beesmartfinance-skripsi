@@ -51,6 +51,23 @@ class MsCoaViewSet(viewsets.ModelViewSet):
     serializer_class = MsCoaSerializer
     permission_classes = [IsFinanceOrReadOnly]
 
+    def perform_create(self, serializer):
+        with transaction.atomic(), audit_user(self.request.user):
+            serializer.save()
+
+    def perform_update(self, serializer):
+        with transaction.atomic(), audit_user(self.request.user):
+            serializer.instance = MsCoa.objects.select_for_update().get(pk=serializer.instance.pk)
+            serializer.validate(serializer.validated_data)
+            serializer.save()
+
+    def perform_destroy(self, instance):
+        with transaction.atomic(), audit_user(self.request.user):
+            instance = MsCoa.objects.select_for_update().get(pk=instance.pk)
+            if instance.saldo_awal:
+                raise ValidationError("Akun dengan saldo awal bukan nol tidak dapat dihapus.")
+            instance.delete()
+
 
 class MsPeriodeAkuntansiViewSet(viewsets.ModelViewSet):
     queryset = MsPeriodeAkuntansi.objects.order_by("-tgl_mulai")

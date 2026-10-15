@@ -148,6 +148,8 @@ export interface Coa {
   nama_akun: string
   posisi_normal: "D" | "K"
   is_active: boolean
+  saldo_awal: string
+  tanggal_saldo_awal: string | null
 }
 
 export type JurnalStatus = "DRAFT" | "PENDING" | "POSTED" | "VOID"

@@ -1564,6 +1564,10 @@ export interface components {
             nama_akun: string;
             posisi_normal: components["schemas"]["PosisiNormalEnum"];
             is_active?: boolean;
+            /** Format: decimal */
+            saldo_awal?: string;
+            /** Format: date */
+            tanggal_saldo_awal?: string | null;
         };
         MsGolongan: {
             readonly id: number;
@@ -2050,6 +2054,10 @@ export interface components {
             nama_akun?: string;
             posisi_normal?: components["schemas"]["PosisiNormalEnum"];
             is_active?: boolean;
+            /** Format: decimal */
+            saldo_awal?: string;
+            /** Format: date */
+            tanggal_saldo_awal?: string | null;
         };
         PatchedMsGolongan: {
             readonly id?: number;

@@ -26,7 +26,7 @@ class MsSubGolonganAdmin(admin.ModelAdmin):
 
 @admin.register(MsCoa)
 class MsCoaAdmin(admin.ModelAdmin):
-    list_display = ("kode_akun", "nama_akun", "posisi_normal", "is_active")
+    list_display = ("kode_akun", "nama_akun", "posisi_normal", "is_active", "saldo_awal", "tanggal_saldo_awal")
     list_filter = ("posisi_normal", "is_active")
     search_fields = ("kode_akun", "nama_akun")
 

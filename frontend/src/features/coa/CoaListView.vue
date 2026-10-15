@@ -4,6 +4,7 @@ import Column from "primevue/column"
 import DataTable from "primevue/datatable"
 import Dialog from "primevue/dialog"
 import InputText from "primevue/inputtext"
+import InputNumber from "primevue/inputnumber"
 import Message from "primevue/message"
 import Select from "primevue/select"
 import Tab from "primevue/tab"
@@ -19,6 +20,7 @@ import { computed, onMounted, reactive, ref } from "vue"
 
 import { coaManageApi } from "./api"
 import { notifyError, notifySuccess } from "@/core/errors"
+import { formatRp } from "@/core/format"
 import PageLayout from "@/shared/components/PageLayout.vue"
 import { useAuthStore } from "@/stores/auth"
 import type { Coa, Golongan, SubGolongan } from "@/types/api"
@@ -35,6 +37,10 @@ const loading = ref(false)
 const golongan = ref<Golongan[]>([])
 const subGolongan = ref<SubGolongan[]>([])
 const akun = ref<Coa[]>([])
+const selisihSaldoAwal = computed(() => akun.value.reduce((total, row) => {
+  const cents = Math.round(Number(row.saldo_awal ?? 0) * 100)
+  return total + (row.posisi_normal === "D" ? cents : -cents)
+}, 0) / 100)
 
 const golonganMap = computed(() => {
   const m = new Map<number, Golongan>()
@@ -80,7 +86,10 @@ const formAkun = reactive({
   nama_akun: "",
   posisi_normal: "D" as "D" | "K",
   is_active: true,
+  saldo_awal: 0 as number | null,
+  tanggal_saldo_awal: "",
 })
+const formError = ref("")
 
 const POSISI_OPTS = [
   { label: "Debit (D)", value: "D" },
@@ -88,6 +97,7 @@ const POSISI_OPTS = [
 ]
 
 function openCreate(kind: typeof dialogKind.value) {
+  formError.value = ""
   dialogKind.value = kind
   editingKey.value = null
   if (kind === "golongan") {
@@ -104,6 +114,8 @@ function openCreate(kind: typeof dialogKind.value) {
     formAkun.nama_akun = ""
     formAkun.posisi_normal = "D"
     formAkun.is_active = true
+    formAkun.saldo_awal = 0
+    formAkun.tanggal_saldo_awal = ""
   }
   dialog.value = true
 }
@@ -127,6 +139,7 @@ function openEditSub(row: SubGolongan) {
 }
 
 function openEditAkun(row: Coa) {
+  formError.value = ""
   dialogKind.value = "akun"
   editingKey.value = row.kode_akun
   formAkun.kode_akun = row.kode_akun
@@ -134,10 +147,18 @@ function openEditAkun(row: Coa) {
   formAkun.nama_akun = row.nama_akun
   formAkun.posisi_normal = row.posisi_normal
   formAkun.is_active = row.is_active
+  formAkun.saldo_awal = Number(row.saldo_awal ?? 0)
+  formAkun.tanggal_saldo_awal = row.tanggal_saldo_awal ?? ""
   dialog.value = true
 }
 
 async function save() {
+  if (saving.value) return
+  formError.value = ""
+  if (dialogKind.value === "akun" && formAkun.saldo_awal && !formAkun.tanggal_saldo_awal) {
+    formError.value = "Isi tanggal acuan untuk saldo awal bukan nol."
+    return
+  }
   saving.value = true
   try {
     if (dialogKind.value === "golongan") {
@@ -155,7 +176,11 @@ async function save() {
         await coaManageApi.createSubGolongan(payload)
       }
     } else {
-      const payload = { ...formAkun }
+      const payload = {
+        ...formAkun,
+        saldo_awal: (formAkun.saldo_awal ?? 0).toFixed(2),
+        tanggal_saldo_awal: formAkun.tanggal_saldo_awal || null,
+      }
       if (editingKey.value) {
         await coaManageApi.updateCoa(editingKey.value as string, payload)
       } else {
@@ -224,6 +249,10 @@ onMounted(loadAll)
       </TabList>
       <TabPanels>
         <TabPanel value="akun">
+          <Message v-if="selisihSaldoAwal !== 0" severity="warn" :closable="false" class="mb">
+            Total saldo awal debit dan kredit belum seimbang. Selisih {{ formatRp(Math.abs(selisihSaldoAwal)) }}.
+            Lengkapi saldo awal seluruh akun sebelum menggunakan laporan sebagai angka final.
+          </Message>
           <div class="tab-actions">
             <Button v-if="canWrite" label="Tambah Akun" icon="pi pi-plus" size="small" @click="openCreate('akun')" />
           </div>
@@ -241,6 +270,12 @@ onMounted(loadAll)
             <Column header="Aktif">
               <template #body="{ data }">
                 <Tag :value="data.is_active ? 'Aktif' : 'Nonaktif'" :severity="data.is_active ? 'success' : 'warn'" />
+              </template>
+            </Column>
+            <Column field="saldo_awal" header="Saldo Awal">
+              <template #body="{ data }">
+                <div>{{ formatRp(data.saldo_awal) }}</div>
+                <small v-if="data.tanggal_saldo_awal">Per {{ data.tanggal_saldo_awal.split('-').reverse().join('/') }}</small>
               </template>
             </Column>
             <Column v-if="canWrite" header="Aksi" headerClass="bee-col-actions--sm" bodyClass="bee-col-actions--sm">
@@ -330,10 +365,21 @@ onMounted(loadAll)
           <label>Aktif</label>
           <ToggleSwitch v-model="formAkun.is_active" />
         </div>
+        <div class="field">
+          <label for="akun-saldo-awal">Saldo awal</label>
+          <InputNumber input-id="akun-saldo-awal" v-model="formAkun.saldo_awal" mode="currency" currency="IDR" locale="id-ID" :min-fraction-digits="0" :max-fraction-digits="2" aria-describedby="saldo-awal-help" fluid />
+          <small id="saldo-awal-help">Mengikuti posisi normal akun. Gunakan nilai minus jika saldonya berlawanan.</small>
+        </div>
+        <div class="field">
+          <label for="akun-tanggal-saldo-awal">Tanggal saldo awal</label>
+          <InputText id="akun-tanggal-saldo-awal" v-model="formAkun.tanggal_saldo_awal" type="date" :aria-invalid="!!formError" aria-describedby="tanggal-saldo-help" fluid />
+          <small id="tanggal-saldo-help">Saldo pada awal tanggal ini, sebelum transaksi hari tersebut. Wajib diisi jika saldo awal bukan nol.</small>
+        </div>
+        <Message v-if="formError" severity="error" :closable="false" role="alert">{{ formError }}</Message>
       </div>
       <template #footer>
         <Button label="Batal" severity="secondary" text @click="dialog = false" />
-        <Button v-if="canWrite" label="Simpan" :loading="saving" @click="save" />
+        <Button v-if="canWrite" label="Simpan" :loading="saving" :disabled="saving" @click="save" />
       </template>
     </Dialog>
   </PageLayout>

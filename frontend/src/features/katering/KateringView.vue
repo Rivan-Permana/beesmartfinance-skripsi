@@ -15,7 +15,7 @@ import Tabs from "primevue/tabs"
 import Textarea from "primevue/textarea"
 import { useConfirm } from "primevue/useconfirm"
 import { useToast } from "primevue/usetoast"
-import { computed, onMounted, reactive, ref, watch } from "vue"
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from "vue"
 
 import { legacyExportApi } from "./legacyExport"
 import {
@@ -243,6 +243,14 @@ const menuEditingId = ref<number | null>(null)
 const menuForm = reactive({ tanggal: "", keterangan: "" })
 const menuGambarFile = ref<File | null>(null)
 const menuGambarPreview = ref<string | null>(null)
+const menuError = ref("")
+
+function clearMenuPreview() {
+  if (menuGambarPreview.value?.startsWith("blob:")) URL.revokeObjectURL(menuGambarPreview.value)
+  menuGambarPreview.value = null
+}
+
+onUnmounted(clearMenuPreview)
 
 const weekDates = computed(() => weekdaysOfWeek(weekAnchor.value))
 
@@ -282,6 +290,8 @@ function shiftWeek(delta: number) {
 }
 
 function openMenuCreate(tanggal: string) {
+  clearMenuPreview()
+  menuError.value = ""
   menuEditingId.value = null
   menuForm.tanggal = tanggal
   menuForm.keterangan = ""
@@ -291,6 +301,8 @@ function openMenuCreate(tanggal: string) {
 }
 
 function openMenuEdit(row: MenuKatering) {
+  clearMenuPreview()
+  menuError.value = ""
   menuEditingId.value = row.id
   menuForm.tanggal = row.tanggal
   menuForm.keterangan = row.keterangan ?? ""
@@ -302,6 +314,9 @@ function openMenuEdit(row: MenuKatering) {
 function onMenuFileSelect(e: Event) {
   const input = e.target as HTMLInputElement
   const file = input.files?.[0] ?? null
+  if (!file) return
+  clearMenuPreview()
+  menuError.value = ""
   menuGambarFile.value = file
   if (file) {
     menuGambarPreview.value = URL.createObjectURL(file)
@@ -309,6 +324,12 @@ function onMenuFileSelect(e: Event) {
 }
 
 async function saveMenu() {
+  if (menuSaving.value) return
+  menuError.value = ""
+  if (!menuForm.keterangan.trim() && !menuGambarFile.value && !menuGambarPreview.value) {
+    menuError.value = "Isi keterangan atau pilih foto menu terlebih dahulu."
+    return
+  }
   menuSaving.value = true
   try {
     if (menuEditingId.value) {
@@ -641,18 +662,20 @@ onMounted(async () => {
           <InputText :model-value="formatTanggalId(menuForm.tanggal)" disabled fluid />
         </div>
         <div class="field">
-          <label>Menu / Keterangan</label>
-          <Textarea v-model="menuForm.keterangan" rows="4" auto-resize fluid placeholder="Contoh: Nasi, ayam goreng, sayur bayam, buah pepaya" />
+          <label for="menu-keterangan">Menu / Keterangan</label>
+          <Textarea id="menu-keterangan" v-model="menuForm.keterangan" rows="4" auto-resize fluid aria-describedby="menu-input-help" placeholder="Contoh: Nasi, ayam goreng, sayur bayam, buah pepaya" />
         </div>
         <div class="field">
-          <label>Foto menu (opsional)</label>
-          <input type="file" accept="image/*" @change="onMenuFileSelect" />
-          <img v-if="menuGambarPreview" :src="menuGambarPreview" alt="Preview" class="menu-preview" />
+          <label for="menu-foto">Foto menu</label>
+          <input id="menu-foto" type="file" accept="image/*" aria-describedby="menu-input-help" @change="onMenuFileSelect" />
+          <small id="menu-input-help">Isi keterangan, unggah foto, atau keduanya.</small>
+          <img v-if="menuGambarPreview" :src="menuGambarPreview" alt="Pratinjau foto menu katering" class="menu-preview" />
         </div>
+        <Message v-if="menuError" severity="error" :closable="false" role="alert">{{ menuError }}</Message>
       </div>
       <template #footer>
         <Button label="Batal" severity="secondary" text @click="menuDialog = false" />
-        <Button label="Simpan" :loading="menuSaving" :disabled="!menuForm.keterangan.trim()" @click="saveMenu" />
+        <Button label="Simpan" :loading="menuSaving" :disabled="menuSaving" @click="saveMenu" />
       </template>
     </Dialog>
   </PageLayout>

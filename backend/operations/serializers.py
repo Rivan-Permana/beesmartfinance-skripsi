@@ -68,6 +68,13 @@ class AbsenPegawaiSerializer(serializers.ModelSerializer):
 class MenuKateringSerializer(serializers.ModelSerializer):
     gambar_url = serializers.SerializerMethodField()
 
+    def validate(self, attrs):
+        keterangan = attrs.get("keterangan", getattr(self.instance, "keterangan", ""))
+        gambar = attrs.get("gambar", getattr(self.instance, "gambar", None))
+        if not keterangan.strip() and not gambar:
+            raise serializers.ValidationError("Isi keterangan atau unggah foto menu terlebih dahulu.")
+        return attrs
+
     class Meta:
         model = MenuKatering
         fields = ["id", "tanggal", "gambar", "gambar_url", "keterangan"]

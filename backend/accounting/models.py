@@ -50,6 +50,8 @@ class MsCoa(models.Model):
     nama_akun = models.CharField(max_length=255)
     posisi_normal = models.CharField(max_length=1, choices=POSISI_CHOICES)
     is_active = models.BooleanField(default=True)
+    saldo_awal = models.DecimalField(max_digits=18, decimal_places=2, default=0)
+    tanggal_saldo_awal = models.DateField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

@@ -4,6 +4,7 @@ Mengambil dari view SQL (v_neraca_saldo, v_realisasi_anggaran,
 v_dataset_prediksi_kas) yang sudah memfilter jurnal POSTED.
 """
 
+from datetime import date
 from decimal import Decimal
 
 import django_filters
@@ -26,37 +27,40 @@ def _rows(sql, params=None):
         return [dict(zip(cols, r)) for r in cur.fetchall()]
 
 
-def _saldo_tahun(tahun, bulan=None, kumulatif=False):
-    """Saldo akun dari jurnal POSTED dalam tahun (opsional: satu bulan atau kumulatif s.d. bulan)."""
-    month_sql = ""
-    params: list = [tahun]
-    if bulan:
-        if kumulatif:
-            month_sql = " AND EXTRACT(MONTH FROM j.tanggal) <= %s"
-        else:
-            month_sql = " AND EXTRACT(MONTH FROM j.tanggal) = %s"
-        params.append(bulan)
+def _saldo_tahun(tahun, bulan=None, kumulatif=False, dengan_saldo_awal=True):
+    """Mutasi periode atau saldo kumulatif sampai akhir periode, termasuk saldo awal bertanggal."""
+    awal = date(tahun, bulan or 1, 1)
+    akhir = date(tahun + 1, 1, 1) if not bulan or bulan == 12 else date(tahun, bulan + 1, 1)
+    mutasi_mulai = "" if kumulatif else " AND j.tanggal >= %s"
+    opening_mulai = "" if kumulatif else " AND c.tanggal_saldo_awal >= %s"
+    params: list = [akhir]
+    if not kumulatif:
+        params.append(awal)
+    params.extend([dengan_saldo_awal, akhir])
+    if not kumulatif:
+        params.append(awal)
     return _rows(
         f"""
-        SELECT
-          c.kode_akun,
-          c.nama_akun,
-          c.posisi_normal,
-          COALESCE(SUM(d.debit), 0) AS total_debit,
-          COALESCE(SUM(d.kredit), 0) AS total_kredit,
-          CASE
-            WHEN c.posisi_normal = 'D'
-              THEN COALESCE(SUM(d.debit), 0) - COALESCE(SUM(d.kredit), 0)
-            ELSE COALESCE(SUM(d.kredit), 0) - COALESCE(SUM(d.debit), 0)
-          END AS saldo_akhir
-        FROM ms_coa c
-        JOIN tr_jurnal_detail d ON d.kode_akun = c.kode_akun
-        JOIN tr_jurnal j ON j.id = d.jurnal_id
-          AND j.status = 'POSTED' AND NOT j.is_deleted
-          AND EXTRACT(YEAR FROM j.tanggal) = %s{month_sql}
-        WHERE c.is_active = TRUE
-        GROUP BY c.kode_akun, c.nama_akun, c.posisi_normal
-        ORDER BY c.kode_akun
+        WITH mutasi AS (
+          SELECT d.kode_akun, SUM(d.debit) AS debit, SUM(d.kredit) AS kredit
+          FROM tr_jurnal_detail d JOIN tr_jurnal j ON j.id = d.jurnal_id
+          JOIN ms_coa c ON c.kode_akun = d.kode_akun
+          WHERE j.status = 'POSTED' AND NOT j.is_deleted
+            AND j.tanggal < %s{mutasi_mulai}
+            AND (c.tanggal_saldo_awal IS NULL OR j.tanggal >= c.tanggal_saldo_awal)
+          GROUP BY d.kode_akun
+        ), saldo AS (
+          SELECT c.kode_akun, c.nama_akun, c.posisi_normal,
+            COALESCE(m.debit, 0) AS debit, COALESCE(m.kredit, 0) AS kredit,
+            CASE WHEN %s AND c.tanggal_saldo_awal < %s{opening_mulai}
+              THEN c.saldo_awal ELSE 0 END AS opening
+          FROM ms_coa c LEFT JOIN mutasi m ON m.kode_akun = c.kode_akun
+        )
+        SELECT kode_akun, nama_akun, posisi_normal,
+          debit + GREATEST(CASE WHEN posisi_normal = 'D' THEN opening ELSE -opening END, 0) AS total_debit,
+          kredit + GREATEST(CASE WHEN posisi_normal = 'K' THEN opening ELSE -opening END, 0) AS total_kredit,
+          opening + CASE WHEN posisi_normal = 'D' THEN debit - kredit ELSE kredit - debit END AS saldo_akhir
+        FROM saldo ORDER BY kode_akun
         """,
         params,
     )
@@ -103,7 +107,7 @@ class NeracaSaldoView(APIView):
     def get(self, request):
         tahun = request.query_params.get("tahun")
         if tahun:
-            return Response(_saldo_tahun(int(tahun)))
+            return Response(_saldo_tahun(int(tahun), kumulatif=True))
         return Response(_rows("SELECT * FROM v_neraca_saldo ORDER BY kode_akun"))
 
 
@@ -138,7 +142,7 @@ class PosisiKeuanganView(APIView):
     def get(self, request):
         tahun = request.query_params.get("tahun")
         if tahun:
-            data = _saldo_tahun(int(tahun))
+            data = _saldo_tahun(int(tahun), kumulatif=True)
         else:
             data = _rows("SELECT * FROM v_neraca_saldo ORDER BY kode_akun")
         bucket = {"aset": [], "liabilitas": [], "ekuitas": []}
@@ -177,7 +181,9 @@ class BukuBesarView(APIView):
             SELECT j.no_bukti, j.tanggal, j.keterangan, d.debit, d.kredit
             FROM tr_jurnal_detail d
             JOIN tr_jurnal j ON j.id = d.jurnal_id
+            JOIN ms_coa c ON c.kode_akun = d.kode_akun
             WHERE d.kode_akun = %s AND j.status = 'POSTED' AND NOT j.is_deleted
+              AND (c.tanggal_saldo_awal IS NULL OR j.tanggal >= c.tanggal_saldo_awal)
         """
         params: list = [kode_akun]
         if tahun:
@@ -187,7 +193,37 @@ class BukuBesarView(APIView):
             sql += " AND EXTRACT(MONTH FROM j.tanggal) = %s"
             params.append(int(bulan))
         sql += " ORDER BY j.tanggal, j.no_bukti"
-        return Response(_rows(sql, params))
+        rows = _rows(sql, params)
+        from .models import MsCoa
+
+        akun = MsCoa.objects.filter(pk=kode_akun).first()
+        if akun:
+            mulai = date(int(tahun), int(bulan) if bulan else 1, 1) if tahun else akun.tanggal_saldo_awal
+            raw_opening = akun.saldo_awal if akun.posisi_normal == "D" else -akun.saldo_awal
+            if mulai and akun.tanggal_saldo_awal and akun.tanggal_saldo_awal > mulai:
+                raw_opening = Decimal(0)
+            if mulai and tahun:
+                prior = _rows(
+                    "SELECT COALESCE(SUM(d.debit - d.kredit), 0) AS saldo "
+                    "FROM tr_jurnal_detail d JOIN tr_jurnal j ON j.id = d.jurnal_id "
+                    "WHERE d.kode_akun = %s AND j.status = 'POSTED' AND NOT j.is_deleted "
+                    "AND j.tanggal < %s AND (%s::date IS NULL OR j.tanggal >= %s::date)",
+                    [kode_akun, mulai, akun.tanggal_saldo_awal, akun.tanggal_saldo_awal],
+                )[0]["saldo"]
+                raw_opening += prior
+            if raw_opening and mulai:
+                rows.insert(0, {"no_bukti": "SALDO-AWAL", "tanggal": mulai,
+                    "keterangan": "Saldo awal periode", "debit": max(raw_opening, Decimal(0)),
+                    "kredit": max(-raw_opening, Decimal(0))})
+            if tahun and akun.tanggal_saldo_awal and akun.tanggal_saldo_awal > mulai:
+                tanggal = akun.tanggal_saldo_awal
+                if tanggal.year == int(tahun) and (not bulan or tanggal.month == int(bulan)) and akun.saldo_awal:
+                    raw = akun.saldo_awal if akun.posisi_normal == "D" else -akun.saldo_awal
+                    rows.append({"no_bukti": "SALDO-AWAL", "tanggal": tanggal,
+                        "keterangan": "Saldo awal akun", "debit": max(raw, Decimal(0)),
+                        "kredit": max(-raw, Decimal(0))})
+                    rows.sort(key=lambda row: (row["tanggal"], row["no_bukti"] != "SALDO-AWAL", row["no_bukti"]))
+        return Response(rows)
 
 
 @extend_schema(responses=OpenApiTypes.OBJECT)
@@ -196,12 +232,8 @@ class DashboardRingkasanView(APIView):
 
     def get(self, request):
         period = _parse_period_params(request)
-        saldo = _saldo_tahun(period["tahun"], period.get("bulan"))
-        saldo_kas = (
-            _saldo_tahun(period["tahun"], period.get("bulan"), kumulatif=True)
-            if period.get("bulan")
-            else saldo
-        )
+        saldo = _saldo_tahun(period["tahun"], period.get("bulan"), dengan_saldo_awal=False)
+        saldo_kas = _saldo_tahun(period["tahun"], period.get("bulan"), kumulatif=True)
         kas = sum((r["saldo_akhir"] for r in saldo_kas
                    if str(r["kode_akun"]).startswith("1.1")
                    or str(r["kode_akun"]) in ("1011", "1101", "1102", "111", "112")), Decimal(0))
