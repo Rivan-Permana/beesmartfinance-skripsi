@@ -152,13 +152,16 @@ class Command(BaseCommand):
         uniq = f"UAT-{int(time.time())}"
         r = self.client.post("/api/v1/pendaftaran-siswa/", {
             "nama_calon": uniq, "tanggal_daftar": today,
-            "biaya_sitin": "100000", "biaya_pendaftaran": "500000",
+            "biaya_sitin": "100000", "biaya_formulir": "500000",
         }, format="json")
         pid = r.data.get("id") if r.status_code == 201 else None
         self._record(uj, "Pendaftaran calon baru", r.status_code == 201, f"id={pid}")
 
         if pid:
-            r = self.client.post(f"/api/v1/pendaftaran-siswa/{pid}/bayar-sitin/")
+            r = self.client.post(f"/api/v1/pendaftaran-siswa/{pid}/bayar-sitin/", {
+                "komponen": ["SITIN"], "tanggal": today, "no_bukti": f"SIT-{uniq}",
+                "nominal": "100000", "akun_kas": _pick_coa("111", "112", "1101"),
+            }, format="json")
             self._record(uj, "Bayar sit-in", r.status_code == 200, r.data.get("detail", "")[:40])
             r = self.client.post(f"/api/v1/pendaftaran-siswa/{pid}/finalisasi/", {"spp_nominal": "400000"}, format="json")
             self._record(uj, "Finalisasi pendaftaran", r.status_code == 200 and r.data["status"] == "REGISTERED")

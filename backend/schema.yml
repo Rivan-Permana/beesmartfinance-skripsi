@@ -3365,10 +3365,9 @@ paths:
       responses:
         '204':
           description: No response body
-  /api/v1/pendaftaran-siswa/{id}/bayar-sitin/:
+  /api/v1/pendaftaran-siswa/{id}/bayar/:
     post:
-      operationId: v1_pendaftaran_siswa_bayar_sitin_create
-      description: Pembayaran sit-in/trial -> auto-journal pendapatan.
+      operationId: v1_pendaftaran_siswa_bayar_create
       parameters:
       - in: path
         name: id
@@ -3382,13 +3381,13 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PendaftaranSiswa'
+              $ref: '#/components/schemas/BayarPendaftaranInput'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/PendaftaranSiswa'
+              $ref: '#/components/schemas/BayarPendaftaranInput'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/PendaftaranSiswa'
+              $ref: '#/components/schemas/BayarPendaftaranInput'
         required: true
       security:
       - jwtAuth: []
@@ -3397,12 +3396,11 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PendaftaranSiswa'
+                $ref: '#/components/schemas/BayarPendaftaranResponse'
           description: ''
-  /api/v1/pendaftaran-siswa/{id}/finalisasi/:
+  /api/v1/pendaftaran-siswa/{id}/bayar-sitin/:
     post:
-      operationId: v1_pendaftaran_siswa_finalisasi_create
-      description: Calon mendaftar resmi -> jurnal admission + buat Siswa.
+      operationId: v1_pendaftaran_siswa_bayar_sitin_create
       parameters:
       - in: path
         name: id
@@ -3416,13 +3414,47 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PendaftaranSiswa'
+              $ref: '#/components/schemas/BayarPendaftaranInput'
           application/x-www-form-urlencoded:
             schema:
-              $ref: '#/components/schemas/PendaftaranSiswa'
+              $ref: '#/components/schemas/BayarPendaftaranInput'
           multipart/form-data:
             schema:
-              $ref: '#/components/schemas/PendaftaranSiswa'
+              $ref: '#/components/schemas/BayarPendaftaranInput'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BayarPendaftaranResponse'
+          description: ''
+  /api/v1/pendaftaran-siswa/{id}/finalisasi/:
+    post:
+      operationId: v1_pendaftaran_siswa_finalisasi_create
+      description: Finalisasi administrasi tanpa menciptakan penerimaan uang.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this pendaftaran siswa.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FinalisasiPendaftaranInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/FinalisasiPendaftaranInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/FinalisasiPendaftaranInput'
         required: true
       security:
       - jwtAuth: []
@@ -4653,6 +4685,58 @@ components:
           maxLength: 500
       required:
       - alasan
+    BayarPendaftaranInput:
+      type: object
+      properties:
+        komponen:
+          type: array
+          items:
+            $ref: '#/components/schemas/BayarPendaftaranInputKomponenEnum'
+        tanggal:
+          type: string
+          format: date
+        no_bukti:
+          type: string
+          maxLength: 50
+        nominal:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+        akun_kas:
+          type: string
+          maxLength: 20
+      required:
+      - akun_kas
+      - komponen
+      - no_bukti
+      - nominal
+      - tanggal
+    BayarPendaftaranInputKomponenEnum:
+      enum:
+      - SITIN
+      - FORMULIR
+      type: string
+      description: |-
+        * `SITIN` - SITIN
+        * `FORMULIR` - FORMULIR
+    BayarPendaftaranResponse:
+      type: object
+      properties:
+        detail:
+          type: string
+          readOnly: true
+        jurnal_id:
+          type: string
+          format: uuid
+          readOnly: true
+        pendaftaran:
+          allOf:
+          - $ref: '#/components/schemas/PendaftaranSiswa'
+          readOnly: true
+      required:
+      - detail
+      - jurnal_id
+      - pendaftaran
     BayarTagihanInput:
       type: object
       properties:
@@ -4700,6 +4784,15 @@ components:
       - jurnal_id
       - pembayaran
       - tagihan
+    FinalisasiPendaftaranInput:
+      type: object
+      properties:
+        spp_nominal:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+      required:
+      - spp_nominal
     FixedAsset:
       type: object
       properties:
@@ -4985,32 +5078,6 @@ components:
       - jenjang_nama
       - nama
       - siswa_aktif
-    KomponenEnum:
-      enum:
-      - SPP
-      - KATERING
-      - JEMPUTAN
-      - UANG_MASUK
-      - KEGIATAN
-      - PENGEMBANGAN
-      - SERAGAM
-      - KOMITE
-      - PORTOFOLIO
-      - POTONGAN
-      - LAIN
-      type: string
-      description: |-
-        * `SPP` - SPP
-        * `KATERING` - Katering
-        * `JEMPUTAN` - Jemputan
-        * `UANG_MASUK` - Uang Masuk
-        * `KEGIATAN` - Uang Kegiatan
-        * `PENGEMBANGAN` - Uang Pengembangan
-        * `SERAGAM` - Seragam
-        * `KOMITE` - Iuran Komite
-        * `PORTOFOLIO` - Portofolio & Rapor
-        * `POTONGAN` - Potongan
-        * `LAIN` - Lain-lain
     MenuKatering:
       type: object
       properties:
@@ -6063,10 +6130,15 @@ components:
           type: string
           format: decimal
           pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+        biaya_formulir:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
         biaya_pendaftaran:
           type: string
           format: decimal
           pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+          readOnly: true
         status:
           allOf:
           - $ref: '#/components/schemas/PendaftaranSiswaStatusEnum'
@@ -6085,6 +6157,41 @@ components:
           format: uuid
           readOnly: true
           nullable: true
+        total_biaya:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+          readOnly: true
+          nullable: true
+        total_terbayar:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+          readOnly: true
+          nullable: true
+        sisa_biaya:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+          readOnly: true
+          nullable: true
+        perlu_rekonsiliasi:
+          type: boolean
+          readOnly: true
+        sitin_terbayar:
+          type: boolean
+          nullable: true
+          readOnly: true
+        formulir_terbayar:
+          type: boolean
+          nullable: true
+          readOnly: true
+        pembayaran:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+          readOnly: true
     PatchedPinjamanPegawai:
       type: object
       properties:
@@ -6430,10 +6537,15 @@ components:
           type: string
           format: decimal
           pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+        biaya_formulir:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
         biaya_pendaftaran:
           type: string
           format: decimal
           pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+          readOnly: true
         status:
           allOf:
           - $ref: '#/components/schemas/PendaftaranSiswaStatusEnum'
@@ -6452,14 +6564,59 @@ components:
           format: uuid
           readOnly: true
           nullable: true
+        total_biaya:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+          readOnly: true
+          nullable: true
+        total_terbayar:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+          readOnly: true
+          nullable: true
+        sisa_biaya:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+          readOnly: true
+          nullable: true
+        perlu_rekonsiliasi:
+          type: boolean
+          readOnly: true
+        sitin_terbayar:
+          type: boolean
+          nullable: true
+          readOnly: true
+        formulir_terbayar:
+          type: boolean
+          nullable: true
+          readOnly: true
+        pembayaran:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+          readOnly: true
       required:
+      - biaya_formulir
+      - biaya_pendaftaran
+      - biaya_sitin
+      - formulir_terbayar
       - id
       - jurnal_pendaftaran
       - jurnal_sitin
       - nama_calon
+      - pembayaran
+      - perlu_rekonsiliasi
+      - sisa_biaya
       - siswa
+      - sitin_terbayar
       - status
       - tanggal_daftar
+      - total_biaya
+      - total_terbayar
     PendaftaranSiswaStatusEnum:
       enum:
       - TRIAL
@@ -6665,7 +6822,7 @@ components:
           type: integer
           readOnly: true
         komponen:
-          $ref: '#/components/schemas/KomponenEnum'
+          $ref: '#/components/schemas/TagihanDetailKomponenEnum'
         kategori:
           $ref: '#/components/schemas/KategoriEnum'
         keterangan:
@@ -6687,6 +6844,32 @@ components:
       - id
       - komponen
       - total_terbayar
+    TagihanDetailKomponenEnum:
+      enum:
+      - SPP
+      - KATERING
+      - JEMPUTAN
+      - UANG_MASUK
+      - KEGIATAN
+      - PENGEMBANGAN
+      - SERAGAM
+      - KOMITE
+      - PORTOFOLIO
+      - POTONGAN
+      - LAIN
+      type: string
+      description: |-
+        * `SPP` - SPP
+        * `KATERING` - Katering
+        * `JEMPUTAN` - Jemputan
+        * `UANG_MASUK` - Uang Masuk
+        * `KEGIATAN` - Uang Kegiatan
+        * `PENGEMBANGAN` - Uang Pengembangan
+        * `SERAGAM` - Seragam
+        * `KOMITE` - Iuran Komite
+        * `PORTOFOLIO` - Portofolio & Rapor
+        * `POTONGAN` - Potongan
+        * `LAIN` - Lain-lain
     TagihanStatusEnum:
       enum:
       - BELUM

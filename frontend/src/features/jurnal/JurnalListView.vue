@@ -402,7 +402,7 @@ onMounted(async () => {
               label="Catat ke Buku Besar" text size="small" @click="catat(data)"
             />
             <Button
-              v-if="['DRAFT', 'PENDING'].includes(data.status) && data.tipe_sumber === 'AUTO_BILLING' && !data.perlu_rekonsiliasi && canCreate"
+              v-if="['DRAFT', 'PENDING'].includes(data.status) && ['AUTO_BILLING', 'AUTO_PENDAFTARAN', 'AUTO_SITIN'].includes(data.tipe_sumber) && !data.perlu_rekonsiliasi && canCreate"
               label="Batalkan penerimaan" text size="small" severity="danger"
               @click="batalTarget = data; alasanBatal = ''"
             />

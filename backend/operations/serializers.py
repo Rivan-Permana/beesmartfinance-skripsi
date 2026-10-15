@@ -159,14 +159,87 @@ class KegiatanSerializer(serializers.ModelSerializer):
 
 
 class PendaftaranSiswaSerializer(serializers.ModelSerializer):
+    total_biaya = serializers.DecimalField(max_digits=18, decimal_places=2, read_only=True, allow_null=True)
+    total_terbayar = serializers.DecimalField(max_digits=18, decimal_places=2, read_only=True, allow_null=True)
+    sisa_biaya = serializers.DecimalField(max_digits=18, decimal_places=2, read_only=True, allow_null=True)
+    perlu_rekonsiliasi = serializers.BooleanField(read_only=True)
+    sitin_terbayar = serializers.SerializerMethodField()
+    formulir_terbayar = serializers.SerializerMethodField()
+    pembayaran = serializers.SerializerMethodField()
+
+    def get_sitin_terbayar(self, obj) -> bool | None:
+        return None if obj.perlu_rekonsiliasi else obj.pembayaran_aktif("SITIN")
+
+    def get_formulir_terbayar(self, obj) -> bool | None:
+        return None if obj.perlu_rekonsiliasi else obj.pembayaran_aktif("FORMULIR")
+
+    def get_pembayaran(self, obj) -> list[dict]:
+        result = {}
+        for komponen, jurnal in [("SITIN", obj.jurnal_sitin), ("FORMULIR", obj.jurnal_pendaftaran)]:
+            if not jurnal:
+                continue
+            key = str(jurnal.pk)
+            if key not in result:
+                result[key] = {"jurnal_id": key, "tanggal": jurnal.tanggal, "no_bukti": jurnal.no_bukti,
+                    "nominal": str(sum((d.debit for d in jurnal.detail.all()), 0)), "status": jurnal.status,
+                    "dibatalkan": not obj.pembayaran_aktif(komponen), "komponen": []}
+            result[key]["komponen"].append(komponen)
+        return list(result.values())
+
+    def validate(self, attrs):
+        sitin = attrs.get("biaya_sitin", getattr(self.instance, "biaya_sitin", Decimal(0)))
+        formulir = attrs.get("biaya_formulir", getattr(self.instance, "biaya_formulir", None))
+        if formulir is not None and sitin + formulir > Decimal("9999999999999999.99"):
+            raise serializers.ValidationError("Total biaya melebihi batas nominal yang dapat dicatat.")
+        if self.instance:
+            for field in ("biaya_sitin", "biaya_formulir"):
+                if (self.instance.jurnal_sitin_id or self.instance.jurnal_pendaftaran_id) and field in attrs and attrs[field] != getattr(self.instance, field):
+                    raise serializers.ValidationError("Rincian biaya dengan riwayat penerimaan tidak dapat diubah. Cocokkan bukti pembayaran terlebih dahulu.")
+            if self.instance.status != "TRIAL" and any(value != getattr(self.instance, field) for field, value in attrs.items()):
+                raise serializers.ValidationError("Pendaftaran yang sudah terdaftar atau batal tidak dapat diedit di sini.")
+            if self.instance.perlu_rekonsiliasi and "biaya_formulir" in attrs and "biaya_sitin" not in attrs:
+                raise serializers.ValidationError("Isi kedua komponen biaya secara eksplisit untuk memetakan data lama.")
+        return attrs
+
+    @transaction.atomic
+    def update(self, instance, validated_data):
+        instance = PendaftaranSiswa.all_objects.select_for_update().get(pk=instance.pk)
+        if instance.is_deleted:
+            raise serializers.ValidationError("Pendaftaran sudah dihapus.")
+        self.instance = instance
+        self.validate(validated_data)
+        return super().update(instance, validated_data)
+
     class Meta:
         model = PendaftaranSiswa
         fields = [
             "id", "nama_calon", "jenjang", "tanggal_daftar",
-            "biaya_sitin", "biaya_pendaftaran", "status", "siswa",
+            "biaya_sitin", "biaya_formulir", "biaya_pendaftaran", "status", "siswa",
             "jurnal_sitin", "jurnal_pendaftaran",
+            "total_biaya", "total_terbayar", "sisa_biaya", "perlu_rekonsiliasi",
+            "sitin_terbayar", "formulir_terbayar", "pembayaran",
         ]
-        read_only_fields = ["status", "siswa", "jurnal_sitin", "jurnal_pendaftaran"]
+        read_only_fields = ["status", "siswa", "jurnal_sitin", "jurnal_pendaftaran", "biaya_pendaftaran"]
+        extra_kwargs = {"biaya_sitin": {"required": True, "min_value": 0},
+                        "biaya_formulir": {"required": True, "allow_null": False, "min_value": 0}}
+
+
+class BayarPendaftaranInputSerializer(serializers.Serializer):
+    komponen = serializers.ListField(child=serializers.ChoiceField(choices=["SITIN", "FORMULIR"]), allow_empty=False)
+    tanggal = serializers.DateField()
+    no_bukti = serializers.CharField(max_length=50)
+    nominal = serializers.DecimalField(max_digits=18, decimal_places=2, min_value=Decimal("0.01"))
+    akun_kas = serializers.CharField(max_length=20)
+
+
+class FinalisasiPendaftaranInputSerializer(serializers.Serializer):
+    spp_nominal = serializers.DecimalField(max_digits=18, decimal_places=2, min_value=0)
+
+
+class BayarPendaftaranResponseSerializer(serializers.Serializer):
+    detail = serializers.CharField(read_only=True)
+    jurnal_id = serializers.UUIDField(read_only=True)
+    pendaftaran = PendaftaranSiswaSerializer(read_only=True)
 
 
 class SiswaSerializer(serializers.ModelSerializer):

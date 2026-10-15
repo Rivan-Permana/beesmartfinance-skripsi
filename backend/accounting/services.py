@@ -14,6 +14,10 @@ FINANCE_POST_SOURCES = {"MANUAL", "AUTO_BILLING", "AUTO_PENDAFTARAN", "AUTO_SITI
 
 
 def can_finance_post(jurnal):
+    if jurnal.tipe_sumber in {"AUTO_PENDAFTARAN", "AUTO_SITIN"}:
+        from operations.services.registration import jurnal_pendaftaran_perlu_rekonsiliasi
+        if jurnal_pendaftaran_perlu_rekonsiliasi(jurnal):
+            return False
     return jurnal.tipe_sumber in FINANCE_POST_SOURCES and any(
         d.kode_akun_id.startswith(("4", "5")) for d in jurnal.detail.all()
     )
@@ -24,6 +28,10 @@ def post_jurnal(jurnal, user, *, approve=False):
         jurnal = TrJurnal.objects.select_for_update().get(pk=jurnal.pk)
         if jurnal.is_deleted or jurnal.reversals.exists():
             raise ValueError("Jurnal yang dihapus atau dibalik tidak dapat dicatat ulang.")
+        if jurnal.tipe_sumber in {"AUTO_PENDAFTARAN", "AUTO_SITIN"}:
+            from operations.services.registration import jurnal_pendaftaran_perlu_rekonsiliasi
+            if jurnal_pendaftaran_perlu_rekonsiliasi(jurnal):
+                raise ValueError("Rincian biaya/penerimaan pendaftaran lama perlu direkonsiliasi sebelum dicatat.")
         if not approve and not can_finance_post(jurnal):
             raise ValueError("Jurnal ini masih memerlukan persetujuan Kepala Sekolah.")
         if not approve and jurnal.status == "POSTED":

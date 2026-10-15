@@ -212,9 +212,12 @@ class GapFeatureApiTests(APITestCase):
         self.client.force_authenticate(self.admin)
         pid = self.client.post("/api/v1/pendaftaran-siswa/", {
             "nama_calon": "Gita", "tanggal_daftar": "2026-01-10",
-            "biaya_sitin": "100000", "biaya_pendaftaran": "500000",
+            "biaya_sitin": "100000", "biaya_formulir": "500000",
         }, format="json").data["id"]
-        self.assertEqual(self.client.post(f"/api/v1/pendaftaran-siswa/{pid}/bayar-sitin/").status_code, 200)
+        self.assertEqual(self.client.post(f"/api/v1/pendaftaran-siswa/{pid}/bayar-sitin/", {
+            "komponen": ["SITIN"], "tanggal": "2026-01-10", "no_bukti": "SIT-API-1",
+            "nominal": "100000", "akun_kas": "1101",
+        }, format="json").status_code, 200)
         r = self.client.post(f"/api/v1/pendaftaran-siswa/{pid}/finalisasi/", {"spp_nominal": "400000"}, format="json")
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.data["status"], "REGISTERED")

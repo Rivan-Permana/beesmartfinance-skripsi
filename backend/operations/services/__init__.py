@@ -15,7 +15,7 @@ from .billing import (
 from .payroll import post_gaji, post_pencairan_kasbon
 from .assets import post_penyusutan
 from .activities import post_realisasi_kegiatan
-from .registration import finalisasi_pendaftaran, post_bayar_sitin
+from .registration import finalisasi_pendaftaran, post_bayar_sitin, post_pembayaran_pendaftaran
 
 __all__ = [
     "akun_rule", "audit_user", "buat_jurnal",
@@ -24,5 +24,5 @@ __all__ = [
     "post_gaji", "post_pencairan_kasbon",
     "post_penyusutan",
     "post_realisasi_kegiatan",
-    "finalisasi_pendaftaran", "post_bayar_sitin",
+    "finalisasi_pendaftaran", "post_bayar_sitin", "post_pembayaran_pendaftaran",
 ]

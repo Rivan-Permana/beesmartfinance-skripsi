@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import Button from "primevue/button"
 import Column from "primevue/column"
+import Checkbox from "primevue/checkbox"
 import DataTable from "primevue/datatable"
 import DatePicker from "primevue/datepicker"
 import Dialog from "primevue/dialog"
@@ -16,13 +17,14 @@ import { useRouter } from "vue-router"
 
 import { pendaftaranSiswaApi } from "./api"
 import { jenjangApi } from "@/features/absensi/api"
+import { coaApi } from "@/features/jurnal/api"
 import { formatRp } from "@/core/format"
 import { notifyError, notifySuccess } from "@/core/errors"
 import EmptyState from "@/shared/components/EmptyState.vue"
 import PageLayout from "@/shared/components/PageLayout.vue"
 import SearchField from "@/shared/components/SearchField.vue"
 import { useTableSearch } from "@/shared/composables/useTableSearch"
-import type { Jenjang, PendaftaranSiswa, PendaftaranSiswaStatus } from "@/types/api"
+import type { Coa, Jenjang, PendaftaranSiswa, PendaftaranSiswaStatus } from "@/types/api"
 
 const toast = useToast()
 const confirm = useConfirm()
@@ -74,7 +76,7 @@ const { query: searchQuery, filtered: displayRows } = useTableSearch(filteredRow
 ])
 
 function toDateStr(d: Date | null): string {
-  if (!d) return new Date().toISOString().slice(0, 10)
+  if (!d) return ""
   const y = d.getFullYear()
   const m = String(d.getMonth() + 1).padStart(2, "0")
   const day = String(d.getDate()).padStart(2, "0")
@@ -93,10 +95,10 @@ async function load() {
   loading.value = true
   try {
     const [data, jenjangs] = await Promise.all([
-      pendaftaranSiswaApi.list(),
+      pendaftaranSiswaApi.listAll(),
       jenjangApi.list(),
     ])
-    rows.value = data.results
+    rows.value = data
     jenjangList.value = jenjangs
   } catch (e) {
     notifyError(toast, e, "Gagal memuat pendaftaran siswa.")
@@ -113,44 +115,59 @@ const form = reactive({
   nama_calon: "",
   jenjang: null as number | null,
   tanggal_daftar: new Date() as Date | null,
-  biaya_sitin: 100_000,
-  biaya_pendaftaran: 500_000,
+  biaya_sitin: null as number | null,
+  biaya_formulir: null as number | null,
 })
+const formError = ref("")
+const editingRow = ref<PendaftaranSiswa | null>(null)
+const totalForm = computed(() => form.biaya_sitin === null || form.biaya_formulir === null ? null
+  : (Math.round(form.biaya_sitin * 100) + Math.round(form.biaya_formulir * 100)) / 100)
 
 function openCreate() {
+  formError.value = ""
+  editingRow.value = null
   editingId.value = null
   Object.assign(form, {
     nama_calon: "",
     jenjang: jenjangList.value[0]?.id ?? null,
     tanggal_daftar: new Date(),
-    biaya_sitin: 100_000,
-    biaya_pendaftaran: 500_000,
+    biaya_sitin: null,
+    biaya_formulir: null,
   })
   dialog.value = true
 }
 
 function openEdit(row: PendaftaranSiswa) {
+  formError.value = ""
+  editingRow.value = row
   editingId.value = row.id
   Object.assign(form, {
     nama_calon: row.nama_calon,
     jenjang: row.jenjang,
     tanggal_daftar: new Date(row.tanggal_daftar + "T00:00:00"),
     biaya_sitin: Number(row.biaya_sitin),
-    biaya_pendaftaran: Number(row.biaya_pendaftaran),
+    biaya_formulir: row.biaya_formulir === null ? null : Number(row.biaya_formulir),
   })
   dialog.value = true
 }
 
 async function save() {
-  if (!form.nama_calon.trim()) return
+  if (saving.value) return
+  formError.value = ""
+  if (!form.nama_calon.trim() || !form.tanggal_daftar || form.biaya_sitin === null || form.biaya_formulir === null
+      || !Number.isFinite(form.biaya_sitin) || !Number.isFinite(form.biaya_formulir)
+      || form.biaya_sitin < 0 || form.biaya_formulir < 0) {
+    formError.value = "Isi nama, tanggal daftar, dan kedua komponen biaya. Isi 0 jika komponen memang tidak dikenakan."
+    return
+  }
   saving.value = true
   try {
     const payload = {
       nama_calon: form.nama_calon.trim(),
       jenjang: form.jenjang,
       tanggal_daftar: toDateStr(form.tanggal_daftar),
-      biaya_sitin: String(form.biaya_sitin),
-      biaya_pendaftaran: String(form.biaya_pendaftaran),
+      biaya_sitin: form.biaya_sitin.toFixed(2),
+      biaya_formulir: form.biaya_formulir.toFixed(2),
     }
     if (editingId.value) {
       await pendaftaranSiswaApi.update(editingId.value, payload)
@@ -189,46 +206,91 @@ function confirmDelete(row: PendaftaranSiswa) {
   })
 }
 
-function confirmBayarSitin(row: PendaftaranSiswa) {
-  confirm.require({
-    header: "Bayar Sit-in",
-    message: `Catat pembayaran sit-in ${formatRp(row.biaya_sitin)} untuk ${row.nama_calon}? Jurnal DRAFT akan dibuat otomatis.`,
-    acceptLabel: "Bayar & Jurnal",
-    rejectLabel: "Batal",
-    accept: async () => {
-      try {
-        const res = await pendaftaranSiswaApi.bayarSitin(row.id)
-        notifySuccess(toast, "Pembayaran sit-in tercatat.", res)
-        await load()
-      } catch (e) {
-        notifyError(toast, e, "Gagal mencatat pembayaran sit-in.")
-      }
-    },
-  })
+const rincianTarget = ref<PendaftaranSiswa | null>(null)
+const bayarDialog = ref(false)
+const bayarTarget = ref<PendaftaranSiswa | null>(null)
+const bayarSaving = ref(false)
+const bayarError = ref("")
+const loadingKas = ref(false)
+const akunKas = ref<Coa[]>([])
+const bayarForm = reactive({ tanggal: new Date() as Date | null, no_bukti: "", akun_kas: null as string | null })
+const komponenBayar = ref<("FORMULIR" | "SITIN")[]>([])
+const opsiKomponen = computed(() => bayarTarget.value ? [
+  { kode: "FORMULIR" as const, label: "Formulir", nominal: Number(bayarTarget.value.biaya_formulir), dibayar: bayarTarget.value.formulir_terbayar },
+  { kode: "SITIN" as const, label: "Sit-in / observasi", nominal: Number(bayarTarget.value.biaya_sitin), dibayar: bayarTarget.value.sitin_terbayar },
+] : [])
+const totalBayar = computed(() => opsiKomponen.value.filter((o) => komponenBayar.value.includes(o.kode))
+  .reduce((total, o) => total + Math.round(o.nominal * 100), 0) / 100)
+
+async function openBayar(row: PendaftaranSiswa) {
+  bayarTarget.value = row
+  bayarError.value = ""
+  Object.assign(bayarForm, { tanggal: new Date(), no_bukti: "", akun_kas: null })
+  komponenBayar.value = opsiKomponen.value.filter((o) => !o.dibayar && o.nominal > 0).map((o) => o.kode)
+  bayarDialog.value = true
+  loadingKas.value = true
+  try {
+    akunKas.value = (await coaApi.list()).filter((a) => a.is_active && ["111", "112", "1011", "1101", "1102"].includes(a.kode_akun))
+  } catch (e) {
+    akunKas.value = []
+    notifyError(toast, e, "Gagal memuat Kas/Bank.")
+  } finally {
+    loadingKas.value = false
+  }
+}
+
+async function runBayar() {
+  if (!bayarTarget.value || bayarSaving.value) return
+  bayarError.value = ""
+  if (!bayarForm.tanggal || !bayarForm.no_bukti.trim() || !bayarForm.akun_kas || totalBayar.value <= 0) {
+    bayarError.value = "Pilih komponen, tanggal, nomor bukti, dan Kas/Bank penerimaan."
+    return
+  }
+  bayarSaving.value = true
+  try {
+    await pendaftaranSiswaApi.bayar(bayarTarget.value.id, {
+      komponen: [...komponenBayar.value], tanggal: toDateStr(bayarForm.tanggal), no_bukti: bayarForm.no_bukti.trim(),
+      akun_kas: bayarForm.akun_kas, nominal: totalBayar.value.toFixed(2),
+    })
+    notifySuccess(toast, "Penerimaan tersimpan; jurnal menunggu pencatatan Finance.")
+    bayarDialog.value = false
+    await load()
+  } catch (e) {
+    notifyError(toast, e, "Gagal mencatat penerimaan pendaftaran.")
+  } finally {
+    bayarSaving.value = false
+  }
 }
 
 // --- finalisasi ---
 const finalDialog = ref(false)
 const finalSaving = ref(false)
 const finalTarget = ref<PendaftaranSiswa | null>(null)
-const sppNominal = ref(400_000)
+const sppNominal = ref<number | null>(null)
+const finalError = ref("")
 
 function openFinalisasi(row: PendaftaranSiswa) {
   finalTarget.value = row
-  sppNominal.value = 400_000
+  sppNominal.value = null
+  finalError.value = ""
   finalDialog.value = true
 }
 
 async function runFinalisasi() {
-  if (!finalTarget.value) return
+  if (!finalTarget.value || finalSaving.value) return
+  finalError.value = ""
+  if (sppNominal.value === null || !Number.isFinite(sppNominal.value) || sppNominal.value < 0) {
+    finalError.value = "Isi nominal SPP bulanan yang disepakati. Isi 0 jika memang tidak dikenakan."
+    return
+  }
   finalSaving.value = true
   try {
     const res = await pendaftaranSiswaApi.finalisasi(
       finalTarget.value.id,
-      String(sppNominal.value),
+      sppNominal.value.toFixed(2),
     )
     notifySuccess(toast, `${finalTarget.value.nama_calon} resmi terdaftar sebagai siswa.`, {
-      detail: "Jurnal biaya pendaftaran DRAFT dibuat otomatis.",
+      detail: "Finalisasi tidak mencatat penerimaan uang."
     })
     finalDialog.value = false
     finalTarget.value = null
@@ -255,7 +317,7 @@ onMounted(load)
 <template>
   <PageLayout
     title="Pendaftaran Siswa"
-    subtitle="Alur sit-in → bayar sit-in → finalisasi menjadi siswa resmi"
+    subtitle="Rincian biaya formulir dan sit-in, penerimaan, serta finalisasi siswa"
   >
     <template #actions>
       <Button label="Daftar Calon Baru" icon="pi pi-user-plus" @click="openCreate" />
@@ -279,17 +341,22 @@ onMounted(load)
     <Message severity="info" :closable="false" class="bee-mb">
       <strong>Alur pendaftaran calon siswa:</strong>
       <ol class="info-steps">
-        <li><strong>Daftar calon</strong> — input data calon & biaya sit-in/pendaftaran.</li>
-        <li><strong>Bayar sit-in</strong> — catat pembayaran uang percobaan (trial class).</li>
-        <li><strong>Finalisasi</strong> — calon resmi jadi siswa + tentukan nominal SPP bulanan.</li>
+        <li><strong>Daftar calon</strong> — isi biaya formulir dan sit-in/observasi sesuai kesepakatan. Total dijumlahkan otomatis.</li>
+        <li><strong>Catat penerimaan</strong> — pilih komponen yang benar-benar dibayar, tanggal, bukti, serta Kas/Bank.</li>
+        <li><strong>Finalisasi</strong> — calon resmi jadi siswa dan nominal SPP ditetapkan. Finalisasi tidak mencatat pembayaran.</li>
       </ol>
       Setiap pembayaran otomatis membuat jurnal akuntansi berstatus <strong>DRAFT</strong> (perlu diposting di menu Jurnal).
+    </Message>
+    <Message v-if="rows.some((row) => row.perlu_rekonsiliasi)" severity="warn" :closable="false" class="bee-mb">
+      Data lama yang rincian biayanya belum dicocokkan ditandai <strong>Perlu dicocokkan</strong>.
+      Jumlah dibayar dan sisa belum ditetapkan; penerimaan baru diblokir agar tidak ditagih ulang.
     </Message>
 
     <DataTable
       :value="displayRows"
       :loading="loading"
       data-key="id"
+      paginator :rows="15"
       striped-rows
     >
       <template #empty>
@@ -307,14 +374,15 @@ onMounted(load)
           {{ formatDate(data.tanggal_daftar) }}
         </template>
       </Column>
-      <Column header="Biaya Sit-in">
+      <Column header="Rincian Biaya">
         <template #body="{ data }">
-          {{ formatRp(data.biaya_sitin) }}
+          <div>Formulir: {{ data.biaya_formulir === null ? 'Belum dipetakan' : formatRp(data.biaya_formulir) }}</div>
+          <div>Sit-in: {{ formatRp(data.biaya_sitin) }}</div>
         </template>
       </Column>
-      <Column header="Biaya Pendaftaran">
+      <Column header="Total Pendaftaran">
         <template #body="{ data }">
-          {{ formatRp(data.biaya_pendaftaran) }}
+          {{ data.total_biaya === null ? 'Perlu dicocokkan' : formatRp(data.total_biaya) }}
         </template>
       </Column>
       <Column header="Status" style="width: 7rem">
@@ -322,54 +390,42 @@ onMounted(load)
           <Tag :value="statusLabel[data.status as PendaftaranSiswaStatus]" :severity="statusSeverity[data.status as PendaftaranSiswaStatus]" />
         </template>
       </Column>
-      <Column header="Jurnal Sit-in" style="width: 6.5rem">
+      <Column header="Penerimaan">
         <template #body="{ data }">
-          <Tag
-            v-if="data.jurnal_sitin"
-            value="Sudah"
-            severity="info"
-            title="Jurnal pembayaran sit-in sudah dibuat"
-          />
-          <span v-else class="muted">Belum</span>
+          {{ data.total_terbayar === null ? 'Belum diketahui' : formatRp(data.total_terbayar) }}
         </template>
       </Column>
-      <Column header="Jurnal Daftar" style="width: 6.5rem">
+      <Column header="Sisa">
         <template #body="{ data }">
-          <Tag
-            v-if="data.jurnal_pendaftaran"
-            value="Sudah"
-            severity="success"
-            title="Jurnal biaya pendaftaran sudah dibuat"
-          />
-          <span v-else class="muted">Belum</span>
+          <Tag v-if="data.perlu_rekonsiliasi" value="Perlu dicocokkan" severity="warn" />
+          <span v-else>{{ formatRp(data.sisa_biaya) }}</span>
         </template>
       </Column>
       <Column header="Aksi" headerClass="bee-col-actions--xl" bodyClass="bee-col-actions--xl">
         <template #body="{ data }">
           <div class="bee-actions">
+            <Button label="Rincian" size="small" text @click="rincianTarget = data" />
+            <Button v-if="data.status !== 'BATAL' && !data.perlu_rekonsiliasi && Number(data.sisa_biaya) > 0"
+              label="Catat Penerimaan" size="small" severity="success" outlined @click="openBayar(data)" />
             <template v-if="data.status === 'TRIAL'">
-              <Button
-                v-if="!data.jurnal_sitin && Number(data.biaya_sitin) > 0"
-                label="Bayar Sit-in"
-                size="small"
-                severity="success"
-                outlined
-                @click="confirmBayarSitin(data)"
-              />
               <Button
                 label="Finalisasi"
                 size="small"
                 @click="openFinalisasi(data)"
               />
               <Button
+                v-if="!data.jurnal_sitin && !data.jurnal_pendaftaran"
                 icon="pi pi-pencil"
+                aria-label="Edit pendaftaran"
                 size="small"
                 text
                 severity="secondary"
                 @click="openEdit(data)"
               />
               <Button
+                v-if="!data.jurnal_sitin && !data.jurnal_pendaftaran"
                 icon="pi pi-trash"
+                aria-label="Hapus pendaftaran"
                 size="small"
                 text
                 severity="danger"
@@ -397,6 +453,10 @@ onMounted(load)
       :style="{ width: 'min(480px, 96vw)' }"
     >
       <div class="bee-form-stack">
+        <Message v-if="editingRow?.perlu_rekonsiliasi" severity="warn" :closable="false">
+          Nilai biaya pendaftaran lama {{ formatRp(editingRow.biaya_pendaftaran) }} dipertahankan sebagai catatan.
+          Isi biaya formulir yang benar setelah mencocokkan rincian; nilainya tidak disalin otomatis.
+        </Message>
         <div class="bee-field">
           <label for="nama-calon">Nama calon</label>
           <InputText id="nama-calon" v-model="form.nama_calon" fluid />
@@ -404,7 +464,7 @@ onMounted(load)
         <div class="bee-field">
           <label for="jenjang">Jenjang</label>
           <Select
-            id="jenjang"
+            input-id="jenjang"
             v-model="form.jenjang"
             :options="jenjangList"
             option-label="kode"
@@ -417,7 +477,7 @@ onMounted(load)
         <div class="bee-field">
           <label for="tanggal">Tanggal daftar</label>
           <DatePicker
-            id="tanggal"
+            input-id="tanggal"
             v-model="form.tanggal_daftar"
             date-format="dd/mm/yy"
             show-icon
@@ -426,19 +486,22 @@ onMounted(load)
         </div>
         <div class="bee-field">
           <label for="sitin">Biaya sit-in</label>
-          <InputNumber id="sitin" v-model="form.biaya_sitin" :min="0" fluid />
+          <InputNumber input-id="sitin" v-model="form.biaya_sitin" :min="0" :max-fraction-digits="2" locale="id-ID" fluid />
         </div>
         <div class="bee-field">
-          <label for="pendaftaran">Biaya pendaftaran</label>
-          <InputNumber id="pendaftaran" v-model="form.biaya_pendaftaran" :min="0" fluid />
+          <label for="formulir">Biaya formulir</label>
+          <InputNumber input-id="formulir" v-model="form.biaya_formulir" :min="0" :max-fraction-digits="2" locale="id-ID" fluid />
         </div>
+        <p><strong>Total biaya pendaftaran: {{ totalForm === null ? 'Isi kedua komponen' : formatRp(totalForm) }}</strong></p>
+        <small>Tarif mengikuti kesepakatan sekolah. Isi 0 jika komponen memang tidak dikenakan.</small>
+        <Message v-if="formError" severity="error" :closable="false" role="alert">{{ formError }}</Message>
       </div>
       <template #footer>
         <Button label="Batal" severity="secondary" text @click="dialog = false" />
         <Button
           label="Simpan"
           :loading="saving"
-          :disabled="!form.nama_calon.trim()"
+          :disabled="saving"
           @click="save"
         />
       </template>
@@ -453,16 +516,55 @@ onMounted(load)
     >
       <p v-if="finalTarget" class="bee-final-intro">
         Finalisasi <strong>{{ finalTarget.nama_calon }}</strong> menjadi siswa resmi.
-        Biaya pendaftaran {{ formatRp(finalTarget.biaya_pendaftaran) }} akan dijurnal otomatis.
+        Finalisasi tidak mencatat penerimaan uang atau menganggap biaya sudah lunas.
       </p>
       <div class="bee-field">
         <label for="spp">Nominal SPP bulanan</label>
-        <InputNumber id="spp" v-model="sppNominal" :min="0" fluid />
+        <InputNumber input-id="spp" v-model="sppNominal" :min="0" :max-fraction-digits="2" locale="id-ID" fluid />
       </div>
+      <Message v-if="finalError" severity="error" :closable="false" role="alert">{{ finalError }}</Message>
       <template #footer>
         <Button label="Batal" severity="secondary" text @click="finalDialog = false" />
-        <Button label="Finalisasi" :loading="finalSaving" @click="runFinalisasi" />
+        <Button label="Finalisasi" :loading="finalSaving" :disabled="finalSaving" @click="runFinalisasi" />
       </template>
+    </Dialog>
+
+    <Dialog v-model:visible="bayarDialog" header="Catat Penerimaan Pendaftaran" modal :closable="!bayarSaving" :style="{ width: 'min(480px, 96vw)' }">
+      <div class="bee-form-stack">
+        <p>{{ bayarTarget?.nama_calon }}</p>
+        <div v-for="opsi in opsiKomponen" :key="opsi.kode">
+          <Checkbox v-model="komponenBayar" :input-id="`bayar-${opsi.kode}`" :value="opsi.kode" :disabled="bayarSaving || !!opsi.dibayar || opsi.nominal <= 0" />
+          <label :for="`bayar-${opsi.kode}`"> {{ opsi.label }} — {{ formatRp(opsi.nominal) }}{{ opsi.dibayar ? ' (sudah diterima)' : '' }}</label>
+        </div>
+        <strong>Jumlah diterima: {{ formatRp(totalBayar) }}</strong>
+        <small>Penerimaan mencakup seluruh nilai komponen yang dipilih. Komponen yang sudah diterima tidak ditagih lagi.</small>
+        <div class="bee-field"><label for="bayar-tanggal">Tanggal penerimaan</label><DatePicker input-id="bayar-tanggal" v-model="bayarForm.tanggal" date-format="dd/mm/yy" :disabled="bayarSaving" show-icon fluid /></div>
+        <div class="bee-field"><label for="bayar-bukti">Nomor bukti penerimaan</label><InputText id="bayar-bukti" v-model="bayarForm.no_bukti" :maxlength="50" :disabled="bayarSaving" fluid /></div>
+        <div class="bee-field"><label for="bayar-kas">Kas / Bank penerimaan</label><Select input-id="bayar-kas" v-model="bayarForm.akun_kas" :options="akunKas" option-label="nama_akun" option-value="kode_akun" placeholder="Pilih Kas/Bank" :loading="loadingKas" :disabled="bayarSaving" fluid /></div>
+        <Message v-if="bayarError" severity="error" :closable="false" role="alert">{{ bayarError }}</Message>
+      </div>
+      <template #footer>
+        <Button label="Batal" text severity="secondary" :disabled="bayarSaving" @click="bayarDialog = false" />
+        <Button label="Simpan Penerimaan" :loading="bayarSaving" :disabled="bayarSaving || loadingKas" @click="runBayar" />
+      </template>
+    </Dialog>
+
+    <Dialog :visible="!!rincianTarget" header="Rincian Pendaftaran" modal :style="{ width: 'min(560px, 96vw)' }" @update:visible="rincianTarget = null">
+      <div v-if="rincianTarget" class="bee-form-stack">
+        <strong>{{ rincianTarget.nama_calon }}</strong>
+        <Message v-if="rincianTarget.perlu_rekonsiliasi" severity="warn" :closable="false">
+          Biaya/penerimaan lama perlu dicocokkan dengan bukti. Nilai biaya pendaftaran lama: {{ formatRp(rincianTarget.biaya_pendaftaran) }}.
+          Total, jumlah dibayar, dan sisa belum dapat dipastikan.
+        </Message>
+        <p v-else>Total {{ formatRp(rincianTarget.total_biaya) }} · Diterima {{ formatRp(rincianTarget.total_terbayar) }} · Sisa {{ formatRp(rincianTarget.sisa_biaya) }}</p>
+        <p v-if="!rincianTarget.pembayaran.length">Belum ada catatan penerimaan.</p>
+        <div v-for="p in rincianTarget.pembayaran" :key="p.jurnal_id">
+          <strong>{{ p.no_bukti }} — {{ formatRp(p.nominal) }}</strong>
+          <div>{{ formatDate(p.tanggal) }} · {{ p.komponen.join(' + ') }}</div>
+          <Tag :value="p.dibatalkan ? 'Dibatalkan' : `Jurnal ${p.status}`" :severity="p.dibatalkan ? 'warn' : 'info'" />
+        </div>
+        <small>Penerimaan yang jurnalnya masih DRAFT/PENDING menunggu pencatatan Finance ke buku besar.</small>
+      </div>
     </Dialog>
   </PageLayout>
 </template>

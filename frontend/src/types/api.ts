@@ -58,6 +58,22 @@ export interface PendaftaranSiswa {
   tanggal_daftar: string
   biaya_sitin: string
   biaya_pendaftaran: string
+  biaya_formulir: string | null
+  total_biaya: string | null
+  total_terbayar: string | null
+  sisa_biaya: string | null
+  perlu_rekonsiliasi: boolean
+  sitin_terbayar: boolean | null
+  formulir_terbayar: boolean | null
+  pembayaran: {
+    jurnal_id: string
+    tanggal: string
+    no_bukti: string
+    nominal: string
+    status: JurnalStatus
+    dibatalkan: boolean
+    komponen: ("SITIN" | "FORMULIR")[]
+  }[]
   status: PendaftaranSiswaStatus
   siswa: number | null
   jurnal_sitin: string | null
@@ -66,8 +82,16 @@ export interface PendaftaranSiswa {
 
 export type PendaftaranSiswaInput = Pick<
   PendaftaranSiswa,
-  "nama_calon" | "jenjang" | "tanggal_daftar" | "biaya_sitin" | "biaya_pendaftaran"
->
+  "nama_calon" | "jenjang" | "tanggal_daftar" | "biaya_sitin"
+> & { biaya_formulir: string }
+
+export interface BayarPendaftaranInput {
+  komponen: ("SITIN" | "FORMULIR")[]
+  tanggal: string
+  no_bukti: string
+  akun_kas: string
+  nominal: string
+}
 
 export interface Jenjang {
   id: number

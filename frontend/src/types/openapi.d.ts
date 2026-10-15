@@ -999,6 +999,22 @@ export interface paths {
         patch: operations["v1_pendaftaran_siswa_partial_update"];
         trace?: never;
     };
+    "/api/v1/pendaftaran-siswa/{id}/bayar/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["v1_pendaftaran_siswa_bayar_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/pendaftaran-siswa/{id}/bayar-sitin/": {
         parameters: {
             query?: never;
@@ -1008,7 +1024,6 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Pembayaran sit-in/trial -> auto-journal pendapatan. */
         post: operations["v1_pendaftaran_siswa_bayar_sitin_create"];
         delete?: never;
         options?: never;
@@ -1025,7 +1040,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** @description Calon mendaftar resmi -> jurnal admission + buat Siswa. */
+        /** @description Finalisasi administrasi tanpa menciptakan penerimaan uang. */
         post: operations["v1_pendaftaran_siswa_finalisasi_create"];
         delete?: never;
         options?: never;
@@ -1393,6 +1408,27 @@ export interface components {
         BatalPenerimaanInput: {
             alasan: string;
         };
+        BayarPendaftaranInput: {
+            komponen: components["schemas"]["BayarPendaftaranInputKomponenEnum"][];
+            /** Format: date */
+            tanggal: string;
+            no_bukti: string;
+            /** Format: decimal */
+            nominal: string;
+            akun_kas: string;
+        };
+        /**
+         * @description * `SITIN` - SITIN
+         *     * `FORMULIR` - FORMULIR
+         * @enum {string}
+         */
+        BayarPendaftaranInputKomponenEnum: "SITIN" | "FORMULIR";
+        BayarPendaftaranResponse: {
+            readonly detail: string;
+            /** Format: uuid */
+            readonly jurnal_id: string;
+            readonly pendaftaran: components["schemas"]["PendaftaranSiswa"];
+        };
         BayarTagihanInput: {
             /** Format: date */
             tanggal: string;
@@ -1410,6 +1446,10 @@ export interface components {
             pembayaran: components["schemas"]["PembayaranTagihan"];
             /** Format: uuid */
             jurnal_id: string;
+        };
+        FinalisasiPendaftaranInput: {
+            /** Format: decimal */
+            spp_nominal: string;
         };
         FixedAsset: {
             readonly id: number;
@@ -1529,21 +1569,6 @@ export interface components {
             readonly jenjang_nama: string;
             readonly siswa_aktif: string;
         };
-        /**
-         * @description * `SPP` - SPP
-         *     * `KATERING` - Katering
-         *     * `JEMPUTAN` - Jemputan
-         *     * `UANG_MASUK` - Uang Masuk
-         *     * `KEGIATAN` - Uang Kegiatan
-         *     * `PENGEMBANGAN` - Uang Pengembangan
-         *     * `SERAGAM` - Seragam
-         *     * `KOMITE` - Iuran Komite
-         *     * `PORTOFOLIO` - Portofolio & Rapor
-         *     * `POTONGAN` - Potongan
-         *     * `LAIN` - Lain-lain
-         * @enum {string}
-         */
-        KomponenEnum: "SPP" | "KATERING" | "JEMPUTAN" | "UANG_MASUK" | "KEGIATAN" | "PENGEMBANGAN" | "SERAGAM" | "KOMITE" | "PORTOFOLIO" | "POTONGAN" | "LAIN";
         MenuKatering: {
             readonly id: number;
             /** Format: date */
@@ -2110,13 +2135,27 @@ export interface components {
             /** Format: decimal */
             biaya_sitin?: string;
             /** Format: decimal */
-            biaya_pendaftaran?: string;
+            biaya_formulir?: string;
+            /** Format: decimal */
+            readonly biaya_pendaftaran?: string;
             readonly status?: components["schemas"]["PendaftaranSiswaStatusEnum"];
             readonly siswa?: number | null;
             /** Format: uuid */
             readonly jurnal_sitin?: string | null;
             /** Format: uuid */
             readonly jurnal_pendaftaran?: string | null;
+            /** Format: decimal */
+            readonly total_biaya?: string | null;
+            /** Format: decimal */
+            readonly total_terbayar?: string | null;
+            /** Format: decimal */
+            readonly sisa_biaya?: string | null;
+            readonly perlu_rekonsiliasi?: boolean;
+            readonly sitin_terbayar?: boolean | null;
+            readonly formulir_terbayar?: boolean | null;
+            readonly pembayaran?: {
+                [key: string]: unknown;
+            }[];
         };
         PatchedPinjamanPegawai: {
             readonly id?: number;
@@ -2246,15 +2285,29 @@ export interface components {
             /** Format: date */
             tanggal_daftar: string;
             /** Format: decimal */
-            biaya_sitin?: string;
+            biaya_sitin: string;
             /** Format: decimal */
-            biaya_pendaftaran?: string;
+            biaya_formulir: string;
+            /** Format: decimal */
+            readonly biaya_pendaftaran: string;
             readonly status: components["schemas"]["PendaftaranSiswaStatusEnum"];
             readonly siswa: number | null;
             /** Format: uuid */
             readonly jurnal_sitin: string | null;
             /** Format: uuid */
             readonly jurnal_pendaftaran: string | null;
+            /** Format: decimal */
+            readonly total_biaya: string | null;
+            /** Format: decimal */
+            readonly total_terbayar: string | null;
+            /** Format: decimal */
+            readonly sisa_biaya: string | null;
+            readonly perlu_rekonsiliasi: boolean;
+            readonly sitin_terbayar: boolean | null;
+            readonly formulir_terbayar: boolean | null;
+            readonly pembayaran: {
+                [key: string]: unknown;
+            }[];
         };
         /**
          * @description * `TRIAL` - Sit-in/Trial
@@ -2334,7 +2387,7 @@ export interface components {
         };
         TagihanDetail: {
             readonly id: number;
-            komponen: components["schemas"]["KomponenEnum"];
+            komponen: components["schemas"]["TagihanDetailKomponenEnum"];
             kategori?: components["schemas"]["KategoriEnum"];
             keterangan?: string;
             akun_pendapatan: string;
@@ -2343,6 +2396,21 @@ export interface components {
             /** Format: decimal */
             readonly total_terbayar: string;
         };
+        /**
+         * @description * `SPP` - SPP
+         *     * `KATERING` - Katering
+         *     * `JEMPUTAN` - Jemputan
+         *     * `UANG_MASUK` - Uang Masuk
+         *     * `KEGIATAN` - Uang Kegiatan
+         *     * `PENGEMBANGAN` - Uang Pengembangan
+         *     * `SERAGAM` - Seragam
+         *     * `KOMITE` - Iuran Komite
+         *     * `PORTOFOLIO` - Portofolio & Rapor
+         *     * `POTONGAN` - Potongan
+         *     * `LAIN` - Lain-lain
+         * @enum {string}
+         */
+        TagihanDetailKomponenEnum: "SPP" | "KATERING" | "JEMPUTAN" | "UANG_MASUK" | "KEGIATAN" | "PENGEMBANGAN" | "SERAGAM" | "KOMITE" | "PORTOFOLIO" | "POTONGAN" | "LAIN";
         /**
          * @description * `BELUM` - Belum Lunas
          *     * `SEBAGIAN` - Sebagian
@@ -5554,6 +5622,34 @@ export interface operations {
             };
         };
     };
+    v1_pendaftaran_siswa_bayar_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A unique integer value identifying this pendaftaran siswa. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BayarPendaftaranInput"];
+                "application/x-www-form-urlencoded": components["schemas"]["BayarPendaftaranInput"];
+                "multipart/form-data": components["schemas"]["BayarPendaftaranInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BayarPendaftaranResponse"];
+                };
+            };
+        };
+    };
     v1_pendaftaran_siswa_bayar_sitin_create: {
         parameters: {
             query?: never;
@@ -5566,9 +5662,9 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["PendaftaranSiswa"];
-                "application/x-www-form-urlencoded": components["schemas"]["PendaftaranSiswa"];
-                "multipart/form-data": components["schemas"]["PendaftaranSiswa"];
+                "application/json": components["schemas"]["BayarPendaftaranInput"];
+                "application/x-www-form-urlencoded": components["schemas"]["BayarPendaftaranInput"];
+                "multipart/form-data": components["schemas"]["BayarPendaftaranInput"];
             };
         };
         responses: {
@@ -5577,7 +5673,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PendaftaranSiswa"];
+                    "application/json": components["schemas"]["BayarPendaftaranResponse"];
                 };
             };
         };
@@ -5594,9 +5690,9 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["PendaftaranSiswa"];
-                "application/x-www-form-urlencoded": components["schemas"]["PendaftaranSiswa"];
-                "multipart/form-data": components["schemas"]["PendaftaranSiswa"];
+                "application/json": components["schemas"]["FinalisasiPendaftaranInput"];
+                "application/x-www-form-urlencoded": components["schemas"]["FinalisasiPendaftaranInput"];
+                "multipart/form-data": components["schemas"]["FinalisasiPendaftaranInput"];
             };
         };
         responses: {

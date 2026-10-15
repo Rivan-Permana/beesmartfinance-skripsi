@@ -94,6 +94,9 @@ class TrJurnalSerializer(serializers.ModelSerializer):
         return can_finance_post(obj)
 
     def get_perlu_rekonsiliasi(self, obj) -> bool:
+        if obj.tipe_sumber in {"AUTO_PENDAFTARAN", "AUTO_SITIN"}:
+            from operations.services.registration import jurnal_pendaftaran_perlu_rekonsiliasi
+            return jurnal_pendaftaran_perlu_rekonsiliasi(obj)
         if obj.tipe_sumber != "AUTO_BILLING":
             return False
         pembayaran = getattr(obj, "pembayaran_tagihan", None)

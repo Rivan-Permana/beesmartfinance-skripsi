@@ -117,7 +117,7 @@ class TrJurnalViewSet(viewsets.ModelViewSet):
         queryset = (
             TrJurnal.objects.filter(is_deleted=False)
             .select_related("pembayaran_tagihan__tagihan")
-            .prefetch_related("detail")
+            .prefetch_related("detail", "pendaftaran_sitin", "pendaftaran_admission", "reversals")
             .order_by("-tanggal", "no_bukti")
         )
         jenis = self.request.query_params.get("jenis")
@@ -204,7 +204,12 @@ class TrJurnalViewSet(viewsets.ModelViewSet):
         payload = BatalPenerimaanInputSerializer(data=request.data)
         payload.is_valid(raise_exception=True)
         try:
-            jurnal = batalkan_pembayaran_draft(self.get_object(), request.user, payload.validated_data["alasan"])
+            target = self.get_object()
+            if target.tipe_sumber in {"AUTO_PENDAFTARAN", "AUTO_SITIN"}:
+                from operations.services.registration import batalkan_penerimaan_pendaftaran
+                jurnal = batalkan_penerimaan_pendaftaran(target, request.user, payload.validated_data["alasan"])
+            else:
+                jurnal = batalkan_pembayaran_draft(target, request.user, payload.validated_data["alasan"])
         except ValueError as exc:
             raise ValidationError(str(exc))
         return Response(self.get_serializer(jurnal).data)
