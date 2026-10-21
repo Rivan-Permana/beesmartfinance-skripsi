@@ -1,13 +1,13 @@
 # State analysis BeeSmart Finance — 21 Oktober 2026
 
-Dokumen ini adalah snapshot pekerjaan lokal untuk melanjutkan revamp UI/UX, bukan penilaian siap rilis. Bukti rinci tetap berada pada dokumen yang ditautkan; status di bawah membedakan implementasi, hasil pemeriksaan, dan pekerjaan yang belum dibuktikan.
+Dokumen ini adalah snapshot pekerjaan lokal untuk melanjutkan revamp UI/UX, bukan penilaian siap rilis. Bukti rinci tetap berada pada dokumen yang ditautkan; status di bawah membedakan implementasi, hasil pemeriksaan, dan pekerjaan yang belum dibuktikan. Source dan dokumen handover sudah dikirim ke branch GitHub `codex/auto-deploy-fe-be`; `main` dan web online belum diperbarui oleh handover ini.
 
 ## Keadaan saat sesi dihentikan
 
 - Tujuan pengguna: revamp UI/UX aplikasi sekolah untuk Admin TU, Keuangan, Kepala Sekolah, dan Guru PIC; hasil tetap di localhost sampai ada instruksi deploy terpisah. Prioritasnya kejelasan tugas per role, desain sistem bersama, mobile, copy, grafik yang jujur, Phosphor icons, dan interaksi yang rapi.
 - Stack saat ini tetap Vue 3 + TypeScript + Vite + PrimeVue + Pinia, dengan API Django. [Sistem desain](../design-system.md) menjadi peta source dan aturan presentasi; preview HTML lama hanya pembanding. Tidak ada keputusan migrasi ke Next.js.
 - Server lokal Vite `127.0.0.1:4173` dan Django `127.0.0.1:8000` dihentikan dengan SIGTERM pada sesi ini. Pemeriksaan sesudahnya tidak menemukan listener di kedua port maupun proses dengan working directory `frontend/` atau `backend/`. Port preview/UAT lain yang dikenal (`4174`, `4180`, `8001`, `8080`, `5173`) juga tidak memiliki listener saat diperiksa. PostgreSQL lokal `:5432` dan proses MCP/aplikasi desktop tidak dihentikan karena bukan terminal server proyek.
-- Checkout berada pada branch `codex/auto-deploy-fe-be`, HEAD `045bfdd`. Working tree **belum bersih**: saat diperiksa ada 61 berkas tracked berubah dan 102 path untracked. Jumlah tersebut mencakup pekerjaan revamp lintas banyak modul dan artefak lama; jangan reset, clean, atau menganggapnya semua perubahan sesi ini. Nama branch tidak memberi izin deploy.
+- Sebelum commit handover, checkout berada pada branch `codex/auto-deploy-fe-be`, HEAD `045bfdd`, dengan 61 berkas tracked berubah dan 102 path untracked. Source dan dokumen yang aman kemudian di-commit serta di-push ke branch yang sama. File visual/PDF hasil lokal dan skrip UAT berkredensial tetap tidak dilacak; jangan reset atau clean tanpa meninjau isinya. Nama branch tidak memberi izin deploy.
 - Permintaan sebelumnya untuk audit visual menyeluruh baru dimulai pada tahap inventaris source/skill; **belum ada audit browser baru atau perbaikan UI baru** sebelum pengguna mengalihkan tugas ke penutupan terminal dan state analysis.
 
 ## Yang sudah dibangun dan dibuktikan
@@ -25,7 +25,8 @@ Dokumen ini adalah snapshot pekerjaan lokal untuk melanjutkan revamp UI/UX, buka
 - Pemeriksaan terakhir tidak mencakup setiap halaman, filter, form/modal, state kosong/loading/error, variasi role dan ukuran layar, Safari/iPad, pembaca layar, zoom native 200%, atau printer fisik. Sampel desktop/mobile dan PDF yang sudah diuji dijelaskan pada dokumen UAT.
 - [UAT & Deploy Readiness](../15-UAT-DEPLOY-READINESS.md) menyebut skor 92/100 dan “siap deploy” untuk konteks demo sebelumnya. Itu **bukan** hasil audit revamp terbaru dan tidak menggantikan instruksi pengguna untuk tetap lokal. Keputusan rilis perlu penilaian ulang serta otorisasi eksplisit.
 - Warning ukuran bundle utama >500 kB masih terbuka. Optimasi bundle sebaiknya dilakukan setelah regresi UI utama stabil, agar perubahan visual dan performa tidak tercampur.
-- Working tree yang besar dan tidak ter-commit menyulitkan atribusi perubahan dan rollback. Jangan melakukan reset/clean; inventaris per area dan commit terpisah hanya jika pengguna meminta workflow Git.
+- Sebanyak 194 tangkapan layar/PDF/hasil pemeriksaan lokal tidak dikirim ke GitHub publik agar data percobaan tidak tercampur dengan source. Skrip UAT lokal yang memuat password demo juga tetap di mesin asal; jangan menganggap tautan gambar lokal pada indeks artefak tersedia di clone baru.
+- VPS mengambil `main` lewat `scripts/poll_deploy_vps.sh`; push branch kerja tidak mengubah produksi. Merge ke `main` akan memicu build frontend dan migrasi backend di VPS, sehingga perlu keputusan rilis dan pemeriksaan backup/data secara terpisah.
 
 ## Titik lanjut paling tepat
 
@@ -33,4 +34,4 @@ Dokumen ini adalah snapshot pekerjaan lokal untuk melanjutkan revamp UI/UX, buka
 2. Lanjutkan audit visual yang tertunda dengan matriks route × role × desktop/mobile. Prioritaskan halaman operasional terpadat, form/modal, tabel panjang, navigasi, error/empty/loading, akses keyboard, dan cetak. Catat temuan nyata dengan screenshot, viewport, role, dan langkah reproduksi; perbaiki akar masalah di shared component bila berlaku.
 3. Setelah perbaikan, lakukan verifikasi terarah dan perbarui [UAT lokal](./2026-10-20-uat-lokal.md). Baru kemudian nilai optimasi bundle dan kesiapan demo/rilis. Semua hasil tetap lokal sampai pengguna memberi instruksi lain.
 
-Tidak ada deployment, mutasi database, atau tes baru pada sesi penutupan ini.
+Pada handover Git berikutnya, build frontend lulus dengan warning chunk utama yang sama. Tidak ada deployment, mutasi database, atau tes otomatis baru pada sesi penutupan/handover ini.
