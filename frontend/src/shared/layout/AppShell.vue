@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import Button from "primevue/button"
-import { computed, onMounted, ref, watch } from "vue"
+import Drawer from "primevue/drawer"
+import AppNavigation from "./AppNavigation.vue"
+import Icon from "@/shared/components/PhosphorIcon.vue"
+import { computed, onMounted, onUnmounted, ref, watch } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { useConfirm } from "primevue/useconfirm"
 import { useToast } from "primevue/usetoast"
 
-import { groupedNav, navForRoles, ROLE_LABEL, ROUTE_TITLES, type NavItem } from "@/core/navigation"
+import { navForRoles, ROLE_LABEL, ROUTE_TITLES, type NavItem } from "@/core/navigation"
 import { useAuthStore } from "@/stores/auth"
 
 const auth = useAuthStore()
@@ -15,20 +18,25 @@ const toast = useToast()
 const confirm = useConfirm()
 
 const drawerOpen = ref(false)
+const menuButton = ref<{ $el: HTMLButtonElement } | null>(null)
+function restoreMenuFocus() { if (!desktop?.matches) menuButton.value?.$el.focus() }
 const collapsed = ref(false)
+let desktop: MediaQueryList | undefined
+function closeMobileOnDesktop() { if (desktop?.matches) drawerOpen.value = false }
+onMounted(() => { desktop = window.matchMedia("(min-width: 768px)"); desktop.addEventListener("change", closeMobileOnDesktop) })
+onUnmounted(() => desktop?.removeEventListener("change", closeMobileOnDesktop))
 
 const navItems = computed(() => navForRoles(auth.roles))
-const navGroups = computed(() => groupedNav(navItems.value))
 
 const roleDisplay = computed(() =>
   auth.roles.map((r) => ROLE_LABEL[r] ?? r).join(", ") || "—",
 )
 
 const pageTitle = computed(() => {
+  if (route.path === "/jurnal" && route.query.jenis === "masuk") return "Pemasukan"
+  if (route.path === "/jurnal" && route.query.jenis === "keluar") return "Pengeluaran"
   const name = route.name
   if (typeof name === "string" && ROUTE_TITLES[name]) return ROUTE_TITLES[name]
-  if (route.path.includes("jenis=masuk")) return "Pemasukan"
-  if (route.path.includes("jenis=keluar")) return "Pengeluaran"
   return "BeeSmart Finance"
 })
 
@@ -43,16 +51,11 @@ function isActive(item: NavItem) {
   return !route.query.jenis || item.to !== "/jurnal"
 }
 
-function navTo(item: NavItem) {
-  drawerOpen.value = false
-  router.push(item.query ? { path: item.to, query: item.query } : item.to)
-}
 
 function logout() {
   confirm.require({
     message: "Keluar dari aplikasi Lebah Madu?",
-    header: "Konfirmasi Keluar",
-    icon: "pi pi-sign-out",
+    header: "Keluar dari aplikasi?",
     rejectLabel: "Batal",
     acceptLabel: "Keluar",
     accept: () => {
@@ -84,7 +87,7 @@ watch(
 
 <template>
   <div class="shell" :class="{ collapsed, 'drawer-open': drawerOpen }">
-    <div v-if="drawerOpen" class="shell-backdrop" @click="drawerOpen = false" />
+
 
     <aside class="shell-sidebar">
       <div class="brand">
@@ -95,45 +98,36 @@ watch(
         </div>
       </div>
 
-      <nav class="menu">
-        <div v-for="grp in navGroups" :key="grp.group" class="menu-group">
-          <div v-if="!collapsed" class="menu-group-label">{{ grp.label }}</div>
-          <button
-            v-for="item in grp.items"
-            :key="item.label + item.to + (item.query?.jenis ?? '')"
-            type="button"
-            class="menu-item"
-            :class="{ active: isActive(item) }"
-            @click="navTo(item)"
-          >
-            <i :class="item.icon" />
-            <span v-if="!collapsed">{{ item.label }}</span>
-          </button>
-        </div>
-      </nav>
+      <AppNavigation :collapsed="collapsed" />
     </aside>
+    <Drawer id="app-mobile-navigation" v-model:visible="drawerOpen" @after-hide="restoreMenuFocus" header="Lebah Madu" :close-button-props="{ 'aria-label': 'Tutup menu navigasi' }" :pt="{ root: { class: 'shell-mobile-drawer' } }">
+      <template #closeicon><Icon name="x" /></template>
+      <AppNavigation @navigate="drawerOpen = false" />
+    </Drawer>
 
     <div class="shell-main">
       <header class="shell-topbar">
         <div class="topbar-left">
           <Button
+            ref="menuButton"
             class="menu-toggle"
-            icon="pi pi-bars"
             severity="secondary"
             text
             rounded
             aria-label="Menu"
+            :aria-expanded="drawerOpen"
+            aria-controls="app-mobile-navigation"
             @click="toggleDrawer"
-          />
+          ><template #icon><Icon name="list" /></template></Button>
           <Button
             class="collapse-toggle"
-            :icon="collapsed ? 'pi pi-angle-right' : 'pi pi-angle-left'"
             severity="secondary"
             text
             rounded
-            aria-label="Collapse sidebar"
+            :aria-label="collapsed ? 'Perluas navigasi' : 'Ringkas navigasi'"
+            :aria-expanded="!collapsed"
             @click="collapsed = !collapsed"
-          />
+          ><template #icon><Icon :name="collapsed ? 'caret-right' : 'caret-left'" /></template></Button>
           <div class="breadcrumb">
             <span class="crumb-muted">{{ breadcrumb }}</span>
             <span class="crumb-sep">/</span>
@@ -145,218 +139,35 @@ watch(
             <span class="user-name">{{ auth.user?.nama }}</span>
             <span class="user-role">{{ roleDisplay }}</span>
           </div>
-          <Button icon="pi pi-sign-out" severity="secondary" text rounded aria-label="Keluar" @click="logout" />
+          <Button severity="secondary" text aria-label="Keluar" @click="logout"><template #icon><Icon name="sign-out" /></template></Button>
         </div>
       </header>
       <main class="shell-content">
-        <RouterView />
+        <RouterView v-slot="{ Component }">
+          <Transition name="bee-route" mode="out-in">
+            <component :is="Component" />
+          </Transition>
+        </RouterView>
       </main>
     </div>
   </div>
 </template>
 
 <style scoped>
-.shell {
-  display: flex;
-  min-height: 100vh;
-}
-.shell-backdrop {
-  display: none;
-}
-.shell-sidebar {
-  width: var(--bee-sidebar-width);
-  background: var(--bee-navy);
-  color: #fff;
-  display: flex;
-  flex-direction: column;
-  flex-shrink: 0;
-  transition: width 0.2s ease;
-  z-index: 40;
-}
-.shell.collapsed .shell-sidebar {
-  width: var(--bee-sidebar-collapsed);
-}
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  padding: 1.1rem 1rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-}
-.brand-logo {
-  flex-shrink: 0;
-  border-radius: 50%;
-}
-.brand-title {
-  font-family: "Baloo 2", sans-serif;
-  font-weight: 700;
-  line-height: 1.1;
-}
-.brand-sub {
-  font-size: 0.72rem;
-  color: rgba(255, 255, 255, 0.6);
-}
-.menu {
-  padding: 0.75rem 0.5rem;
-  overflow-y: auto;
-  flex: 1;
-}
-.menu-group-label {
-  font-size: 0.65rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.45);
-  padding: 0.75rem 0.75rem 0.35rem;
-  font-weight: 700;
-}
-.menu-item {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  width: 100%;
-  padding: 0.65rem 0.75rem;
-  border: none;
-  border-radius: var(--bee-radius-sm);
-  background: transparent;
-  color: rgba(255, 255, 255, 0.88);
-  font-weight: 600;
-  font-family: inherit;
-  font-size: 0.9rem;
-  cursor: pointer;
-  text-align: left;
-}
-.menu-item i {
-  width: 1.25rem;
-  text-align: center;
-  flex-shrink: 0;
-}
-.shell.collapsed .menu-item {
-  justify-content: center;
-  padding: 0.65rem;
-  gap: 0;
-}
-.shell.collapsed .menu-item:hover:not(.active) {
-  background: rgba(229, 25, 127, 0.18);
-}
-.shell.collapsed .menu-item.active {
-  margin: 0 0.35rem;
-  width: calc(100% - 0.7rem);
-}
-.menu-item:hover {
-  background: rgba(255, 255, 255, 0.08);
-}
-.menu-item.active {
-  background: var(--bee-magenta);
-  color: #fff;
-}
-.shell-main {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-.shell-topbar {
-  height: 60px;
-  background: var(--app-surface);
-  border-bottom: 1px solid var(--app-border);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 1rem;
-  gap: 0.5rem;
-}
-.topbar-left {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  min-width: 0;
-}
-.breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-size: 0.9rem;
-  margin-left: 0.25rem;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.crumb-muted {
-  color: var(--app-text-muted);
-  text-transform: capitalize;
-}
-.crumb-sep {
-  color: var(--app-text-muted);
-}
-.crumb-current {
-  font-weight: 700;
-  color: var(--bee-navy);
-}
-.user {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-shrink: 0;
-}
-.user-meta {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  line-height: 1.1;
-}
-.user-name {
-  font-weight: 700;
-  font-size: 0.9rem;
-}
-.user-role {
-  font-size: 0.72rem;
-  color: var(--app-text-muted);
-}
-.shell-content {
-  padding: 1.5rem;
-  flex: 1;
-  overflow: auto;
-}
-.menu-toggle {
-  display: none;
-}
-.collapse-toggle {
-  display: inline-flex;
-}
-
-@media (max-width: 767px) {
-  .shell-sidebar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    transform: translateX(-100%);
-    transition: transform 0.2s ease;
-  }
-  .shell.drawer-open .shell-sidebar {
-    transform: translateX(0);
-  }
-  .shell-backdrop {
-    display: block;
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.4);
-    z-index: 30;
-  }
-  .menu-toggle {
-    display: inline-flex;
-  }
-  .collapse-toggle {
-    display: none;
-  }
-  .shell.collapsed .shell-sidebar {
-    width: var(--bee-sidebar-width);
-  }
-}
-
-@media (min-width: 768px) and (max-width: 1279px) {
-  .collapse-toggle {
-    display: inline-flex;
-  }
-}
+.shell { display: flex; min-height: 100vh; }
+.shell-sidebar { width: var(--bee-sidebar-width); background: var(--bee-color-nav); color: var(--bee-color-nav-text); display: flex; flex-direction: column; flex-shrink: 0; }
+.shell.collapsed .shell-sidebar { width: var(--bee-sidebar-collapsed); }
+.brand { display: flex; align-items: center; gap: var(--bee-space-3); padding: var(--bee-space-5) var(--bee-space-4); border-bottom: 1px solid var(--bee-color-nav-border); }
+.brand-logo { flex-shrink: 0; }.brand-title { font-weight: 600; font-size: var(--bee-type-body); }.brand-sub { font-size: var(--bee-type-caption); color: var(--bee-color-nav-muted); }
+.shell-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.shell-topbar { min-height: 72px; background: var(--app-surface); border-bottom: 1px solid var(--app-border); display: flex; align-items: center; justify-content: space-between; padding: var(--bee-space-3) var(--bee-space-5); gap: var(--bee-space-4); }
+.topbar-left { display: flex; align-items: center; gap: var(--bee-space-2); min-width: 0; }.breadcrumb { display: flex; flex-wrap: wrap; align-items: center; gap: var(--bee-space-2); font-size: var(--bee-type-ui); }.crumb-muted,.crumb-sep { color: var(--app-text-muted); }.crumb-current { font-weight: 500; }
+.user { display: flex; align-items: center; gap: var(--bee-space-3); flex-shrink: 0; }.user-meta { display: flex; flex-direction: column; align-items: flex-end; }.user-name { font-weight: 500; }.user-role { color: var(--app-text-muted); font-size: var(--bee-type-caption); }
+.shell-content { padding: var(--bee-layout-page-gutter); flex: 1; min-width: 0; }.menu-toggle { display: none; }.collapse-toggle { display: inline-flex; }
+@media(max-width:767px) { .shell-sidebar { display: none; }.menu-toggle { display: inline-flex; }.collapse-toggle { display: none; }.shell-content { padding: var(--bee-layout-page-gutter-mobile); }.shell-topbar { padding-inline: var(--bee-space-4); }.user-meta { display: none; }.crumb-muted,.crumb-sep { display: none; } }
+</style>
+<style>
+.p-drawer.shell-mobile-drawer { width: min(320px, 100vw); --p-drawer-background: var(--bee-color-nav); --p-drawer-color: var(--bee-color-nav-text); background: var(--bee-color-nav); color: var(--bee-color-nav-text); }
+.shell-mobile-drawer .p-drawer-content { padding: 0 0 env(safe-area-inset-bottom); }.p-drawer.shell-mobile-drawer .p-drawer-close-button { color: var(--bee-color-nav-text); }.p-drawer.shell-mobile-drawer .p-drawer-close-button:hover { background: var(--bee-color-nav-border); }.p-drawer.shell-mobile-drawer .p-drawer-close-button:focus-visible { outline-color: var(--bee-color-nav-text); }
+@media(min-width:768px) { .shell-mobile-drawer { display: none; } }
 </style>

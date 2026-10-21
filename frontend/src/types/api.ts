@@ -392,18 +392,18 @@ export interface Kegiatan {
   status: KegiatanStatus
   periode: number | null
   periode_kode?: string | null
-  realisasi: string
-  sisa_pagu: string
+  realisasi: string | number
+  sisa_pagu: string | number
   rasio_utilisasi: number
 }
 
 export interface LaporanKegiatan {
   kegiatan: string
-  pagu: string
-  realisasi: string
-  sisa_pagu: string
+  pagu: string | number
+  realisasi: string | number
+  sisa_pagu: string | number
   rasio_utilisasi: number
-  rincian: { tanggal: string; deskripsi: string; nominal: string }[]
+  rincian: { tanggal: string; deskripsi: string; nominal: string | number }[]
 }
 
 // --- Laporan ---

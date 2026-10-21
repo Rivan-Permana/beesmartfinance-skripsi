@@ -1,8 +1,9 @@
 <script setup lang="ts">
-defineProps<{
+withDefaults(defineProps<{
   title: string
   subtitle?: string
-}>()
+  surface?: boolean
+}>(), { surface: true })
 </script>
 
 <template>
@@ -19,7 +20,7 @@ defineProps<{
     <div v-if="$slots.filters" class="bee-page__filters">
       <slot name="filters" />
     </div>
-    <div class="bee-page__card">
+    <div class="bee-page__card" :class="{ 'bee-page__card--plain': surface === false }">
       <slot />
     </div>
   </div>

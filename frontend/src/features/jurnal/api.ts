@@ -2,6 +2,7 @@ import { api } from "@/core/api"
 import type { Coa, Jurnal, JurnalInput, Paginated } from "@/types/api"
 
 export const jurnalApi = {
+  get: (id: string) => api.get<Jurnal>(`/jurnal/${id}/`).then((r) => r.data),
   list: (params?: Record<string, unknown>) =>
     api.get<Paginated<Jurnal>>("/jurnal/", { params }).then((r) => r.data),
   create: (payload: JurnalInput) =>

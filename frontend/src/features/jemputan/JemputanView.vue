@@ -1,637 +1,556 @@
 <script setup lang="ts">
-import Button from "primevue/button"
-import Column from "primevue/column"
-import DataTable from "primevue/datatable"
-import Dialog from "primevue/dialog"
-import InputNumber from "primevue/inputnumber"
-import InputText from "primevue/inputtext"
-import Message from "primevue/message"
-import Select from "primevue/select"
-import Tab from "primevue/tab"
-import TabList from "primevue/tablist"
-import TabPanel from "primevue/tabpanel"
-import TabPanels from "primevue/tabpanels"
-import Tabs from "primevue/tabs"
-import Textarea from "primevue/textarea"
-import { useConfirm } from "primevue/useconfirm"
-import { useToast } from "primevue/usetoast"
-import { computed, onMounted, reactive, ref, watch } from "vue"
-
-import {
-  armadaApi,
-  buildJemputanRekap,
-  jemputanRekapToCsv,
-  pendaftaranJemputanApi,
-  type JemputanRekapRow,
-} from "./api"
-import { downloadCsv, kehadiranApi, monthDateRange } from "@/features/absensi/api"
-import { legacyExportApi } from "@/features/katering/legacyExport"
-import { JEMPUTAN_TARIF_MINIMAL } from "@/core/config"
-import { notifyError, notifySuccess } from "@/core/errors"
-import { formatRp } from "@/core/format"
-import { siswaApi } from "@/features/siswa/api"
-import EmptyState from "@/shared/components/EmptyState.vue"
-import PageLayout from "@/shared/components/PageLayout.vue"
-import PeriodPicker from "@/shared/components/PeriodPicker.vue"
-import SearchField from "@/shared/components/SearchField.vue"
-import { useTableSearch } from "@/shared/composables/useTableSearch"
-import type { ArmadaJemputan, PendaftaranJemputan, Siswa } from "@/types/api"
-
-const toast = useToast()
-const confirm = useConfirm()
-const tab = ref("armada")
-
-// --- Armada (E4.1) ---
-const armadaRows = ref<ArmadaJemputan[]>([])
-const armadaLoading = ref(false)
-const armadaDialog = ref(false)
-const armadaSaving = ref(false)
-const armadaEditingId = ref<number | null>(null)
-const armadaForm = reactive({
-  nama_supir: "",
-  jenis_mobil: "",
-  kapasitas: 7,
-  keterangan: "",
-})
-
-async function loadArmada() {
-  armadaLoading.value = true
-  try {
-    armadaRows.value = await armadaApi.list()
-  } catch (e) {
-    notifyError(toast, e, "Gagal memuat data armada.")
-  } finally {
-    armadaLoading.value = false
-  }
+import SelectClearButton from "@/shared/components/SelectClearButton.vue"
+import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
+import { onBeforeRouteLeave, RouterLink } from 'vue-router';
+import Button from 'primevue/button';
+import Dialog from 'primevue/dialog';
+import InputNumber from 'primevue/inputnumber';
+import InputText from 'primevue/inputtext';
+import Textarea from 'primevue/textarea';
+import Select from 'primevue/select';
+import Paginator from 'primevue/paginator';
+import Message from 'primevue/message';
+import { useConfirm } from 'primevue/useconfirm';
+import { useToast } from 'primevue/usetoast';
+import { friendlyError, notifySuccess } from '@/core/errors';
+import { formatRp } from '@/core/format';
+import { JEMPUTAN_TARIF_MINIMAL } from '@/core/config';
+import { siswaApi } from '@/features/siswa/api';
+import { downloadCsv, kehadiranApi, monthDateRange } from '@/features/absensi/api';
+import { legacyExportApi } from '@/features/katering/legacyExport';
+import PageLayout from '@/shared/components/PageLayout.vue';
+import SearchField from '@/shared/components/SearchField.vue';
+import PeriodPicker from '@/shared/components/PeriodPicker.vue';
+import ServiceRecap from '@/shared/components/ServiceRecap.vue';
+import Icon from '@/shared/components/PhosphorIcon.vue';
+import { useTableSearch } from '@/shared/composables/useTableSearch';
+import { armadaApi, pendaftaranJemputanApi, buildJemputanRekap, jemputanRekapToCsv, type JemputanRekapRow } from './api';
+import type { ArmadaJemputan, PendaftaranJemputan, Siswa } from '@/types/api';
+import '@/shared/components/school-services.css';
+const toast = useToast(), confirm = useConfirm(), tab = ref('armada');
+const fleets = ref<ArmadaJemputan[]>([]), registrations = ref<PendaftaranJemputan[]>([]), students = ref<Siswa[]>([]);
+const loading = ref(false), error = ref(''), actionError = ref(''), saving = ref(false), visible = ref(false), editing = ref<number | null>(null), formError = ref(''), attempted = ref(false), uncertain = ref(false);
+const formKind = ref<'armada' | 'pendaftaran'>('armada');
+const fleetForm = reactive({ nama_supir: '', jenis_mobil: '', kapasitas: 7 as number | null, keterangan: '' });
+const registrationForm = reactive({ siswa: null as number | null, armada: null as number | null, harga: JEMPUTAN_TARIF_MINIMAL as number | null });
+const bulan = ref(new Date().getMonth() + 1), tahun = ref(new Date().getFullYear()), scope = ref({ bulan: bulan.value, tahun: tahun.value });
+const recapRows = ref<JemputanRekapRow[]>([]), recapLoading = ref(false), recapError = ref(''), recapReady = ref(false), exporting = ref(false), exportError = ref('');
+let masterSequence = 0, recapSequence = 0;
+const studentMap = computed(() => new Map(students.value.map(row => [row.id, row])));
+const fleetMap = computed(() => new Map(fleets.value.map(row => [row.id, `${row.nama_supir}${row.jenis_mobil ? ` (${row.jenis_mobil})` : ''}`])));
+const studentOptions = computed(() => students.value.filter(row => row.status === 'aktif' || row.id === registrationForm.siswa).map(row => ({ id: row.id, label: `${row.nama} · ${row.nis || 'NIS belum diisi'}` })));
+const fleetOptions = computed(() => fleets.value.map(row => ({ id: row.id, label: fleetMap.value.get(row.id) })));
+const { query: fleetQuery, filtered: filteredFleets } = useTableSearch(fleets, row => [row.nama_supir, row.jenis_mobil, row.keterangan]);
+const registrationDisplay = computed(() => registrations.value.map(row => ({ ...row, nama: studentMap.value.get(row.siswa)?.nama ?? `Siswa #${row.siswa}`, nis: studentMap.value.get(row.siswa)?.nis, alamat: studentMap.value.get(row.siswa)?.alamat || 'Alamat belum diisi', armadaLabel: row.armada ? fleetMap.value.get(row.armada) ?? 'Nama armada belum dimuat' : 'Belum ditentukan' })));
+const { query: registrationQuery, filtered: filteredRegistrations } = useTableSearch(registrationDisplay, row => [row.nama, row.nis, row.armadaLabel]);
+const first = ref(0), directoryRows = computed(() => tab.value === 'armada' ? filteredFleets.value : filteredRegistrations.value);
+const fleetPage = computed(() => filteredFleets.value.slice(first.value, first.value + 10)), registrationPage = computed(() => filteredRegistrations.value.slice(first.value, first.value + 10));
+watch([fleetQuery, registrationQuery, tab], () => {
+    first.value = 0;
+});
+const { query: recapQuery, filtered: filteredRecap } = useTableSearch(recapRows, row => [row.nis, row.nama, row.armada]);
+const periodLabel = computed(() => new Intl.DateTimeFormat('id-ID', { month: 'long', year: 'numeric' }).format(new Date(scope.value.tahun, scope.value.bulan - 1, 1)));
+const dirty = computed(() => bulan.value !== scope.value.bulan || tahun.value !== scope.value.tahun);
+function message(e: unknown, fallback: string) {
+    const result = friendlyError(e, fallback);
+    return [result.summary, result.detail].filter(Boolean).join('. ');
 }
-
-function openArmadaCreate() {
-  armadaEditingId.value = null
-  Object.assign(armadaForm, {
-    nama_supir: "", jenis_mobil: "", kapasitas: 7, keterangan: "",
-  })
-  armadaDialog.value = true
-}
-
-function openArmadaEdit(row: ArmadaJemputan) {
-  armadaEditingId.value = row.id
-  Object.assign(armadaForm, {
-    nama_supir: row.nama_supir,
-    jenis_mobil: row.jenis_mobil ?? "",
-    kapasitas: row.kapasitas ?? 7,
-    keterangan: row.keterangan ?? "",
-  })
-  armadaDialog.value = true
-}
-
-async function saveArmada() {
-  armadaSaving.value = true
-  try {
-    const payload = { ...armadaForm }
-    if (armadaEditingId.value) {
-      await armadaApi.update(armadaEditingId.value, payload)
-      notifySuccess(toast, "Armada diperbarui.")
-    } else {
-      await armadaApi.create(payload)
-      notifySuccess(toast, "Armada ditambahkan.")
+async function loadDirectory() {
+    const request = ++masterSequence, kind = tab.value;
+    loading.value = true;
+    error.value = '';
+    first.value = 0;
+    if (kind === 'armada')
+        fleets.value = [];
+    else
+        registrations.value = [];
+    try {
+        const [armada, pend, siswa] = await Promise.all([armadaApi.listAll(), kind === 'pendaftaran' ? pendaftaranJemputanApi.listAll() : Promise.resolve(null), kind === 'pendaftaran' ? siswaApi.listAll() : Promise.resolve(null)]);
+        if (request !== masterSequence)
+            return;
+        fleets.value = armada;
+        if (pend)
+            registrations.value = pend;
+        if (siswa)
+            students.value = siswa;
     }
-    armadaDialog.value = false
-    await loadArmada()
-  } catch (e) {
-    notifyError(toast, e, "Gagal menyimpan armada.")
-  } finally {
-    armadaSaving.value = false
-  }
-}
-
-function confirmDeleteArmada(row: ArmadaJemputan) {
-  confirm.require({
-    message: `Hapus armada ${row.nama_supir}?`,
-    header: "Konfirmasi",
-    acceptLabel: "Hapus",
-    rejectLabel: "Batal",
-    acceptClass: "p-button-danger",
-    accept: async () => {
-      try {
-        await armadaApi.remove(row.id)
-        notifySuccess(toast, "Armada dihapus.")
-        await loadArmada()
-      } catch (e) {
-        notifyError(toast, e, "Gagal menghapus armada.")
-      }
-    },
-  })
-}
-
-// --- Pendaftaran (E4.2) ---
-const pendaftaranRows = ref<PendaftaranJemputan[]>([])
-const siswaList = ref<Siswa[]>([])
-const pendaftaranLoading = ref(false)
-const pendaftaranDialog = ref(false)
-const pendaftaranSaving = ref(false)
-const pendaftaranEditingId = ref<number | null>(null)
-const pendaftaranForm = reactive({
-  siswa: null as number | null,
-  armada: null as number | null,
-  harga: JEMPUTAN_TARIF_MINIMAL,
-})
-
-const siswaMap = computed(() => {
-  const m = new Map<number, Siswa>()
-  siswaList.value.forEach((s) => m.set(s.id, s))
-  return m
-})
-
-const armadaMap = computed(() => {
-  const m = new Map<number, string>()
-  armadaRows.value.forEach((a) =>
-    m.set(a.id, `${a.nama_supir}${a.jenis_mobil ? ` (${a.jenis_mobil})` : ""}`),
-  )
-  return m
-})
-
-const selectedSiswaAlamat = computed(() => {
-  if (!pendaftaranForm.siswa) return ""
-  return siswaMap.value.get(pendaftaranForm.siswa)?.alamat ?? "—"
-})
-
-async function loadPendaftaran() {
-  pendaftaranLoading.value = true
-  try {
-    const [pend, siswa] = await Promise.all([
-      pendaftaranJemputanApi.list(),
-      siswaApi.listAll({ status: "aktif" }),
-    ])
-    pendaftaranRows.value = pend
-    siswaList.value = siswa
-  } catch (e) {
-    notifyError(toast, e, "Gagal memuat pendaftaran jemputan.")
-  } finally {
-    pendaftaranLoading.value = false
-  }
-}
-
-function openPendaftaranCreate() {
-  pendaftaranEditingId.value = null
-  Object.assign(pendaftaranForm, {
-    siswa: null, armada: null, harga: JEMPUTAN_TARIF_MINIMAL,
-  })
-  pendaftaranDialog.value = true
-}
-
-function openPendaftaranEdit(row: PendaftaranJemputan) {
-  pendaftaranEditingId.value = row.id
-  Object.assign(pendaftaranForm, {
-    siswa: row.siswa,
-    armada: row.armada,
-    harga: Number(row.harga) || JEMPUTAN_TARIF_MINIMAL,
-  })
-  pendaftaranDialog.value = true
-}
-
-async function savePendaftaran() {
-  if (!pendaftaranForm.siswa) return
-  pendaftaranSaving.value = true
-  try {
-    const payload = {
-      siswa: pendaftaranForm.siswa,
-      armada: pendaftaranForm.armada,
-      harga: String(pendaftaranForm.harga),
+    catch (e) {
+        if (request === masterSequence)
+            error.value = message(e, 'Daftar jemputan belum berhasil dimuat');
     }
-    if (pendaftaranEditingId.value) {
-      await pendaftaranJemputanApi.update(pendaftaranEditingId.value, payload)
-      notifySuccess(toast, "Pendaftaran diperbarui.")
-    } else {
-      await pendaftaranJemputanApi.create(payload)
-      notifySuccess(toast, "Siswa terdaftar jemputan.")
+    finally {
+        if (request === masterSequence)
+            loading.value = false;
     }
-    pendaftaranDialog.value = false
-    await loadPendaftaran()
-  } catch (e) {
-    notifyError(toast, e, "Gagal menyimpan pendaftaran.")
-  } finally {
-    pendaftaranSaving.value = false
-  }
 }
-
-function confirmDeletePendaftaran(row: PendaftaranJemputan) {
-  const nama = siswaMap.value.get(row.siswa)?.nama ?? `#${row.siswa}`
-  confirm.require({
-    message: `Hapus pendaftaran jemputan ${nama}?`,
-    header: "Konfirmasi",
-    acceptLabel: "Hapus",
-    rejectLabel: "Batal",
-    acceptClass: "p-button-danger",
-    accept: async () => {
-      try {
-        await pendaftaranJemputanApi.remove(row.id)
-        notifySuccess(toast, "Pendaftaran dihapus.")
-        await loadPendaftaran()
-      } catch (e) {
-        notifyError(toast, e, "Gagal menghapus pendaftaran.")
-      }
-    },
-  })
-}
-
-// --- Rekap (E4.3) ---
-const bulan = ref(new Date().getMonth() + 1)
-const tahun = ref(new Date().getFullYear())
-const rekapRows = ref<JemputanRekapRow[]>([])
-const rekapLoading = ref(false)
-
-const { query: rekapSearch, filtered: filteredRekapRows } = useTableSearch(rekapRows, (r) => [
-  r.nis,
-  r.nama,
-  r.armada,
-  formatRp(r.tarifPerTrip),
-  formatRp(r.totalNominal),
-  String(r.jemputDatang),
-  String(r.jemputPulang),
-])
-
-const totalTagihan = computed(() =>
-  filteredRekapRows.value.reduce((s, r) => s + r.totalNominal, 0),
-)
-
-const BULAN_LABEL = [
-  "Januari", "Februari", "Maret", "April", "Mei", "Juni",
-  "Juli", "Agustus", "September", "Oktober", "November", "Desember",
-]
-
-async function loadRekap() {
-  rekapLoading.value = true
-  try {
-    const range = monthDateRange(bulan.value, tahun.value)
-    const [pend, siswaRes, records] = await Promise.all([
-      pendaftaranJemputanApi.list(),
-      siswaApi.listAll({ status: "aktif" }),
-      kehadiranApi.listAll(range),
-    ])
-
-    const sMap = new Map(
-      siswaRes.map((s) => [
-        s.id,
-        { nis: s.nis, nama: s.nama, alamat: s.alamat },
-      ]),
-    )
-    const aMap = armadaMap.value
-
-    const absMap = new Map<number, { datang: number; pulang: number }>()
-    for (const r of records) {
-      if (!absMap.has(r.siswa)) absMap.set(r.siswa, { datang: 0, pulang: 0 })
-      const a = absMap.get(r.siswa)!
-      if (r.jemput_datang) a.datang += 1
-      if (r.jemput_pulang) a.pulang += 1
+async function loadRecap() {
+    const request = ++recapSequence, current = { ...scope.value };
+    recapLoading.value = true;
+    recapReady.value = false;
+    recapError.value = '';
+    recapRows.value = [];
+    try {
+        const [pend, siswa, records, armada] = await Promise.all([pendaftaranJemputanApi.listAll(), siswaApi.listAll({ status: 'aktif' }), kehadiranApi.listAll(monthDateRange(current.bulan, current.tahun)), armadaApi.listAll()]);
+        if (request !== recapSequence)
+            return;
+        if (pend.some(row => row.harga == null || !Number.isFinite(Number(row.harga)) || Number(row.harga) < 0))
+            throw new Error('Ada tarif pendaftaran tidak valid. Periksa tarif sebelum membaca nominal rekap.');
+        const counts = new Map<number, {
+            datang: number;
+            pulang: number;
+        }>();
+        for (const record of records) {
+            const value = counts.get(record.siswa) ?? { datang: 0, pulang: 0 };
+            if (record.jemput_datang)
+                value.datang++;
+            if (record.jemput_pulang)
+                value.pulang++;
+            counts.set(record.siswa, value);
+        }
+        // shortcut: archives use current registrations/profiles; use historical snapshots when the API provides them.
+        recapRows.value = buildJemputanRekap(pend, new Map(siswa.map(row => [row.id, { nis: row.nis, nama: row.nama, alamat: row.alamat }])), new Map(armada.map(row => [row.id, `${row.nama_supir}${row.jenis_mobil ? ` (${row.jenis_mobil})` : ''}`])), counts);
+        recapReady.value = true;
     }
-
-    rekapRows.value = buildJemputanRekap(pend, sMap, aMap, absMap)
-  } catch (e) {
-    notifyError(toast, e, "Gagal memuat rekap jemputan.")
-  } finally {
-    rekapLoading.value = false
-  }
+    catch (e) {
+        if (request === recapSequence)
+            recapError.value = message(e, 'Rekap jemputan belum berhasil dimuat');
+    }
+    finally {
+        if (request === recapSequence)
+            recapLoading.value = false;
+    }
 }
-
-function exportRekapCsv() {
-  if (rekapRows.value.length === 0) return
-  const name = `rekap-jemputan-${tahun.value}-${String(bulan.value).padStart(2, "0")}.csv`
-  downloadCsv(name, jemputanRekapToCsv(rekapRows.value))
+function apply() {
+    if (recapLoading.value || exporting.value)
+        return;
+    scope.value = { bulan: bulan.value, tahun: tahun.value };
+    void loadRecap();
 }
-
-async function exportLegacyCsv() {
-  try {
-    const name = `laporan-jemput-legacy-${tahun.value}-${String(bulan.value).padStart(2, "0")}.csv`
-    await legacyExportApi.jemput(bulan.value, tahun.value, name)
-    notifySuccess(toast, "Export legacy jemput berhasil.")
-  } catch (e) {
-    notifyError(toast, e, "Gagal export legacy jemput.")
-  }
+function openFleet(row?: ArmadaJemputan) {
+    formKind.value = 'armada';
+    editing.value = row?.id ?? null;
+    Object.assign(fleetForm, { nama_supir: row?.nama_supir ?? '', jenis_mobil: row?.jenis_mobil ?? '', kapasitas: row?.kapasitas ?? 7, keterangan: row?.keterangan ?? '' });
+    openForm();
 }
-
-watch(tab, (t) => {
-  if (t === "armada") loadArmada()
-  if (t === "pendaftaran") {
-    loadArmada()
-    loadPendaftaran()
-  }
-  if (t === "rekap") {
-    loadArmada()
-    loadRekap()
-  }
-})
-
-watch([bulan, tahun], () => {
-  if (tab.value === "rekap") loadRekap()
-})
-
-onMounted(loadArmada)
+function openRegistration(row?: PendaftaranJemputan) {
+    formKind.value = 'pendaftaran';
+    editing.value = row?.id ?? null;
+    Object.assign(registrationForm, { siswa: row?.siswa ?? null, armada: row?.armada ?? null, harga: row ? Number(row.harga) : JEMPUTAN_TARIF_MINIMAL });
+    openForm();
+}
+function openForm() {
+    if (saving.value)
+        return;
+    attempted.value = false;
+    formError.value = '';
+    uncertain.value = false;
+    visible.value = true;
+}
+const invalidFleet = computed(() => !fleetForm.nama_supir.trim() || fleetForm.nama_supir.length > 100 || fleetForm.jenis_mobil.length > 50 || fleetForm.keterangan.length > 255 || fleetForm.kapasitas == null || !Number.isInteger(fleetForm.kapasitas) || fleetForm.kapasitas < 0);
+const invalidRegistration = computed(() => !registrationForm.siswa || !studentMap.value.has(registrationForm.siswa) || registrationForm.harga == null || !Number.isFinite(registrationForm.harga) || registrationForm.harga < 0 || !!registrationForm.armada && !fleetMap.value.has(registrationForm.armada));
+async function save() {
+    if (saving.value)
+        return;
+    attempted.value = true;
+    formError.value = '';
+    if (formKind.value === 'armada' ? invalidFleet.value : invalidRegistration.value) {
+        formError.value = 'Periksa isian wajib, panjang teks, dan angka nol atau lebih sebelum menyimpan.';
+        return;
+    }
+    if (uncertain.value && !editing.value) {
+        formError.value = 'Hasil penambahan sebelumnya belum pasti. Tutup form, muat ulang daftar, dan periksa data sebelum menambahkan kembali.';
+        return;
+    }
+    saving.value = true;
+    try {
+        if (formKind.value === 'armada') {
+            const payload = { nama_supir: fleetForm.nama_supir.trim(), jenis_mobil: fleetForm.jenis_mobil, kapasitas: fleetForm.kapasitas!, keterangan: fleetForm.keterangan };
+            if (editing.value)
+                await armadaApi.update(editing.value, payload);
+            else
+                await armadaApi.create(payload);
+        }
+        else {
+            const payload = { siswa: registrationForm.siswa!, armada: registrationForm.armada, harga: registrationForm.harga!.toFixed(2) };
+            if (editing.value)
+                await pendaftaranJemputanApi.update(editing.value, payload);
+            else
+                await pendaftaranJemputanApi.create(payload);
+        }
+        notifySuccess(toast, formKind.value === 'armada' ? 'Armada tersimpan' : 'Pendaftaran jemputan tersimpan');
+        visible.value = false;
+        await loadDirectory();
+    }
+    catch (e) {
+        const status = (e as {
+            response?: {
+                status?: number;
+            };
+        })?.response?.status;
+        // shortcut: create endpoints have no request ID; require a list check after an ambiguous outcome.
+        uncertain.value = !status || status >= 500;
+        formError.value = message(e, 'Data belum berhasil disimpan') + '. Input tetap ada.' + (uncertain.value && !editing.value ? ' Periksa daftar sebelum menambahkan kembali.' : '');
+    }
+    finally {
+        saving.value = false;
+    }
+}
+function removeFleet(row: ArmadaJemputan) {
+    remove('armada', row.id, row.nama_supir);
+}
+function removeRegistration(row: PendaftaranJemputan) {
+    remove('pendaftaran', row.id, studentMap.value.get(row.siswa)?.nama ?? `Siswa #${row.siswa}`);
+}
+function remove(kind: 'armada' | 'pendaftaran', id: number, label: string) {
+    confirm.require({ header: kind === 'armada' ? 'Hapus armada?' : 'Hapus pendaftaran jemputan?', message: kind === 'armada' ? `Armada ${label} akan dihapus. Pendaftaran siswa terkait kehilangan penetapan armada, tetapi tetap ada.` : `Pendaftaran jemputan ${label} akan dihapus. Catatan absensi siswa tetap ada.`, acceptLabel: 'Hapus', rejectLabel: 'Kembali', acceptProps: { severity: 'danger' }, accept: async () => {
+            if (saving.value)
+                return;
+            saving.value = true;
+            actionError.value = '';
+            try {
+                if (kind === 'armada')
+                    await armadaApi.remove(id);
+                else
+                    await pendaftaranJemputanApi.remove(id);
+                notifySuccess(toast, 'Data dihapus');
+                await loadDirectory();
+            }
+            catch (e) {
+                actionError.value = message(e, 'Data belum berhasil dihapus') + '. Muat ulang daftar untuk memeriksa hasil.';
+            }
+            finally {
+                saving.value = false;
+            }
+        } });
+}
+function csv() {
+    if (!recapReady.value || !filteredRecap.value.length)
+        return;
+    downloadCsv(`rekap-jemputan-${scope.value.tahun}-${String(scope.value.bulan).padStart(2, '0')}.csv`, jemputanRekapToCsv(filteredRecap.value));
+}
+async function legacy() {
+    if (!recapReady.value || exporting.value)
+        return;
+    exporting.value = true;
+    exportError.value = '';
+    try {
+        await legacyExportApi.jemput(scope.value.bulan, scope.value.tahun, `laporan-jemput-legacy-${scope.value.tahun}-${String(scope.value.bulan).padStart(2, '0')}.csv`);
+    }
+    catch (e) {
+        exportError.value = message(e, 'CSV format lama belum berhasil diunduh');
+    }
+    finally {
+        exporting.value = false;
+    }
+}
+watch(tab, () => {
+    actionError.value = '';
+    if (tab.value === 'rekap')
+        void loadRecap();
+    else
+        void loadDirectory();
+});
+function beforeUnload(event: BeforeUnloadEvent) {
+    if (saving.value) {
+        event.preventDefault();
+        event.returnValue = '';
+    }
+}
+onMounted(() => {
+    void loadDirectory();
+    window.addEventListener('beforeunload', beforeUnload);
+});
+onBeforeRouteLeave(() => !saving.value);
+onBeforeUnmount(() => {
+    masterSequence++;
+    recapSequence++;
+    window.removeEventListener('beforeunload', beforeUnload);
+});
 </script>
-
 <template>
-  <PageLayout
-    title="Jemputan"
-    subtitle="Kelola armada, pendaftaran siswa, dan rekap tagihan jemputan"
-  >
-    <Tabs v-model:value="tab">
-      <TabList>
-        <Tab value="armada">Armada</Tab>
-        <Tab value="pendaftaran">Pendaftaran Siswa</Tab>
-        <Tab value="rekap">Rekap Tagihan</Tab>
-      </TabList>
-      <TabPanels>
-        <!-- Armada -->
-        <TabPanel value="armada">
-          <div class="tab-toolbar">
-            <Button label="Tambah Armada" icon="pi pi-plus" @click="openArmadaCreate" />
-          </div>
-          <DataTable
-            :value="armadaRows"
-            :loading="armadaLoading"
-            data-key="id"
-            paginator
-            :rows="10"
-            striped-rows
-          >
-            <template #empty>
-              <EmptyState message="Belum ada armada. Tambah supir & mobil terlebih dahulu." action-label="Tambah Armada" @action="openArmadaCreate" />
-            </template>
-            <Column field="nama_supir" header="Supir" />
-            <Column field="jenis_mobil" header="Mobil" />
-            <Column header="Kapasitas">
-              <template #body="{ data }">{{ data.kapasitas ?? 0 }} penumpang</template>
-            </Column>
-            <Column field="keterangan" header="Keterangan" />
-            <Column header="Aksi" headerClass="bee-col-actions--sm" bodyClass="bee-col-actions--sm">
-              <template #body="{ data }">
-                <div class="bee-actions">
-                  <Button icon="pi pi-pencil" text aria-label="Edit" @click="openArmadaEdit(data)" />
-                  <Button icon="pi pi-trash" text severity="danger" aria-label="Hapus" @click="confirmDeleteArmada(data)" />
-                </div>
-              </template>
-            </Column>
-          </DataTable>
-        </TabPanel>
-
-        <!-- Pendaftaran -->
-        <TabPanel value="pendaftaran">
-          <div class="tab-toolbar">
-            <Button label="Daftarkan Siswa" icon="pi pi-plus" @click="openPendaftaranCreate" />
-          </div>
-          <DataTable
-            :value="pendaftaranRows"
-            :loading="pendaftaranLoading"
-            data-key="id"
-            paginator
-            :rows="10"
-            striped-rows
-          >
-            <template #empty>
-              <EmptyState message="Belum ada siswa terdaftar jemputan." action-label="Daftarkan Siswa" @action="openPendaftaranCreate" />
-            </template>
-            <Column header="Siswa">
-              <template #body="{ data }">{{ siswaMap.get(data.siswa)?.nama ?? `#${data.siswa}` }}</template>
-            </Column>
-            <Column header="Alamat">
-              <template #body="{ data }">{{ siswaMap.get(data.siswa)?.alamat ?? "—" }}</template>
-            </Column>
-            <Column header="Armada">
-              <template #body="{ data }">{{ data.armada ? armadaMap.get(data.armada) : "—" }}</template>
-            </Column>
-            <Column header="Harga / bulan">
-              <template #body="{ data }">
-                <span class="tabular-nums">{{ formatRp(data.harga) }}</span>
-              </template>
-            </Column>
-            <Column header="Aksi" headerClass="bee-col-actions--sm" bodyClass="bee-col-actions--sm">
-              <template #body="{ data }">
-                <div class="bee-actions">
-                  <Button icon="pi pi-pencil" text aria-label="Edit" @click="openPendaftaranEdit(data)" />
-                  <Button icon="pi pi-trash" text severity="danger" aria-label="Hapus" @click="confirmDeletePendaftaran(data)" />
-                </div>
-              </template>
-            </Column>
-          </DataTable>
-        </TabPanel>
-
-        <!-- Rekap -->
-        <TabPanel value="rekap">
-          <div class="tab-toolbar">
-            <PeriodPicker v-model:bulan="bulan" v-model:tahun="tahun" />
-            <Button
-              label="Export CSV"
-              icon="pi pi-download"
-              severity="secondary"
-              :disabled="rekapRows.length === 0 || rekapLoading"
-              @click="exportRekapCsv"
-            />
-            <Button
-              label="Export Legacy"
-              icon="pi pi-file-export"
-              severity="secondary"
-              outlined
-              :disabled="rekapLoading"
-              @click="exportLegacyCsv"
-            />
-          </div>
-          <SearchField
-            v-model="rekapSearch"
-            block
-            hint="Cari NIS, nama, armada, harga jemputan"
-          />
-
-          <Message severity="info" :closable="false" class="info-msg">
-            <strong>Cara hitung:</strong> Tagihan jemputan = (Datang + Pulang) × tarif per trip dari pendaftaran.
-            Kolom <strong>Total</strong> = nominal tagihan bulan ini (selaras generate tagihan).
-            <br />
-            <span class="info-note">Catatan: penugasan pendamping guru per armada belum tersedia di versi ini — fitur direncanakan rilis berikutnya.</span>
-          </Message>
-
-          <DataTable
-            :value="filteredRekapRows"
-            :loading="rekapLoading"
-            data-key="siswaId"
-            paginator
-            :rows="15"
-            striped-rows
-            class="rekap-count-table"
-          >
-            <template #empty>
-              <EmptyState :message="`Belum ada pendaftaran jemputan untuk rekap ${BULAN_LABEL[bulan - 1]} ${tahun}.`" />
-            </template>
-            <Column field="nis" header="NIS" />
-            <Column field="nama" header="Nama" />
-            <Column field="armada" header="Armada" />
-            <Column header="Tarif / trip">
-              <template #body="{ data }">
-                <span class="tabular-nums">{{ formatRp(data.tarifPerTrip) }}</span>
-              </template>
-            </Column>
-            <Column field="jemputDatang" header-class="count-col count-col--wide" body-class="count-col count-col--wide">
-              <template #header>
-                <span title="Hari dijemput pagi">Datang</span>
-              </template>
-              <template #body="{ data }">
-                <span class="count-val">{{ data.jemputDatang }}</span>
-              </template>
-            </Column>
-            <Column field="jemputPulang" header-class="count-col count-col--wide" body-class="count-col count-col--wide">
-              <template #header>
-                <span title="Hari dijemput sore">Pulang</span>
-              </template>
-              <template #body="{ data }">
-                <span class="count-val">{{ data.jemputPulang }}</span>
-              </template>
-            </Column>
-            <Column header="Total">
-              <template #body="{ data }">
-                <span class="tabular-nums">{{ formatRp(data.totalNominal) }}</span>
-              </template>
-            </Column>
-          </DataTable>
-
-          <div v-if="filteredRekapRows.length > 0" class="total-bar bee-section-title">
-            <span>Total tagihan jemputan bulan ini</span>
-            <strong>{{ formatRp(totalTagihan) }}</strong>
-          </div>
-        </TabPanel>
-      </TabPanels>
-    </Tabs>
-
-    <!-- Dialog Armada -->
-    <Dialog
-      v-model:visible="armadaDialog"
-      :header="armadaEditingId ? 'Edit Armada' : 'Tambah Armada'"
-      modal
-      :style="{ width: '30rem' }"
-    >
-      <div class="form-grid">
-        <div class="field span2">
-          <label>Nama Supir *</label>
-          <InputText v-model="armadaForm.nama_supir" fluid />
-        </div>
-        <div class="field">
-          <label>Jenis Mobil</label>
-          <InputText v-model="armadaForm.jenis_mobil" fluid placeholder="Avanza, Innova, …" />
-        </div>
-        <div class="field">
-          <label>Kapasitas</label>
-          <InputNumber v-model="armadaForm.kapasitas" :min="1" fluid />
-        </div>
-        <div class="field span2">
-          <label>Keterangan / Rute</label>
-          <Textarea v-model="armadaForm.keterangan" rows="2" auto-resize fluid />
-        </div>
+<PageLayout class="school-service-page" title="Jemputan"
+  subtitle="Kelola kendaraan dan peserta, lalu periksa perjalanan yang tercatat." :surface="false"><template
+    #actions>
+    <RouterLink class="service-link" to="/absensi-siswa">
+      <Icon name="calendar-blank" />Buka absensi
+    </RouterLink>
+  </template>
+  <nav class="service-nav" aria-label="Bagian jemputan"><button
+      v-for="item in [{id:'armada',label:'Armada'},{id:'pendaftaran',label:'Pendaftaran siswa'},{id:'rekap',label:'Rekap jemputan'}]"
+      :key="item.id" type="button" :aria-pressed="tab===item.id" :disabled="saving"
+      @click="tab=item.id">{{ item.label }}</button></nav>
+  <section v-if="tab!=='rekap'" :key="tab" class="service-panel bee-subpage">
+    <header class="service-heading">
+      <h2>{{ tab==='armada'?'Armada jemputan':'Pendaftaran siswa' }}</h2>
+      <p>
+        {{ tab==='armada'?'Identitas pengemudi, kendaraan, kapasitas, dan keterangan rute.':'Tarif berlaku per perjalanan datang atau pulang. Penanda perjalanan diisi melalui absensi.' }}
+      </p>
+    </header>
+    <div class="service-toolbar">
+      <div class="service-field"><label
+          :for="tab==='armada'?'fleet-search':'registration-search'">{{ tab==='armada'?'Cari armada':'Cari peserta jemputan' }}</label>
+        <SearchField v-if="tab==='armada'" input-id="fleet-search" v-model="fleetQuery"
+          placeholder="Pengemudi, mobil, atau rute" hint="Mencari pada seluruh armada yang dimuat." />
+        <SearchField v-else input-id="registration-search" v-model="registrationQuery"
+          placeholder="Nama, NIS, atau armada" hint="Mencari pada seluruh pendaftaran yang dimuat." />
       </div>
-      <template #footer>
-        <Button label="Batal" severity="secondary" text @click="armadaDialog = false" />
-        <Button label="Simpan" :loading="armadaSaving" :disabled="!armadaForm.nama_supir.trim()" @click="saveArmada" />
+      <div class="service-buttons"><Button label="Muat ulang daftar" severity="secondary"
+          :disabled="loading||saving" @click="loadDirectory"><template #icon>
+            <Icon name="arrows-clockwise" />
+          </template></Button><Button :label="tab==='armada'?'Tambah armada':'Daftarkan siswa'"
+          :disabled="loading||saving||!!error"
+          @click="tab==='armada'?openFleet():openRegistration()"><template #icon>
+            <Icon name="plus" />
+          </template></Button></div>
+    </div>
+    <div v-if="actionError" class="service-notice">
+      <Message severity="error" :closable="false">{{ actionError }}</Message>
+    </div>
+    <div v-if="loading" class="service-empty" role="status">
+      <Icon name="arrows-clockwise" />
+      <p>Memuat seluruh {{ tab==='armada'?'armada':'pendaftaran dan pilihan siswa' }}…</p>
+    </div>
+    <div v-else-if="error" class="service-empty">
+      <Icon name="warning-circle" />
+      <h3>Daftar belum dapat ditampilkan</h3>
+      <p role="alert">{{ error }}</p><Button label="Coba muat daftar" severity="secondary"
+        @click="loadDirectory" />
+    </div>
+    <div v-else-if="!directoryRows.length" class="service-empty">
+      <Icon name="van" />
+      <h3>
+        {{ (tab==='armada'?fleetQuery:registrationQuery).trim()?'Tidak ada hasil yang cocok':tab==='armada'?'Belum ada armada':'Belum ada peserta jemputan' }}
+      </h3>
+      <p>Sesuaikan pencarian atau gunakan tombol {{ tab==='armada'?'Tambah armada':'Daftarkan siswa' }} untuk
+        mengisi daftar.</p>
+    </div>
+    <template v-else>
+      <div class="service-result-count" role="status">
+        {{ first+1 }}–{{ Math.min(first+10,directoryRows.length) }} dari {{ directoryRows.length }}
+        {{ tab==='armada'?'armada':'pendaftaran' }}</div>
+      <template v-if="tab==='armada'">
+        <table class="service-master-table">
+          <caption class="service-caption">Daftar armada jemputan</caption>
+          <thead>
+            <tr>
+              <th scope="col">Pengemudi dan kendaraan</th>
+              <th scope="col">Kapasitas</th>
+              <th scope="col">Keterangan / rute</th>
+              <th scope="col">Tindakan</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="row in fleetPage" :key="row.id">
+              <th scope="row">
+                {{ row.nama_supir }}<small>{{ row.jenis_mobil||'Jenis mobil belum diisi' }}</small></th>
+              <td>{{ row.kapasitas }} penumpang</td>
+              <td>{{ row.keterangan||'Belum diisi' }}</td>
+              <td class="service-master-actions"><Button :aria-label="`Ubah armada ${row.nama_supir}`"
+                  severity="secondary" text :disabled="saving" @click="openFleet(row)"><template #icon>
+                    <Icon name="pencil-simple" />
+                  </template></Button><Button :aria-label="`Hapus armada ${row.nama_supir}`" severity="danger"
+                  text :disabled="saving" @click="removeFleet(row)"><template #icon>
+                    <Icon name="trash" />
+                  </template></Button></td>
+            </tr>
+          </tbody>
+        </table>
+        <ul class="service-master-cards">
+          <li v-for="row in fleetPage" :key="row.id">
+            <strong>{{ row.nama_supir }}</strong><small>{{ row.jenis_mobil||'Jenis mobil belum diisi' }}</small>
+            <p>Kapasitas {{ row.kapasitas }} penumpang</p>
+            <p>{{ row.keterangan||'Keterangan / rute belum diisi' }}</p>
+            <div class="service-buttons"><Button label="Ubah armada" severity="secondary" :disabled="saving"
+                @click="openFleet(row)" /><Button :aria-label="`Hapus armada ${row.nama_supir}`"
+                severity="danger" text :disabled="saving" @click="removeFleet(row)"><template #icon>
+                  <Icon name="trash" />
+                </template></Button></div>
+          </li>
+        </ul>
       </template>
-    </Dialog>
-
-    <!-- Dialog Pendaftaran -->
-    <Dialog
-      v-model:visible="pendaftaranDialog"
-      :header="pendaftaranEditingId ? 'Edit Pendaftaran' : 'Daftarkan Jemputan'"
-      modal
-      :style="{ width: '32rem' }"
-    >
-      <div class="form-grid">
-        <div class="field span2">
-          <label>Siswa *</label>
-          <Select
-            v-model="pendaftaranForm.siswa"
-            :options="siswaList"
-            option-label="nama"
-            option-value="id"
-            filter
-            placeholder="Pilih siswa"
-            fluid
-          />
+      <template v-else>
+        <table class="service-master-table">
+          <caption class="service-caption">Daftar peserta jemputan</caption>
+          <thead>
+            <tr>
+              <th scope="col">Siswa dan armada</th>
+              <th scope="col">Alamat penjemputan</th>
+              <th scope="col">Tarif / perjalanan</th>
+              <th scope="col">Tindakan</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="row in registrationPage" :key="row.id">
+              <th scope="row">{{ row.nama }}<small>{{ row.nis||'NIS belum diisi' }} ·
+                  {{ row.armadaLabel }}</small></th>
+              <td>{{ row.alamat }}</td>
+              <td class="service-money">{{ formatRp(row.harga) }}</td>
+              <td class="service-master-actions"><Button :aria-label="`Ubah pendaftaran ${row.nama}`"
+                  severity="secondary" text :disabled="saving" @click="openRegistration(row)"><template #icon>
+                    <Icon name="pencil-simple" />
+                  </template></Button><Button :aria-label="`Hapus pendaftaran ${row.nama}`" severity="danger"
+                  text :disabled="saving" @click="removeRegistration(row)"><template #icon>
+                    <Icon name="trash" />
+                  </template></Button></td>
+            </tr>
+          </tbody>
+        </table>
+        <ul class="service-master-cards">
+          <li v-for="row in registrationPage" :key="row.id">
+            <strong>{{ row.nama }}</strong><small>{{ row.nis||'NIS belum diisi' }} ·
+              {{ row.armadaLabel }}</small>
+            <p>{{ row.alamat }}</p>
+            <p class="service-money">{{ formatRp(row.harga) }} / perjalanan</p>
+            <div class="service-buttons"><Button label="Ubah pendaftaran" severity="secondary"
+                :disabled="saving" @click="openRegistration(row)" /><Button
+                :aria-label="`Hapus pendaftaran ${row.nama}`" severity="danger" text :disabled="saving"
+                @click="removeRegistration(row)"><template #icon>
+                  <Icon name="trash" />
+                </template></Button></div>
+          </li>
+        </ul>
+      </template>
+      <Paginator v-if="directoryRows.length>10" v-model:first="first" :rows="10"
+        :total-records="directoryRows.length" :page-link-size="3"
+        template="PrevPageLink PageLinks NextPageLink"><template #prevpagelinkicon>
+          <Icon name="caret-left" />
+        </template><template #nextpagelinkicon>
+          <Icon name="caret-right" />
+        </template></Paginator>
+    </template>
+  </section>
+  <div v-else class="bee-subpage">
+    <section class="service-panel">
+      <header class="service-heading">
+        <h2>Pilih cakupan rekap</h2>
+        <p>Jumlah perjalanan datang dan pulang berasal dari catatan absensi pada seluruh tanggal bulan
+          tersebut.</p>
+      </header>
+      <form class="service-controls" @submit.prevent="apply">
+        <div class="service-field"><label>Periode rekap</label>
+          <PeriodPicker v-model:bulan="bulan" v-model:tahun="tahun" />
+        </div><Button label="Terapkan" type="submit" :disabled="recapLoading||exporting"><template #icon>
+            <Icon name="funnel" />
+          </template></Button>
+      </form>
+      <p v-if="dirty" class="service-note" role="status">Pilihan belum diterapkan. Hasil dan CSV masih
+        mengikuti bulan pada hasil.</p>
+    </section>
+    <section class="service-panel">
+      <header class="service-heading">
+        <h2>{{ periodLabel }}</h2>
+        <p>Jumlah = (perjalanan datang + perjalanan pulang) × tarif per perjalanan. Siswa terdaftar tanpa
+          perjalanan ditampilkan dengan jumlah nol.</p>
+      </header>
+      <div class="service-toolbar">
+        <div class="service-field"><label for="transport-search">Cari siswa pada rekap</label>
+          <SearchField input-id="transport-search" v-model="recapQuery" placeholder="Nama, NIS, atau armada"
+            hint="Mencari pada seluruh hasil rekap yang dimuat." />
         </div>
-        <div class="field span2">
-          <label>Alamat (dari data siswa)</label>
-          <InputText :model-value="selectedSiswaAlamat" disabled fluid />
-        </div>
-        <div class="field span2">
-          <label>Armada</label>
-          <Select
-            v-model="pendaftaranForm.armada"
-            :options="armadaRows"
-            :option-label="(a: ArmadaJemputan) => `${a.nama_supir} (${a.jenis_mobil || 'mobil'})`"
-            option-value="id"
-            show-clear
-            placeholder="Pilih armada"
-            fluid
-          />
-        </div>
-        <div class="field span2">
-          <label>Harga per bulan *</label>
-          <InputNumber v-model="pendaftaranForm.harga" :min="0" fluid />
-          <small>Minimal referensi: {{ formatRp(JEMPUTAN_TARIF_MINIMAL) }}</small>
-        </div>
+        <div class="service-buttons"><Button label="Muat ulang rekap" severity="secondary"
+            :disabled="recapLoading||exporting" @click="loadRecap"><template #icon>
+              <Icon name="arrows-clockwise" />
+            </template></Button><Button label="Unduh CSV" severity="secondary"
+            :disabled="!recapReady||!filteredRecap.length" @click="csv"><template #icon>
+              <Icon name="download" />
+            </template></Button><Button label="CSV format lama" severity="secondary" text
+            :disabled="!recapReady||exporting" :loading="exporting" @click="legacy" /></div>
       </div>
-      <template #footer>
-        <Button label="Batal" severity="secondary" text @click="pendaftaranDialog = false" />
-        <Button
-          label="Simpan"
-          :loading="pendaftaranSaving"
-          :disabled="!pendaftaranForm.siswa"
-          @click="savePendaftaran"
-        />
-      </template>
-    </Dialog>
-  </PageLayout>
+      <div v-if="exportError" class="service-notice">
+        <Message severity="error" :closable="false">{{ exportError }}</Message>
+      </div>
+      <ServiceRecap kind="jemputan" :rows="filteredRecap" :loading="recapLoading" :error="recapError"
+        :filtered="!!recapQuery.trim()" @retry="loadRecap" @clear-search="recapQuery=''" />
+      <p class="service-note service-recap-note">Rekap memakai siswa aktif, pendaftaran dan tarif saat ini,
+        termasuk saat membuka arsip. Jika satu siswa memiliki beberapa pendaftaran, tarif dan armada memakai
+        pendaftaran terbaru, sesuai aturan tagihan. Rekap bukan bukti tagihan sudah dibuat atau dibayar. CSV
+        mengikuti pencarian; CSV format lama memakai seluruh cakupan endpoint bulanan.</p>
+    </section>
+  </div>
+  <Dialog :visible="visible" @update:visible="value=>{if(!saving)visible=value}"
+    :header="formKind==='armada'?(editing?'Ubah armada':'Tambah armada'):(editing?'Ubah pendaftaran':'Daftarkan jemputan')"
+    class="service-dialog" modal :closable="!saving" :close-on-escape="!saving"><template #closeicon>
+      <Icon name="x" />
+    </template>
+    <form id="transport-form" @submit.prevent="save">
+      <fieldset class="service-form" :disabled="saving">
+        <template v-if="formKind==='armada'">
+          <div class="service-field"><label for="fleet-driver">Nama pengemudi (wajib)</label>
+            <InputText id="fleet-driver" v-model="fleetForm.nama_supir" :maxlength="100"
+              :invalid="attempted&&!fleetForm.nama_supir.trim()"
+              :aria-invalid="attempted&&!fleetForm.nama_supir.trim()" fluid />
+          </div>
+          <div class="service-field"><label for="fleet-car">Jenis mobil</label>
+            <InputText id="fleet-car" v-model="fleetForm.jenis_mobil" :maxlength="50" fluid
+              placeholder="Contoh: Avanza" />
+          </div>
+          <div class="service-field"><label for="fleet-capacity">Kapasitas penumpang</label>
+            <InputNumber input-id="fleet-capacity" v-model="fleetForm.kapasitas" :min="0"
+              :max-fraction-digits="0"
+              :invalid="attempted&&(fleetForm.kapasitas==null||fleetForm.kapasitas<0)" fluid />
+          </div>
+          <div class="service-field"><label for="fleet-route">Keterangan / rute</label><Textarea
+              id="fleet-route" v-model="fleetForm.keterangan" :maxlength="255" rows="3" auto-resize fluid />
+          </div>
+        </template>
+        <template v-else>
+          <div class="service-field"><label for="transport-student">Siswa (wajib)</label><Select :key="(saving) ? 'locked' : 'editable'"
+              input-id="transport-student" :disabled="saving" v-model="registrationForm.siswa"
+              :options="studentOptions" option-label="label" option-value="id" filter
+              :invalid="attempted&&!registrationForm.siswa" placeholder="Pilih siswa" fluid><template
+                #dropdownicon>
+                <Icon name="caret-down" />
+              </template><template #filtericon>
+                <Icon name="magnifying-glass" />
+              </template></Select></div>
+          <div class="service-field"><label>Alamat dari profil siswa</label>
+            <p class="transport-address">
+              {{ registrationForm.siswa?studentMap.get(registrationForm.siswa)?.alamat||'Alamat belum diisi':'Pilih siswa untuk melihat alamat.' }}
+            </p>
+          </div>
+          <div class="service-field"><label for="transport-fleet">Armada</label><Select :key="(saving) ? 'locked' : 'editable'"
+              input-id="transport-fleet" :disabled="saving" v-model="registrationForm.armada"
+              :options="fleetOptions" option-label="label" option-value="id" show-clear
+              placeholder="Belum ditentukan" fluid><template #dropdownicon>
+                <Icon name="caret-down" />
+              </template><template #clearicon="slotProps"><SelectClearButton v-bind="slotProps" /></template></Select></div>
+          <div class="service-field"><label for="transport-price">Tarif per perjalanan (wajib)</label>
+            <InputNumber input-id="transport-price" v-model="registrationForm.harga" :min="0"
+              :max-fraction-digits="2" locale="id-ID" :invalid="attempted&&registrationForm.harga==null"
+              aria-describedby="transport-price-help" fluid /><small id="transport-price-help">Satu datang
+              atau satu pulang dihitung satu perjalanan. Angka awal {{ formatRp(JEMPUTAN_TARIF_MINIMAL) }}
+              dapat disesuaikan; nol tetap diperbolehkan.</small>
+          </div>
+        </template>
+      </fieldset>
+      <Message v-if="formError" severity="error" :closable="false" role="alert">{{ formError }}</Message>
+    </form><template #footer><Button label="Kembali" severity="secondary" :disabled="saving"
+        @click="visible=false" /><Button label="Simpan" type="submit" form="transport-form" :loading="saving"
+        :disabled="saving" /></template>
+  </Dialog>
+</PageLayout>
 </template>
-
 <style scoped>
-.tab-toolbar {
+.service-buttons {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
-  margin-bottom: 1rem;
-}
-.info-msg {
-  margin-bottom: 1rem;
-}
-.info-note {
-  display: block;
-  margin-top: 0.35rem;
-  font-size: 0.85rem;
-  opacity: 0.9;
-}
-.total-bar {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
-  margin-top: 1rem;
-  padding: 0.85rem 1rem;
-  background: var(--app-bg);
-  border-radius: var(--bee-radius-md, 12px);
-  font-weight: 600;
+  gap: var(--bee-space-2);
+  flex-wrap: wrap
 }
-.total-bar strong {
-  color: var(--bee-navy);
-  font-size: 1.05rem;
+
+.service-money {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap
 }
-.form-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.85rem;
-}
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-}
-.field.span2 {
-  grid-column: 1 / -1;
-}
-.field label {
-  font-weight: 600;
-  font-size: 0.85rem;
-}
-.field small {
+
+.transport-address {
+  margin: 0;
+  font-size: var(--bee-type-ui);
   color: var(--app-text-muted);
+  overflow-wrap: anywhere
+}
+
+.service-recap-note {
+  padding-top: var(--bee-space-4)
 }
 </style>

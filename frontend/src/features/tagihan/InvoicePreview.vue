@@ -2,19 +2,14 @@
 import Tag from "primevue/tag"
 import { computed } from "vue"
 
+import { TAGIHAN_STATUS, perluDicocokkan } from "./presentation"
 import { formatRp } from "@/core/format"
-import type { StrukTagihan, TagihanKategori, TagihanStatus } from "@/types/api"
+import type { StrukTagihan, TagihanKategori } from "@/types/api"
 
 const props = defineProps<{
   invoice: StrukTagihan
   printable?: boolean
 }>()
-
-const statusSeverity: Record<TagihanStatus, string> = {
-  BELUM: "warn",
-  SEBAGIAN: "info",
-  LUNAS: "success",
-}
 
 const sections = computed(() => {
   if (props.invoice.sections?.length) return props.invoice.sections
@@ -48,7 +43,7 @@ const sections = computed(() => {
       <img src="/logo-lebah.svg" alt="" class="invoice__logo" width="48" height="48" />
       <div>
         <h2 class="invoice__school">{{ invoice.sekolah ?? "RA Lebah Madu" }}</h2>
-        <p class="invoice__tagline">Faktur Tagihan Siswa</p>
+        <p class="invoice__tagline">Faktur tagihan siswa</p>
       </div>
     </header>
 
@@ -77,17 +72,17 @@ const sections = computed(() => {
     </div>
 
     <div class="invoice__total">
-      <span>Grand Total</span>
+      <span>Total tagihan</span>
       <strong>{{ formatRp(invoice.total) }}</strong>
     </div>
 
     <footer class="invoice__foot">
-      <Tag :value="invoice.perlu_rekonsiliasi ? 'Perlu rekonsiliasi' : invoice.status === 'SEBAGIAN' ? 'Belum lunas — dibayar sebagian' : invoice.status" :severity="invoice.perlu_rekonsiliasi ? 'warn' : statusSeverity[invoice.status]" />
+      <Tag :value="perluDicocokkan(invoice) ? 'Perlu dicocokkan' : TAGIHAN_STATUS[invoice.status].label" :severity="perluDicocokkan(invoice) ? 'warn' : TAGIHAN_STATUS[invoice.status].severity" />
       <span v-if="invoice.no_jurnal" class="muted">
         Jurnal: {{ invoice.no_jurnal.slice(0, 8) }}…
       </span>
     </footer>
-    <p v-if="invoice.perlu_rekonsiliasi" class="muted">Nominal pembayaran lama perlu dicocokkan dengan bukti penerimaan.</p>
+    <p v-if="perluDicocokkan(invoice)" class="muted">Nominal pembayaran lama perlu dicocokkan dengan bukti penerimaan.</p>
     <div v-else class="invoice__total">
       <span>Dibayar: {{ formatRp(invoice.total_terbayar ?? 0) }}</span>
       <strong>Sisa: {{ formatRp(invoice.sisa_tagihan ?? invoice.total) }}</strong>

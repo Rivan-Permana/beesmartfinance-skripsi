@@ -2,6 +2,7 @@ import { api } from "@/core/api"
 import type { BayarPendaftaranInput, Paginated, PendaftaranSiswa, PendaftaranSiswaInput } from "@/types/api"
 
 export const pendaftaranSiswaApi = {
+  get: (id: number) => api.get<PendaftaranSiswa>(`/pendaftaran-siswa/${id}/`).then(r => r.data),
   list: (params?: { status?: string; page?: number }) =>
     api
       .get<Paginated<PendaftaranSiswa>>("/pendaftaran-siswa/", { params })

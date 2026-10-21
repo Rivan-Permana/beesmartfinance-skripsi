@@ -1,29 +1,30 @@
 <script setup lang="ts">
+import SelectClearButton from "@/shared/components/SelectClearButton.vue"
 import Button from "primevue/button"
-import Column from "primevue/column"
-import DataTable from "primevue/datatable"
 import Dialog from "primevue/dialog"
-import DatePicker from "primevue/datepicker"
 import InputNumber from "primevue/inputnumber"
 import InputText from "primevue/inputtext"
 import Message from "primevue/message"
 import Select from "primevue/select"
-import Tag from "primevue/tag"
 import { useConfirm } from "primevue/useconfirm"
 import { useToast } from "primevue/usetoast"
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue"
 
 import { tagihanApi } from "./api"
 import InvoicePreview from "./InvoicePreview.vue"
-import { notifyError, notifySuccess } from "@/core/errors"
+import { friendlyError, notifyError, notifySuccess } from "@/core/errors"
 import { formatRp } from "@/core/format"
 import { coaApi } from "@/features/jurnal/api"
 import { jenjangApi, kelompokApi } from "@/features/absensi/api"
 import { tarifKateringApi } from "@/features/katering/api"
 import { siswaApi } from "@/features/siswa/api"
 import PageLayout from "@/shared/components/PageLayout.vue"
-import SearchField from "@/shared/components/SearchField.vue"
-import { useTableSearch } from "@/shared/composables/useTableSearch"
+import Icon from "@/shared/components/PhosphorIcon.vue"
+import TagihanDirectory from "./TagihanDirectory.vue"
+import TagihanPaymentDialog from "./TagihanPaymentDialog.vue"
+import TagihanHistoryDialog from "./TagihanHistoryDialog.vue"
+import { paymentPayload, paymentValid, type TagihanPaymentForm } from "./payment"
+import { perluDicocokkan } from "./presentation"
 import type {
   Coa,
   Jenjang,
@@ -33,7 +34,6 @@ import type {
   Tagihan,
   TagihanDetail,
   TagihanKategori,
-  TagihanStatus,
 } from "@/types/api"
 
 const toast = useToast()
@@ -42,6 +42,7 @@ const confirm = useConfirm()
 const rows = ref<Tagihan[]>([])
 const siswaList = ref<Siswa[]>([])
 const loading = ref(false)
+const loadError = ref("")
 const defaultAkunPendapatan = ref("411")
 const kasOptions = ref<Coa[]>([])
 
@@ -56,24 +57,10 @@ const siswaNama = computed(() => {
   return map
 })
 
-const { query: searchQuery, filtered: filteredRows } = useTableSearch(rows, (t) => [
-  siswaNama.value.get(t.siswa) ?? String(t.siswa),
-  BULAN[t.periode_bulan - 1],
-  String(t.periode_tahun),
-  t.status,
-  formatRp(t.total),
-])
-
-const statusSeverity: Record<TagihanStatus, string> = {
-  BELUM: "warn",
-  SEBAGIAN: "info",
-  LUNAS: "success",
-}
-
 const KATEGORI_ORDER: TagihanKategori[] = ["TAHUNAN", "BULANAN", "LAIN"]
 const KATEGORI_LABEL: Record<TagihanKategori, string> = {
-  TAHUNAN: "Biaya Tahunan",
-  BULANAN: "Biaya Bulanan",
+  TAHUNAN: "Biaya tahunan",
+  BULANAN: "Biaya bulanan",
   LAIN: "Lain-lain",
 }
 
@@ -85,10 +72,12 @@ function prevMonth(): { bulan: number; tahun: number } {
 
 async function load() {
   loading.value = true
+  loadError.value = ""
   try {
     rows.value = await tagihanApi.listAll()
   } catch (e) {
-    notifyError(toast, e, "Gagal memuat tagihan.")
+    rows.value = []
+    loadError.value = "Tagihan belum berhasil dimuat. Periksa koneksi, lalu coba lagi."
   } finally {
     loading.value = false
   }
@@ -105,14 +94,10 @@ const genForm = reactive({
 })
 
 async function loadTarifForPeriod(bulan: number, tahun: number) {
-  try {
-    const t = await tarifKateringApi.get(bulan, tahun)
-    const tarif = Number(t.tarif_harian)
-    genForm.tarif_katering = tarif
-    if (batchDialog.value) batchForm.tarif_katering = tarif
-  } catch {
-    genForm.tarif_katering = 0
-  }
+  let tarif = 0
+  try { tarif = Number((await tarifKateringApi.get(bulan, tahun)).tarif_harian) } catch { /* Nol memakai tarif periode dari server. */ }
+  if (genDialog.value && genForm.periode_bulan === bulan && genForm.periode_tahun === tahun) genForm.tarif_katering = tarif
+  if (batchDialog.value && batchForm.periode_bulan === bulan && batchForm.periode_tahun === tahun) batchForm.tarif_katering = tarif
 }
 
 function openGenerate() {
@@ -132,7 +117,7 @@ watch(
 )
 
 async function runPreview() {
-  if (!genForm.siswa) return
+  if (!genForm.siswa || previewLoading.value) return
   previewLoading.value = true
   try {
     const preview = await tagihanApi.preview({
@@ -157,7 +142,7 @@ async function runPreview() {
 }
 
 async function runGenerate() {
-  if (!genForm.siswa) return
+  if (!genForm.siswa || previewLoading.value) return
   previewLoading.value = true
   try {
     await tagihanApi.generate({
@@ -234,7 +219,10 @@ watch(
   },
 )
 
+watch(() => [batchForm.jenjang, batchForm.kelompok, batchForm.periode_bulan, batchForm.periode_tahun, batchForm.tarif_katering], () => { batchResult.value = null })
+
 async function runBatchPreview() {
+  if (batchLoading.value) return
   batchLoading.value = true
   batchResult.value = null
   try {
@@ -263,6 +251,7 @@ async function runBatchPreview() {
 }
 
 async function runBatchGenerate() {
+  if (batchLoading.value || !batchResult.value?.count) return
   batchLoading.value = true
   try {
     const data = await tagihanApi.generateBatch({
@@ -399,7 +388,7 @@ function batalkanTagihan(t: Tagihan) {
 }
 
 async function saveEditor() {
-  if (!editor.siswa || editor.lines.length === 0) return
+  if (!editor.siswa || editor.lines.length === 0 || saving.value) return
   saving.value = true
   try {
     const payload = {
@@ -433,20 +422,17 @@ async function saveEditor() {
 const bayarDialog = ref(false)
 const bayarTarget = ref<Tagihan | null>(null)
 const bayarSaving = ref(false)
-const bayarForm = reactive({
+const bayarError = ref("")
+const bayarForm = ref<TagihanPaymentForm>({
   tanggal: new Date(), no_bukti: "", akun_kas: "", request_id: "",
-  alokasi: [] as { detail: number; label: string; nominal: number; sisa: number }[],
+  alokasi: [],
 })
-const nominalBayar = computed(() => bayarForm.alokasi.reduce((n, a) => n + Math.round(a.nominal * 100), 0) / 100)
-const bayarValid = computed(() =>
-  !!bayarForm.no_bukti.trim() && !!bayarForm.akun_kas && !!bayarForm.tanggal && nominalBayar.value > 0 &&
-  bayarForm.alokasi.every((a) => a.nominal >= 0 && a.nominal <= a.sisa),
-)
+const bayarValid = computed(() => paymentValid(bayarForm.value))
 
 async function bayar(t: Tagihan) {
   try {
     const full = await tagihanApi.get(t.id)
-    if (full.perlu_rekonsiliasi) {
+    if (perluDicocokkan(full)) {
       notifyError(toast, new Error("Pembayaran lama perlu direkonsiliasi sebelum menerima pembayaran baru."))
       return
     }
@@ -455,11 +441,12 @@ async function bayar(t: Tagihan) {
       return
     }
     bayarTarget.value = full
-    bayarForm.tanggal = new Date()
-    bayarForm.no_bukti = ""
-    bayarForm.akun_kas = kasOptions.value[0]?.kode_akun ?? ""
-    bayarForm.request_id = crypto.randomUUID()
-    bayarForm.alokasi = full.detail.filter((d) => d.id && Number(d.nominal) > Number(d.total_terbayar ?? 0)).map((d) => ({
+    bayarError.value = ""
+    bayarForm.value.tanggal = new Date()
+    bayarForm.value.no_bukti = ""
+    bayarForm.value.akun_kas = kasOptions.value[0]?.kode_akun ?? ""
+    bayarForm.value.request_id = crypto.randomUUID()
+    bayarForm.value.alokasi = full.detail.filter((d) => d.id && Number(d.nominal) > Number(d.total_terbayar ?? 0)).map((d) => ({
       detail: d.id!, label: d.keterangan || d.komponen, nominal: 0,
       sisa: Number(d.nominal) - Number(d.total_terbayar ?? 0),
     }))
@@ -469,27 +456,19 @@ async function bayar(t: Tagihan) {
   }
 }
 
-function lunasiSisa() {
-  bayarForm.alokasi.forEach((a) => { a.nominal = a.sisa })
-}
-
 async function simpanPembayaran() {
   if (!bayarTarget.value || !bayarValid.value || bayarSaving.value) return
   bayarSaving.value = true
+  bayarError.value = ""
   try {
-    const d = bayarForm.tanggal
-    const tanggal = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
-    const res = await tagihanApi.bayar(bayarTarget.value.id, {
-      tanggal, no_bukti: bayarForm.no_bukti.trim(), akun_kas: bayarForm.akun_kas,
-      request_id: bayarForm.request_id, nominal: nominalBayar.value.toFixed(2),
-      alokasi: bayarForm.alokasi.filter((a) => a.nominal > 0).map((a) => ({ detail: a.detail, nominal: a.nominal.toFixed(2) })),
-    })
+    const res = await tagihanApi.bayar(bayarTarget.value.id, paymentPayload(bayarForm.value))
     notifySuccess(toast, "Pembayaran tersimpan", res)
     bayarDialog.value = false
     bayarTarget.value = res.tagihan
     await load()
   } catch (e) {
-    notifyError(toast, e, "Gagal menyimpan pembayaran. Periksa kembali sebelum mencoba ulang.")
+    const error = friendlyError(e, "Pembayaran belum berhasil disimpan.")
+    bayarError.value = [error.summary, error.detail].filter(Boolean).join(". ")
   } finally {
     bayarSaving.value = false
   }
@@ -532,158 +511,70 @@ function cetak() {
 
 onBeforeUnmount(selesaiCetak)
 
-onMounted(async () => {
-  await load()
-  try {
-    siswaList.value = await siswaApi.listAll()
-  } catch {
-    /* select siswa kosong jika gagal */
-  }
+async function loadAccounts() {
   try {
     const coa = await coaApi.list()
     kasOptions.value = coa.filter((c) => c.is_active && ["111", "112", "1011", "1101", "1102"].includes(c.kode_akun))
     const pend = coa.find((c) => c.kode_akun.startsWith("41"))
     if (pend) defaultAkunPendapatan.value = pend.kode_akun
   } catch (e) {
-    notifyError(toast, e, "Gagal memuat akun pembayaran.")
+    notifyError(toast, e, "Akun pembayaran belum berhasil dimuat.")
   }
+}
+onMounted(async () => {
+  await Promise.all([
+    load(), loadAccounts(),
+    siswaApi.listAll().then(data => { siswaList.value = data }).catch(e => notifyError(toast, e, "Nama siswa belum berhasil dimuat.")),
+  ])
 })
 </script>
 
 <template>
-  <PageLayout title="Tagihan Siswa" subtitle="Generate, edit, bayar, dan cetak faktur untuk ortu">
+  <PageLayout title="Tagihan siswa" subtitle="Periksa tagihan, catat pembayaran, dan siapkan faktur." :surface="false">
     <template #actions>
-      <Button label="Batch Generate" icon="pi pi-users" severity="secondary" @click="openBatch" />
-      <Button label="Buat Tagihan" icon="pi pi-plus" @click="openGenerate" />
+      <Button label="Buat sekaligus" severity="secondary" @click="openBatch"><template #icon><Icon name="users" /></template></Button>
+      <Button label="Buat tagihan" @click="openGenerate"><template #icon><Icon name="plus" /></template></Button>
     </template>
-    <template #filters>
-      <SearchField
-        v-model="searchQuery"
-        hint="Cari siswa, periode, status, total tagihan"
-      />
-    </template>
+    <TagihanDirectory :rows="rows" :names="siswaNama" :loading="loading" :error="loadError" @create="openGenerate" @retry="load" @pay="bayar" @edit="editTagihan" @remove="batalkanTagihan" @history="lihatRiwayat" @invoice="lihatStruk" />
+    <TagihanPaymentDialog v-model="bayarDialog" v-model:form="bayarForm" :target="bayarTarget" :student-name="bayarTarget ? siswaNama.get(bayarTarget.siswa) ?? bayarTarget.siswa_nama ?? 'Siswa' : ''" :accounts="kasOptions" :saving="bayarSaving" :error="bayarError" @save="simpanPembayaran" @reload-accounts="loadAccounts" />
 
-    <DataTable :value="filteredRows" :loading="loading" paginator :rows="10" data-key="id" striped-rows>
-      <template #empty>Belum ada tagihan.</template>
-      <Column header="Siswa">
-        <template #body="{ data }">{{ siswaNama.get(data.siswa) ?? `#${data.siswa}` }}</template>
-      </Column>
-      <Column header="Periode">
-        <template #body="{ data }">{{ BULAN[data.periode_bulan - 1] }} {{ data.periode_tahun }}</template>
-      </Column>
-      <Column header="Total">
-        <template #body="{ data }">{{ formatRp(data.total) }}</template>
-      </Column>
-      <Column header="Dibayar">
-        <template #body="{ data }">{{ data.total_terbayar === null ? 'Perlu rekonsiliasi' : formatRp(data.total_terbayar) }}</template>
-      </Column>
-      <Column header="Sisa">
-        <template #body="{ data }">{{ data.sisa_tagihan === null ? 'Perlu rekonsiliasi' : formatRp(data.sisa_tagihan) }}</template>
-      </Column>
-      <Column header="Status">
-        <template #body="{ data }">
-          <Tag :value="data.perlu_rekonsiliasi ? 'Perlu rekonsiliasi' : data.status === 'SEBAGIAN' ? 'Belum lunas — sebagian' : data.status" :severity="data.perlu_rekonsiliasi ? 'warn' : statusSeverity[data.status as TagihanStatus]" />
-        </template>
-      </Column>
-      <Column header="Aksi" headerClass="bee-col-actions--xl" bodyClass="bee-col-actions--xl">
-        <template #body="{ data }">
-          <div class="bee-actions">
-            <Button
-              v-if="data.status === 'BELUM' && !data.perlu_rekonsiliasi && !data.pembayaran.length"
-              label="Edit"
-              size="small"
-              text
-              @click="editTagihan(data)"
-            />
-            <Button
-              v-if="!data.perlu_rekonsiliasi && Number(data.sisa_tagihan) > 0"
-              label="Bayar"
-              size="small"
-              text
-              @click="bayar(data)"
-            />
-            <Button
-              v-if="data.status === 'BELUM' && !data.perlu_rekonsiliasi && !data.pembayaran.length"
-              label="Batalkan"
-              size="small"
-              text
-              severity="danger"
-              @click="batalkanTagihan(data)"
-            />
-            <Button label="Riwayat" size="small" text @click="lihatRiwayat(data)" />
-            <Button label="Cetak" size="small" text severity="secondary" @click="lihatStruk(data)" />
-          </div>
-        </template>
-      </Column>
-    </DataTable>
-
-    <Dialog v-model:visible="bayarDialog" header="Catat pembayaran" modal :closable="!bayarSaving" :style="{ width: '48rem' }">
-      <p v-if="bayarTarget">{{ siswaNama.get(bayarTarget.siswa) ?? bayarTarget.siswa_nama }} — {{ BULAN[bayarTarget.periode_bulan - 1] }} {{ bayarTarget.periode_tahun }}</p>
-      <Message severity="info" :closable="false">Masukkan pembayaran per komponen. Finance mencatat jurnalnya ke buku besar tanpa approval Kepsek.</Message>
-      <div class="form">
-        <div class="field"><label for="tanggal-bayar">Tanggal pembayaran</label><DatePicker input-id="tanggal-bayar" v-model="bayarForm.tanggal" date-format="dd/mm/yy" fluid /></div>
-        <div class="field"><label for="bukti-bayar">No. bukti penerimaan</label><InputText id="bukti-bayar" v-model="bayarForm.no_bukti" :maxlength="100" fluid /></div>
-        <div class="field"><label for="kas-bayar">Kas/Bank penerima</label><Select input-id="kas-bayar" v-model="bayarForm.akun_kas" :options="kasOptions" option-label="nama_akun" option-value="kode_akun" fluid /></div>
-      </div>
-      <DataTable :value="bayarForm.alokasi">
-        <Column field="label" header="Komponen" />
-        <Column header="Sisa"><template #body="{ data }">{{ formatRp(data.sisa) }}</template></Column>
-        <Column header="Bayar sekarang"><template #body="{ data }"><InputNumber v-model="data.nominal" :min="0" :max="data.sisa" :min-fraction-digits="0" :max-fraction-digits="2" locale="id-ID" :aria-label="`Bayar ${data.label}`" fluid /></template></Column>
-      </DataTable>
-      <p>Total pembayaran: <strong>{{ formatRp(nominalBayar) }}</strong></p>
-      <template #footer>
-        <Button label="Lunasi sisa" text :disabled="bayarSaving" @click="lunasiSisa" />
-        <Button label="Tutup" text :disabled="bayarSaving" @click="bayarDialog = false" />
-        <Button label="Simpan pembayaran" :disabled="!bayarValid" :loading="bayarSaving" @click="simpanPembayaran" />
-      </template>
-    </Dialog>
-
-    <Dialog :visible="!!riwayatTarget" header="Riwayat pembayaran" modal :style="{ width: '48rem' }" @update:visible="riwayatTarget = null">
-      <Message v-if="riwayatTarget?.perlu_rekonsiliasi" severity="warn" :closable="false">Nominal pembayaran lama perlu dicocokkan dengan bukti penerimaan. Riwayat cicilan berikut belum mewakili pembayaran lama.</Message>
-      <DataTable :value="riwayatTarget?.pembayaran ?? []">
-        <template #empty>Belum ada record pembayaran pada alur baru.</template>
-        <Column field="tanggal" header="Tanggal" />
-        <Column field="no_bukti" header="Bukti" />
-        <Column header="Nominal"><template #body="{ data }">{{ formatRp(data.nominal) }}</template></Column>
-        <Column header="Komponen"><template #body="{ data }"><div v-for="a in data.alokasi" :key="a.detail">{{ riwayatTarget?.detail.find((d) => d.id === a.detail)?.keterangan || riwayatTarget?.detail.find((d) => d.id === a.detail)?.komponen }}: {{ formatRp(a.nominal) }}</div></template></Column>
-        <Column header="Pencatatan"><template #body="{ data }">{{ data.dibatalkan ? `Dibatalkan: ${data.alasan_batal}` : data.jurnal_status === 'POSTED' ? 'Sudah dicatat' : 'Menunggu Finance' }}</template></Column>
-      </DataTable>
-    </Dialog>
+    <TagihanHistoryDialog v-model:target="riwayatTarget" :student-name="riwayatTarget ? siswaNama.get(riwayatTarget.siswa) : undefined" />
 
     <!-- Generate -->
-    <Dialog v-model:visible="genDialog" header="Buat Tagihan" modal :style="{ width: '32rem' }">
+    <Dialog :close-button-props="{severity: 'secondary', text: true}" v-model:visible="genDialog" header="Buat tagihan" modal :closable="!previewLoading" :close-on-escape="!previewLoading" :style="{ width: '32rem' }">
+      <template #closeicon><Icon name="x" /></template>
       <div class="form">
         <div class="field">
-          <label>Siswa *</label>
-          <Select
-            v-model="genForm.siswa"
+          <label for="generate-siswa">Siswa (wajib)</label>
+          <Select :key="(previewLoading) ? 'locked' : 'editable'" input-id="generate-siswa"
+            v-model="genForm.siswa" :disabled="previewLoading"
             :options="siswaList"
             option-label="nama"
             option-value="id"
             filter
             placeholder="Pilih siswa"
             fluid
-          />
+          ><template #dropdownicon><Icon name="caret-down" /></template><template #filtericon><Icon name="magnifying-glass" /></template></Select>
         </div>
         <div class="row">
           <div class="field">
-            <label>Bulan (default: bulan lalu)</label>
-            <Select
-              v-model="genForm.periode_bulan"
+            <label for="generate-bulan">Bulan (default: bulan lalu)</label>
+            <Select :key="(previewLoading) ? 'locked' : 'editable'" input-id="generate-bulan"
+              v-model="genForm.periode_bulan" :disabled="previewLoading"
               :options="BULAN.map((b, i) => ({ label: b, value: i + 1 }))"
               option-label="label"
               option-value="value"
               fluid
-            />
+            ><template #dropdownicon><Icon name="caret-down" /></template></Select>
           </div>
           <div class="field">
-            <label>Tahun</label>
-            <InputNumber v-model="genForm.periode_tahun" :min="2020" :max="2100" :use-grouping="false" fluid />
+            <label for="generate-tahun">Tahun</label>
+            <InputNumber input-id="generate-tahun" v-model="genForm.periode_tahun" :disabled="previewLoading" :min="2020" :max="2100" :use-grouping="false" fluid />
           </div>
         </div>
         <div class="field">
-          <label>Tarif Katering / hari</label>
-          <InputNumber v-model="genForm.tarif_katering" :min="0" fluid />
+          <label for="generate-tarif">Tarif katering per hari (Rp)</label>
+          <InputNumber input-id="generate-tarif" locale="id-ID" :max-fraction-digits="2" v-model="genForm.tarif_katering" :disabled="previewLoading" :min="0" fluid />
           <small>0 = otomatis dari tarif periode katering. Jemputan dihitung otomatis dari absensi × tarif pendaftaran.</small>
         </div>
         <Message severity="info" :closable="false">
@@ -691,74 +582,75 @@ onMounted(async () => {
         </Message>
       </div>
       <template #footer>
-        <Button label="Batal" severity="secondary" text @click="genDialog = false" />
+        <Button label="Batal" severity="secondary" text :disabled="previewLoading" @click="genDialog = false" />
         <Button
-          label="Generate Langsung"
-          icon="pi pi-bolt"
+          label="Buat langsung"
+
           severity="secondary"
           :disabled="!genForm.siswa"
           :loading="previewLoading"
           @click="runGenerate"
-        />
+        ><template #icon><Icon name="lightning" /></template><template #loadingicon><Icon name="arrows-clockwise" class="bee-spin" /></template></Button>
         <Button
-          label="Preview & Edit"
-          icon="pi pi-eye"
+          label="Periksa rincian"
+
           :disabled="!genForm.siswa"
           :loading="previewLoading"
           @click="runPreview"
-        />
+        ><template #icon><Icon name="eye" /></template><template #loadingicon><Icon name="arrows-clockwise" class="bee-spin" /></template></Button>
       </template>
     </Dialog>
 
     <!-- Batch Generate -->
-    <Dialog v-model:visible="batchDialog" header="Batch Generate Tagihan" modal :style="{ width: '36rem' }">
+    <Dialog :close-button-props="{severity: 'secondary', text: true}" v-model:visible="batchDialog" header="Buat tagihan sekaligus" modal :closable="!batchLoading" :close-on-escape="!batchLoading" :style="{ width: '36rem' }">
+      <template #closeicon><Icon name="x" /></template>
       <div class="form">
         <div class="row">
           <div class="field">
-            <label>Jenjang</label>
-            <Select
-              v-model="batchForm.jenjang"
+            <label for="batch-jenjang">Jenjang</label>
+            <Select :key="(batchLoading) ? 'locked' : 'editable'" input-id="batch-jenjang"
+              v-model="batchForm.jenjang" :disabled="batchLoading"
               :options="[{ id: null, kode: 'Semua' }, ...jenjangList]"
               option-label="kode"
               option-value="id"
               placeholder="Semua jenjang"
               show-clear
               fluid
-            />
+            ><template #dropdownicon><Icon name="caret-down" /></template><template #clearicon="slotProps"><SelectClearButton v-bind="slotProps" /></template></Select>
           </div>
           <div class="field">
-            <label>Kelompok</label>
-            <Select
+            <label for="batch-kelompok">Kelompok</label>
+            <Select :key="(batchLoading || !batchForm.jenjang) ? 'locked' : 'editable'" input-id="batch-kelompok"
               v-model="batchForm.kelompok"
               :options="kelompokList"
               option-label="nama"
               option-value="id"
               placeholder="Semua kelompok"
               show-clear
-              :disabled="!batchForm.jenjang"
+              :disabled="batchLoading || !batchForm.jenjang"
               fluid
-            />
+            ><template #dropdownicon><Icon name="caret-down" /></template><template #clearicon="slotProps"><SelectClearButton v-bind="slotProps" /></template></Select>
           </div>
         </div>
         <div class="row">
           <div class="field">
-            <label>Bulan</label>
-            <Select
-              v-model="batchForm.periode_bulan"
+            <label for="batch-bulan">Bulan</label>
+            <Select :key="(batchLoading) ? 'locked' : 'editable'" input-id="batch-bulan"
+              v-model="batchForm.periode_bulan" :disabled="batchLoading"
               :options="BULAN.map((b, i) => ({ label: b, value: i + 1 }))"
               option-label="label"
               option-value="value"
               fluid
-            />
+            ><template #dropdownicon><Icon name="caret-down" /></template></Select>
           </div>
           <div class="field">
-            <label>Tahun</label>
-            <InputNumber v-model="batchForm.periode_tahun" :min="2020" :max="2100" :use-grouping="false" fluid />
+            <label for="batch-tahun">Tahun</label>
+            <InputNumber input-id="batch-tahun" v-model="batchForm.periode_tahun" :disabled="batchLoading" :min="2020" :max="2100" :use-grouping="false" fluid />
           </div>
         </div>
         <Message v-if="batchResult" severity="info" :closable="false" class="batch-preview-msg">
           <p>
-            Preview: <strong>{{ batchResult.count }}</strong> siswa siap di-tagih.
+            Hasil pemeriksaan: <strong>{{ batchResult.count }}</strong> siswa siap dibuatkan tagihan.
             <span v-if="batchResult.skipped.length">
               {{ batchResult.skipped.length }} dilewati (sudah ada / tanpa komponen).
             </span>
@@ -781,27 +673,29 @@ onMounted(async () => {
         </Message>
       </div>
       <template #footer>
-        <Button label="Batal" severity="secondary" text @click="batchDialog = false" />
-        <Button label="Preview" icon="pi pi-eye" severity="secondary" :loading="batchLoading" @click="runBatchPreview" />
+        <Button label="Batal" severity="secondary" text :disabled="batchLoading" @click="batchDialog = false" />
+        <Button label="Periksa daftar" severity="secondary" :loading="batchLoading" @click="runBatchPreview" ><template #icon><Icon name="eye" /></template><template #loadingicon><Icon name="arrows-clockwise" class="bee-spin" /></template></Button>
         <Button
-          label="Generate Semua"
-          icon="pi pi-check"
+          label="Buat tagihan terpilih"
+
           :loading="batchLoading"
           :disabled="!batchResult || batchResult.count === 0"
           @click="runBatchGenerate"
-        />
+        ><template #icon><Icon name="check" /></template><template #loadingicon><Icon name="arrows-clockwise" class="bee-spin" /></template></Button>
       </template>
     </Dialog>
 
     <!-- Editor -->
     <Dialog
       v-model:visible="editorDialog"
-      :header="editor.id ? 'Edit Tagihan' : 'Preview Tagihan'"
+      :header="editor.id ? 'Ubah tagihan' : 'Periksa rincian tagihan'"
       modal
       :style="{ width: '52rem', maxWidth: '96vw' }"
       :closable="false"
+      :close-on-escape="false"
       class="tagihan-editor-dialog"
     >
+      <template #closeicon><Icon name="x" /></template>
       <div class="editor-wrap">
       <div class="editor-head">
         <div>
@@ -809,7 +703,7 @@ onMounted(async () => {
           <div class="muted">{{ BULAN[editor.periode_bulan - 1] }} {{ editor.periode_tahun }}</div>
         </div>
         <div class="editor-total">
-          <span class="muted">Grand Total</span>
+          <span class="muted">Total tagihan</span>
           <strong>{{ formatRp(editorTotal) }}</strong>
         </div>
       </div>
@@ -820,11 +714,11 @@ onMounted(async () => {
           <Button
             v-if="group.kategori !== 'BULANAN'"
             label="Tambah"
-            icon="pi pi-plus"
+
             size="small"
             text
-            @click="addLine(group.kategori)"
-          />
+            :disabled="saving" @click="addLine(group.kategori)"
+          ><template #icon><Icon name="plus" /></template></Button>
         </div>
         <div v-if="group.lines.length > 0" class="editor-table-wrap">
           <table class="editor-table">
@@ -838,13 +732,16 @@ onMounted(async () => {
             <tbody>
               <tr v-for="{ line, index } in group.lines" :key="index">
                 <td>
-                  <InputText v-model="line.keterangan" placeholder="Keterangan" fluid />
+                  <InputText v-model="line.keterangan" :aria-label="`Keterangan komponen ${index + 1}`" placeholder="Keterangan" :disabled="saving" fluid />
                 </td>
                 <td>
                   <InputNumber
                     :model-value="Number(line.nominal)"
+                    :aria-label="`Nominal komponen ${index + 1}`"
+                    :disabled="saving"
                     mode="currency"
                     currency="IDR"
+                    :max-fraction-digits="2"
                     locale="id-ID"
                     :min="0"
                     fluid
@@ -854,13 +751,13 @@ onMounted(async () => {
                 <td class="line-action">
                   <Button
                     v-if="group.kategori !== 'BULANAN'"
-                    icon="pi pi-trash"
+
                     severity="danger"
                     text
                     size="small"
                     aria-label="Hapus baris"
-                    @click="removeLine(index)"
-                  />
+                    :disabled="saving" @click="removeLine(index)"
+                  ><template #icon><Icon name="trash" /></template></Button>
                 </td>
               </tr>
             </tbody>
@@ -880,32 +777,34 @@ onMounted(async () => {
           :label="editor.id ? 'Batal' : 'Batalkan'"
           severity="secondary"
           text
+          :disabled="saving"
           @click="cancelEditor"
         />
         <Button
-          label="Simpan Tagihan"
-          icon="pi pi-check"
+          label="Simpan tagihan"
+
           :disabled="editor.lines.length === 0"
           :loading="saving"
           @click="saveEditor"
-        />
+        ><template #icon><Icon name="check" /></template><template #loadingicon><Icon name="arrows-clockwise" class="bee-spin" /></template></Button>
       </template>
     </Dialog>
 
     <!-- Struk / Cetak -->
     <Dialog
       v-model:visible="strukDialog"
-      header="Faktur Tagihan"
+      header="Faktur tagihan"
       modal
       :style="{ width: '32rem' }"
       class="struk-dialog"
       :pt="{ mask: { class: 'struk-print-mask' } }"
       :dismissable-mask="true"
     >
+      <template #closeicon><Icon name="x" /></template>
       <InvoicePreview v-if="struk" id="struk-print-area" :invoice="struk" printable />
       <template #footer>
         <Button label="Tutup" severity="secondary" text @click="strukDialog = false" />
-        <Button label="Cetak" icon="pi pi-print" :disabled="!struk" @click="cetak" />
+        <Button label="Cetak" :disabled="!struk" @click="cetak" ><template #icon><Icon name="printer" /></template></Button>
       </template>
     </Dialog>
   </PageLayout>
@@ -922,6 +821,7 @@ onMounted(async () => {
   gap: 0.75rem;
 }
 .field {
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 0.3rem;
@@ -957,7 +857,7 @@ onMounted(async () => {
   font-size: 1.15rem;
   font-variant-numeric: tabular-nums;
   color: var(--bee-secondary);
-  font-family: "Baloo 2", "Nunito Sans", system-ui, sans-serif;
+  font-family: var(--bee-font-body);
 }
 .editor-section {
   margin-bottom: 1.15rem;
@@ -983,11 +883,9 @@ onMounted(async () => {
 .editor-table th {
   padding: 0 0.35rem 0.25rem;
   text-align: left;
-  font-family: "Nunito Sans", system-ui, sans-serif;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
+  font-family: var(--bee-font-body);
+  font-size: var(--bee-type-caption);
+  font-weight: 500;
   color: var(--app-text-muted);
 }
 .editor-table th:last-child {
@@ -1028,8 +926,9 @@ onMounted(async () => {
 }
 .batch-kat {
   font-weight: 700;
-  color: var(--bee-purple-700, #6b21a8);
+  color: var(--app-text-muted);
 }
+@media(max-width:520px) { .row { flex-direction: column; }.editor-head { flex-wrap: wrap; }.editor-table { min-width: 440px; } }
 </style>
 
 <style>

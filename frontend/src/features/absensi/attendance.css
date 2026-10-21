@@ -1,0 +1,257 @@
+:is(.absensi-page, .recap-page) .attendance-panel {
+  container: attendance-panel / inline-size;
+  min-width: 0;
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  border-radius: var(--bee-radius-panel);
+  margin-bottom: var(--bee-space-5)
+}
+
+:is(.absensi-page, .recap-page) .attendance-panel-heading {
+  padding: var(--bee-space-5)
+}
+
+:is(.absensi-page, .recap-page) .attendance-panel-heading h2 {
+  font-size: var(--bee-type-section);
+  font-weight: 600;
+  margin: 0
+}
+
+:is(.absensi-page, .recap-page) .attendance-panel-heading p {
+  margin: var(--bee-space-2) 0 0;
+  color: var(--app-text-muted);
+  font-size: var(--bee-type-ui)
+}
+
+:is(.absensi-page, .recap-page) .attendance-controls {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: var(--bee-space-4);
+  padding: 0 var(--bee-space-5) var(--bee-space-5)
+}
+
+:is(.absensi-page, .recap-page) .attendance-field {
+  display: grid;
+  align-content: start;
+  gap: var(--bee-space-2);
+  min-width: 0;
+  flex: 1 1 180px
+}
+
+:is(.absensi-page, .recap-page) .attendance-field>label {
+  font-size: var(--bee-type-caption);
+  font-weight: 500
+}
+
+:is(.absensi-page, .recap-page) .attendance-field-error {
+  font-size: var(--bee-type-caption);
+  color: var(--bee-color-critical) !important
+}
+
+:is(.absensi-page, .recap-page) .attendance-nav-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--bee-space-2);
+  min-height: 44px;
+  padding: var(--bee-space-2) var(--bee-space-4);
+  border: 1px solid var(--bee-color-control-border);
+  border-radius: var(--bee-radius-control);
+  text-decoration: none;
+  background: var(--app-surface);
+  color: var(--app-text);
+  font-weight: 500;
+  font-size: var(--bee-type-ui)
+}
+
+:is(.absensi-page, .recap-page) .attendance-small-note {
+  padding: 0 var(--bee-space-5) var(--bee-space-4);
+  margin: 0;
+  font-size: var(--bee-type-caption);
+  color: var(--app-text-muted);
+  max-width: 100ch
+}
+
+:is(.absensi-page, .recap-page) .attendance-notice {
+  padding: 0 var(--bee-space-5) var(--bee-space-4);
+  display: grid;
+  justify-items: start;
+  gap: var(--bee-space-3)
+}
+
+:is(.absensi-page, .recap-page) .attendance-empty {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  gap: var(--bee-space-3);
+  padding: var(--bee-space-7) var(--bee-space-5)
+}
+
+:is(.absensi-page, .recap-page) .attendance-empty>.bee-icon {
+  width: 32px;
+  height: 32px;
+  color: var(--app-text-muted)
+}
+
+:is(.absensi-page, .recap-page) .attendance-empty h2,
+:is(.absensi-page, .recap-page) .attendance-empty h3 {
+  font-size: var(--bee-type-section);
+  font-weight: 500;
+  margin: 0
+}
+
+:is(.absensi-page, .recap-page) .attendance-empty p {
+  max-width: 55ch;
+  margin: 0;
+  color: var(--app-text-muted)
+}
+
+.absensi-page .attendance-savebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--bee-space-4);
+  padding: var(--bee-space-4) var(--bee-space-5);
+  background: var(--bee-color-surface-subtle);
+  border-block: 1px solid var(--app-border)
+}
+
+.absensi-page .attendance-savebar>div:first-child {
+  flex: 1 1 280px
+}
+
+.absensi-page .attendance-savebar strong {
+  font-weight: 500
+}
+
+.absensi-page .attendance-savebar p {
+  color: var(--app-text-muted);
+  font-size: var(--bee-type-caption);
+  margin: var(--bee-space-1) 0 0;
+  max-width: 64ch
+}
+
+.absensi-page .attendance-save-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--bee-space-3)
+}
+
+.absensi-page .attendance-saved-note {
+  display: flex;
+  align-items: start;
+  gap: var(--bee-space-2);
+  margin: 0;
+  padding: var(--bee-space-4) var(--bee-space-5);
+  color: var(--bee-color-positive);
+  font-size: var(--bee-type-ui)
+}
+
+.absensi-page .attendance-roster>.attendance-notice {
+  padding-top: var(--bee-space-4)
+}
+
+.recap-page .attendance-recap-title {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--bee-space-3)
+}
+
+.recap-page .attendance-recap-total {
+  font-size: var(--bee-type-caption);
+  color: var(--app-text-muted)
+}
+
+.recap-page .attendance-readonly {
+  display: flex;
+  align-items: center;
+  gap: var(--bee-space-2)
+}
+
+.recap-page .attendance-readonly .bee-icon {
+  width: 16px;
+  height: 16px
+}
+
+.recap-page .attendance-recap-explanation {
+  max-width: 90ch
+}
+
+.recap-page .recap-display-controls {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--bee-space-5);
+  padding: 0 var(--bee-space-5) var(--bee-space-5)
+}
+
+.recap-page .recap-display-controls .attendance-field {
+  flex: 1 1 260px;
+  max-width: 480px
+}
+
+.recap-page .recap-display-controls .bee-search-field {
+  min-width: 0
+}
+
+.recap-page .recap-data-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--bee-space-3);
+  min-height: 44px;
+  cursor: pointer;
+  font-size: var(--bee-type-ui)
+}
+
+.recap-page .recap-directory+.attendance-small-note {
+  padding-top: var(--bee-space-4)
+}
+
+@container attendance-panel (max-width:600px) {
+  :is(.absensi-page, .recap-page) .attendance-panel-heading {
+    padding: var(--bee-space-4)
+  }
+
+  :is(.absensi-page, .recap-page) .attendance-controls {
+    padding-inline: var(--bee-space-4);
+    gap: var(--bee-space-4)
+  }
+
+  :is(.absensi-page, .recap-page) .attendance-field {
+    flex-basis: 100%
+  }
+
+  :is(.absensi-page, .recap-page) .attendance-controls>.p-button {
+    width: 100%
+  }
+
+  :is(.absensi-page, .recap-page) .attendance-small-note,
+  :is(.absensi-page, .recap-page) .attendance-notice {
+    padding-inline: var(--bee-space-4)
+  }
+
+  .absensi-page .attendance-savebar {
+    padding: var(--bee-space-4)
+  }
+
+  .absensi-page .attendance-save-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--bee-space-2)
+  }
+
+  .absensi-page .attendance-save-actions .p-button {
+    font-size: var(--bee-type-caption)
+  }
+
+  .recap-page .recap-display-controls {
+    padding-inline: var(--bee-space-4);
+    gap: var(--bee-space-3)
+  }
+}

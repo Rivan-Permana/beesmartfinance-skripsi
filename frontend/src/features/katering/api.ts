@@ -113,7 +113,7 @@ export function buildKateringRekapFromRecords(
   return [...agg.values()]
     .map((r) => ({
       ...r,
-      total: r.hariSenKam * tarifSenKam + r.hariJumat * tarifJumat,
+      total: (r.hariSenKam * Math.round(tarifSenKam * 100) + r.hariJumat * Math.round(tarifJumat * 100)) / 100,
     }))
     .filter((r) => r.hariKatering > 0)
     .sort((a, b) => a.nama.localeCompare(b.nama))

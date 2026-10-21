@@ -2,6 +2,8 @@
 
 > Panduan lengkap untuk modernisasi dan refactoring sistem manajemen TK Lebah Madu
 
+Untuk revamp UI/UX Oktober 2026, mulai dari [panduan implementasi sistem desain](./design-system.md). Indeks tersebut menunjuk spesifikasi 0.12, komponen reusable, inventaris layar, dan batas implementasi; panduan migrasi lama di bawah tetap konteks historis.
+
 ## 🎯 Tujuan Dokumentasi
 
 Dokumentasi ini dibuat untuk memberikan panduan komprehensif dalam melakukan refactoring dan modernisasi aplikasi Beesmartfinance dari arsitektur tradisional Django monolith dengan server-side rendering menjadi aplikasi modern dengan backend API dan frontend framework modern.
@@ -94,6 +96,38 @@ Roadmap implementasi bertahap:
 - Rollback strategies
 - Testing checkpoints
 - Go-live checklist
+
+### 9b. [Backend Progress Checklist](./09-BACKEND-PROGRESS-CHECKLIST.md)
+Status implementasi backend vs rencana.
+
+---
+
+## ⭐ Eksekusi v1 (2026-06-28) — **Pantau progress di sini**
+
+### 10. [Execution Log](./10-EXECUTION-LOG.md)
+Log utama: epic progress, story log, milestone, UAT 3 persona.
+
+### 11. [Frontend Guide & Log](./11-FRONTEND-GUIDE.md)
+Panduan + status per modul FE (area kerja utama).
+
+### 12. [Backend Reference & Log](./12-BACKEND-REFERENCE.md)
+Referensi API stabil + log perubahan minor BE.
+
+### 13. [Legacy Alignment Guide (E10)](./13-LEGACY-ALIGNMENT-GUIDE.md)
+Satu epic v1.1: seed data riil, billing legacy, payroll KAFALAH, dashboard kepsek — scope hijau+kuning unified.
+
+### 14–17. Sidang & kesiapan
+- [14 Dosen Feedback](./14-DOSEN-FEEDBACK-GUIDE.md) · [15 UAT Deploy](./15-UAT-DEPLOY-READINESS.md) · [16 Skrip Demo Sidang](./16-SIDANG-DEMO-SCRIPT.md)
+- [17 Pemetaan SAK EMKM](./17-SAK-EMKM-MAPPING.md) — tabel ED → fitur BeeSmart → skripsi (bahan argumentasi sidang)
+
+### Planning Artifacts (BMAD)
+
+| Artefak | Path |
+|---------|------|
+| PRD v1 | `_bmad-output/planning-artifacts/prds/prd-beesmartfinance-skripsi-2026-06-28/prd.md` |
+| Epics & Stories | `_bmad-output/planning-artifacts/epics.md` |
+| UX Design | `_bmad-output/planning-artifacts/ux-designs/ux-beesmartfinance-skripsi-2026-06-28/` |
+| Domain Research | `_bmad-output/planning-artifacts/research/domain-sia-tk-sekolah-swasta-research-2026-06-28.md` |
 
 ## 🚀 Quick Start
 

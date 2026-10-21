@@ -7,7 +7,17 @@ import type {
   Paginated,
 } from "@/types/api"
 
+async function allPages<T>(path: string, params?: Record<string, unknown>): Promise<T[]> {
+  const rows: T[] = []
+  for (let page = 1; ; page += 1) {
+    const { data } = await api.get<Paginated<T>>(path, { params: { ...params, page } })
+    rows.push(...data.results)
+    if (!data.next) return rows
+  }
+}
+
 export const jenjangApi = {
+  listAll: () => allPages<Jenjang>("/jenjang/"),
   list: () => api.get<Paginated<Jenjang>>("/jenjang/").then((r) => r.data.results),
   create: (payload: Omit<Jenjang, "id">) =>
     api.post<Jenjang>("/jenjang/", payload).then((r) => r.data),
@@ -17,6 +27,7 @@ export const jenjangApi = {
 }
 
 export const kelompokApi = {
+  listAll: (params?: { jenjang?: number }) => allPages<Kelompok>("/kelompok/", params),
   list: (params?: { jenjang?: number }) =>
     api
       .get<Paginated<Kelompok>>("/kelompok/", { params })

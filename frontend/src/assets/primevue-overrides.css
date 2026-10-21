@@ -1,113 +1,22 @@
-/* PrimeVue global skin — DESIGN.md */
-
-.p-datatable .p-datatable-thead > tr > th {
-  background: var(--bee-cream) !important;
-  color: var(--bee-secondary) !important;
-  font-family: "Baloo 2", "Nunito Sans", system-ui, sans-serif;
-  font-weight: 700;
-  font-size: 0.85rem;
-}
-
-.p-datatable .p-datatable-tbody > tr:hover {
-  background: rgba(229, 25, 127, 0.04) !important;
-}
-
-.p-dialog {
-  border-radius: var(--bee-radius-lg) !important;
-  overflow: hidden;
-}
-
-.p-dialog .p-dialog-header {
-  color: var(--bee-secondary);
-  font-family: "Baloo 2", "Nunito Sans", system-ui, sans-serif;
-  font-weight: 700;
-  font-size: 1.05rem;
-}
-
-/* Tab — weight & warna konsisten antar tab aktif/non-aktif */
-.p-tablist-tab-list .p-tab,
-.p-tablist .p-tab {
-  font-family: "Nunito Sans", system-ui, sans-serif !important;
-  font-weight: 600 !important;
-  font-size: 0.9rem !important;
-  color: var(--bee-secondary) !important;
-  opacity: 0.72;
-}
-
-.p-tablist-tab-list .p-tab-active,
-.p-tablist .p-tab-active,
-.p-tablist-tab-list .p-tab[aria-selected="true"],
-.p-tablist .p-tab[aria-selected="true"] {
-  color: var(--bee-magenta) !important;
-  font-weight: 700 !important;
-  opacity: 1;
-}
-
-.p-inputtext,
-.p-select,
-.p-inputnumber-input,
-.p-password-input {
-  min-height: 44px;
-}
-
-.p-button {
-  min-height: 44px;
-}
-
-.p-tabular-nums,
-.tabular-nums {
-  font-variant-numeric: tabular-nums;
-}
-
-/* Icon action buttons — tanpa lingkaran tebal */
-.p-button.p-button-icon-only.p-button-text {
-  border-radius: var(--bee-radius-sm, 8px) !important;
-  width: 2.25rem;
-  height: 2.25rem;
-  min-height: 2.25rem;
-  min-width: 2.25rem;
-  padding: 0 !important;
-}
-
-.p-button.p-button-icon-only.p-button-text:not(.p-button-danger):hover {
-  background: rgba(229, 25, 127, 0.1) !important;
-  color: var(--bee-magenta) !important;
-}
-
-.p-button.p-button-icon-only.p-button-text.p-button-danger:hover {
-  background: rgba(220, 38, 38, 0.1) !important;
-  color: #dc2626 !important;
-}
-
-/* Dialog header close — tanpa outline lingkaran */
-.p-dialog-header-actions .p-button {
-  border: none !important;
-  background: transparent !important;
-  border-radius: var(--bee-radius-sm, 8px) !important;
-  width: 2rem !important;
-  height: 2rem !important;
-  min-height: 2rem !important;
-  min-width: 2rem !important;
-  box-shadow: none !important;
-}
-
-.p-dialog-header-actions .p-button:hover {
-  background: rgba(220, 38, 38, 0.1) !important;
-  color: #dc2626 !important;
-}
-
-/* Info banner — teks lebih jelas */
-.p-message.p-message-info {
-  border-left: 4px solid #0284c7;
-}
-
-.p-message.p-message-info .p-message-text {
-  line-height: 1.55;
-  font-size: 0.9rem;
-}
-
-.p-message.p-message-info .p-message-text strong {
-  color: var(--bee-secondary);
+/* Geometry and layout only; component colors are owned by BeePreset. */
+.p-datatable { font-size: var(--bee-type-ui); }
+.p-datatable .p-datatable-thead > tr > th { font-family: inherit; font-size: var(--bee-type-caption); font-weight: 500; }
+.p-dialog { max-width: calc(100vw - 32px); }
+.p-dialog .p-dialog-header { font-family: inherit; font-size: var(--bee-type-section); font-weight: 600; }
+.p-dialog .p-dialog-content { scrollbar-gutter: stable; scroll-padding-block: var(--bee-space-4); }
+.p-dialog .p-dialog-footer { flex-wrap: wrap; border-top: 1px solid var(--app-border); padding-block-start: var(--bee-space-4); }
+.p-inputtext, .p-select, .p-inputnumber-input, .p-password-input, .p-button { min-height: var(--bee-size-control); font-size: var(--bee-type-ui); }
+.p-button.p-button-icon-only, .p-dialog-header-actions .p-button { min-width: var(--bee-size-control); min-height: var(--bee-size-control); width: var(--bee-size-control); height: var(--bee-size-control); }
+.p-tabular-nums, .tabular-nums { font-variant-numeric: tabular-nums; }
+.p-message-text { line-height: var(--bee-leading-body); }
+.p-datatable-tbody > tr > td { height: var(--bee-size-row); }
+.p-datatable-sm .p-datatable-tbody > tr > td { height: var(--bee-size-row-compact); }
+.p-datatable .bee-numeric { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.p-datatable th.bee-numeric .p-datatable-column-header-content { justify-content: flex-end; }
+.bee-button-compact { min-height: var(--bee-size-control-compact); padding-block: var(--bee-space-2); }
+@media (max-width: 767px) {
+  .p-inputtext, .p-select, .p-inputnumber-input, .p-password-input { font-size: var(--bee-type-body); }
+  .bee-button-compact { min-height: var(--bee-size-control); }
 }
 
 /* Action column — flex row, tidak nabrak */
@@ -126,9 +35,9 @@
 
 .bee-actions .p-button.p-button-icon-only,
 .bee-actions .p-button-rounded:where(:not(:has(.p-button-label))) {
-  width: 2rem;
-  height: 2rem;
-  min-width: 2rem;
+  width: var(--bee-size-control);
+  height: var(--bee-size-control);
+  min-width: var(--bee-size-control);
   padding: 0;
 }
 
@@ -139,13 +48,13 @@
 
 /* Lebar kolom aksi di DataTable */
 th.bee-col-actions--sm,
-td.bee-col-actions--sm { min-width: 7rem; width: 7rem; }
+td.bee-col-actions--sm { min-width: 9.5rem; width: 9.5rem; }
 th.bee-col-actions--md,
-td.bee-col-actions--md { min-width: 10.5rem; width: 10.5rem; }
+td.bee-col-actions--md { min-width: 12rem; width: 12rem; }
 th.bee-col-actions--lg,
-td.bee-col-actions--lg { min-width: 13rem; width: 13rem; }
+td.bee-col-actions--lg { min-width: 15rem; width: 15rem; }
 th.bee-col-actions--xl,
-td.bee-col-actions--xl { min-width: 16rem; width: 16rem; }
+td.bee-col-actions--xl { min-width: 18rem; width: 18rem; }
 
 .p-datatable-tbody td:has(.bee-actions) {
   vertical-align: middle;
@@ -343,4 +252,27 @@ td.bee-col-actions--xl { min-width: 16rem; width: 16rem; }
     max-height: none !important;
     overflow: visible !important;
   }
+}
+
+button.p-button, input.p-inputtext, .p-select .p-select-label { font-size: var(--bee-type-ui); line-height: var(--bee-leading-control); }
+@media(max-width:767px) { input.p-inputtext, .p-select .p-select-label { font-size: var(--bee-type-body); } }
+
+/* Shared controls respond to an action; data and navigation stay still. */
+.p-button {
+  transition: background-color var(--bee-motion-control) ease, border-color var(--bee-motion-control) ease,
+    color var(--bee-motion-control) ease, box-shadow var(--bee-motion-control) ease,
+    transform var(--bee-motion-control) var(--bee-motion-ease-out);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .p-button:active:not(:disabled):not(:focus-visible) { transform: scale(.98); transition-duration: var(--bee-motion-press); }
+}
+/* Keep PrimeVue's placement-aware overlay animations and shorten their timing. */
+.p-dialog.p-dialog-enter-active { animation-duration: var(--bee-motion-overlay); animation-timing-function: var(--bee-motion-ease-out); }
+.p-dialog.p-dialog-leave-active { animation-duration: var(--bee-motion-exit); animation-timing-function: var(--bee-motion-ease-out); }
+.p-drawer-mask .p-drawer.p-drawer-enter-active { animation-duration: var(--bee-motion-overlay); animation-timing-function: var(--bee-motion-ease-drawer); }
+.p-drawer-mask .p-drawer.p-drawer-leave-active { animation-duration: var(--bee-motion-exit); animation-timing-function: var(--bee-motion-ease-out); }
+.bee-spin { animation: bee-spin .8s linear infinite; }
+@keyframes bee-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .bee-spin { animation: none; }
 }

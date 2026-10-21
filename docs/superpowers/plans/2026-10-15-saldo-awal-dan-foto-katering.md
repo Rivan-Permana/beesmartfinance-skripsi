@@ -28,3 +28,17 @@ Penyebab foto tidak dapat disimpan pada gambar pengguna adalah tombol Simpan din
 ## Batas
 
 Tanggal dan nominal saldo awal nyata masih menunggu sekolah. Bukti pembayaran 3 tagihan lama, paket pendaftaran, backup di luar server, dan pengujian beban bukan bagian perubahan ini. Saldo awal per akun dapat diisi bertahap; laporan belum menjadi angka final jika debit dan kreditnya belum seimbang. Pembalikan migration yang menghapus kolom saldo tidak disediakan karena dapat menghilangkan nilai yang sudah dimasukkan; pemulihan harus memakai backup dan strategi menjaga data tersebut.
+
+## Hasil rilis dan pemeriksaan produksi
+
+Revisi sudah diterbitkan ke `main` pada commit `f1690f8f2a25f0ae51e8c7a7b8b878ab2eb18e67`. State deployment backend dan frontend sama-sama menunjuk commit tersebut. Backend mulai dirilis pada 15 Oktober 2026 pukul 15:58 WIB, migration `accounting.0003_opening_balance` berhasil, dan Cloudflare menerbitkan versi `7d8f348b-14ca-4a15-9812-f094ea96f577`.
+
+Backup produksi sebelum migration: `/opt/beesmartfinance/backups/db-20261015T085900Z.dump`, ukuran 230.974 byte, mode `0600`. Database VPS tetap digunakan; data dummy laptop tidak diimpor.
+
+Pemeriksaan setelah rilis melalui API aplikasi dengan role yang sudah ada menghasilkan respons 200 untuk akun, neraca saldo, posisi keuangan, dan dashboard. Field saldo/tanggal tersedia, seluruh saldo awal masih nol dan tanggal kosong. Upload JPEG tanpa keterangan menghasilkan 201, penggantian gambar menghasilkan 200, dan byte gambar yang dibuka melalui server web cocok dengan file yang diunggah. Record uji berada dalam transaksi rollback; kedua berkas uji dihapus, dan jumlah menu tetap sama (0). Tidak ada transaksi keuangan atau saldo nyata yang ditambahkan untuk pengujian.
+
+Probe gambar pertama dari dalam container tidak dapat mengakses origin HTTPS publik dan mendapat connection refused. Pemeriksaan disesuaikan agar pengambilan gambar dilakukan dari host VPS menggunakan curl, sedangkan unggah/penggantian tetap melalui API backend dan penyimpanan media sebenarnya; pemeriksaan berikutnya berhasil. Ini tidak memerlukan pelonggaran izin media, perubahan jaringan, atau perubahan TLS.
+
+Halaman login serta aset JavaScript COA dan Katering terbaru di domain Cloudflare merespons 200 dari koneksi laptop. Berkas upload source/skrip verifikasi sementara di VPS sudah dibersihkan, sedangkan backup dipertahankan. PostgreSQL verifikasi sementara di laptop dihentikan. Penggunaan langsung pada Safari/iPad pengguna belum diperiksa; dua interaksi form diuji menggunakan komponen Vue/PrimeVue sebenarnya dalam lingkungan pengujian.
+
+Bagian hasil rilis ini ditambahkan ke laporan lokal sesudah deployment; commit di atas adalah versi aplikasi yang diterbitkan.

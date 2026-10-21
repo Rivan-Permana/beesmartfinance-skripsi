@@ -1,0 +1,26 @@
+/** Shared visible and assistive copy for the controls used by BeeSmart. */
+export const primevueLocale = {
+  accept: "Ya", reject: "Tidak", choose: "Pilih", upload: "Unggah", cancel: "Batal",
+  clear: "Hapus pilihan", apply: "Terapkan", today: "Hari ini",
+  dayNames: ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"],
+  dayNamesShort: ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"],
+  dayNamesMin: ["Mi", "Sn", "Sl", "Rb", "Km", "Jm", "Sb"],
+  monthNames: ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"],
+  monthNamesShort: ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"],
+  chooseYear: "Pilih tahun", chooseMonth: "Pilih bulan", chooseDate: "Pilih tanggal",
+  prevDecade: "Dasawarsa sebelumnya", nextDecade: "Dasawarsa berikutnya",
+  prevYear: "Tahun sebelumnya", nextYear: "Tahun berikutnya",
+  prevMonth: "Bulan sebelumnya", nextMonth: "Bulan berikutnya",
+  emptyMessage: "Tidak ada pilihan", emptyFilterMessage: "Tidak ada hasil yang cocok",
+  emptySearchMessage: "Tidak ada hasil yang cocok", searchMessage: "{0} hasil tersedia",
+  selectionMessage: "{0} item dipilih", emptySelectionMessage: "Belum ada pilihan",
+  aria: {
+    close: "Tutup", previous: "Sebelumnya", next: "Berikutnya", navigation: "Navigasi",
+    selectAll: "Pilih semua", unselectAll: "Hapus semua pilihan", listLabel: "Daftar pilihan",
+    pageLabel: "Halaman {page}", firstPageLabel: "Halaman pertama", lastPageLabel: "Halaman terakhir",
+    nextPageLabel: "Halaman berikutnya", prevPageLabel: "Halaman sebelumnya", rowsPerPageLabel: "Baris per halaman",
+    jumpToPageDropdownLabel: "Pilih halaman", jumpToPageInputLabel: "Masukkan nomor halaman",
+    selectRow: "Pilih baris", unselectRow: "Batalkan pilihan baris", expandRow: "Buka rincian baris", collapseRow: "Tutup rincian baris",
+    showFilterMenu: "Buka filter", hideFilterMenu: "Tutup filter", editRow: "Ubah baris", saveEdit: "Simpan perubahan", cancelEdit: "Batalkan perubahan",
+  },
+}
