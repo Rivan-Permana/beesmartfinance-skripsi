@@ -23,6 +23,8 @@ Ada 6 siswa bernama `UAT-…`/`UAT Calon Demo` (tanpa NIS, status aktif) beserta
 Data ini muncul di baris teratas Tagihan dan di seluruh Pendaftaran, sehingga akan terlihat saat sidang. Temuan ini juga bertentangan dengan dokumen UAT yang menyebut alur tulis dijalankan di database terpisah.
 Reproduksi: login `admin.tu` → `/tagihan` atau `/pendaftaran`; atau `GET /api/v1/siswa/?search=UAT` (count 6).
 
+Status 22 Oktober: dibersihkan di database demo lokal setelah backup (`~/Backups/beesmartfinance/`). Dihapus: 7 siswa uji (6 `UAT-…` dan `rivan` NIS 1234), 42 absensi, 1 peserta jemputan, 7 tagihan, 6 pendaftaran, 2 kegiatan UAT beserta realisasinya, dan 10 jurnal draf. Sembilan jurnal POSTED dilindungi trigger, jadi dibalik dengan jurnal `REV-…` bertanggal sama (28 Juni dan 2 Juli 2026). Kas di dashboard turun dari Rp 202.250.000 menjadi Rp 200.350.000 (−Rp 1.900.000), sesuai dampak data uji.
+
 **A2. Absensi siswa sulit dipakai untuk kelompok besar.**
 Setiap siswa adalah kartu tinggi dengan 4 tombol kehadiran dan 3 checkbox layanan. "Simpan absensi" hanya ada di dasar halaman dan tidak sticky. Tidak ada aksi massal (mis. semua hadir) dan tidak ada pencarian di dalam daftar.
 
@@ -34,7 +36,7 @@ Setiap siswa adalah kartu tinggi dengan 4 tombol kehadiran dan 3 checkbox layana
 Sebagai pembanding, Absensi pegawai sudah punya kolom pencarian dan baris yang lebih ringkas.
 Reproduksi: `/absensi-siswa` → TK A → TKA Melati → Tampilkan siswa.
 
-Status 22 Oktober (belum di-commit): diperbaiki dengan pencarian nama/NIS, dua aksi massal untuk siswa yang ditampilkan, bar simpan sticky, dan kartu yang lebih padat. Hasil untuk TKA Melati (77 siswa):
+Status 22 Oktober (commit 41e4e95): diperbaiki dengan pencarian nama/NIS, dua aksi massal untuk siswa yang ditampilkan, bar simpan sticky, dan kartu yang lebih padat. Hasil untuk TKA Melati (77 siswa):
 
 | Viewport | Tinggi kartu | Tinggi halaman |
 | --- | --- | --- |
@@ -47,8 +49,12 @@ Status 22 Oktober (belum di-commit): diperbaiki dengan pencarian nama/NIS, dua a
 Input yang fokus hanya mengganti border 1px ke primary `#B01862`, tanpa ring. Warna error `#B13447` nyaris sama, sehingga field kosong yang baru difokuskan terlihat seperti error. Ini berlaku di semua form karena berasal dari tema bersama.
 Catatan: fokus tombol sudah baik (outline 3px, offset 3px).
 
+Status 22 Oktober (belum di-commit): input, textarea, dan select yang fokus kini mendapat cincin 2px; field tidak valid tetap berbingkai merah, dan saat difokus cincinnya ikut merah.
+
 **G2. Navigasi sidebar memakai `<button>`, bukan tautan.**
 `nav.app-navigation` berisi `<button>` dengan `aria-current="page"`. Akibatnya menu tidak bisa dibuka di tab baru atau disalin tautannya, dan pembaca layar mengumumkannya sebagai tombol. Komponen bersama, jadi berlaku untuk semua role.
+
+Status 22 Oktober (belum di-commit): menu diganti `RouterLink` (`<a href>`); navigasi tetap tanpa reload dan drawer mobile tetap menutup.
 
 **S1. Paginasi menyembunyikan jumlah halaman.**
 Paginator hanya menampilkan halaman 1–3 dan prev/next, tanpa halaman pertama/terakhir, total halaman, atau pilihan jumlah baris.
@@ -59,6 +65,8 @@ Ukuran halaman juga berbeda-beda: Siswa 10, Katering/Pegawai 15, Rekap 20.
 
 **A1. Validasi filter Absensi siswa.**
 Menekan "Tampilkan siswa" tanpa pilihan memberi error pada Jenjang dan juga pada Kelompok, padahal Kelompok masih disabled. Pesan error juga menggeser baris: label Tanggal dan tombol tidak lagi sejajar dengan Jenjang/Kelompok.
+
+Status 22 Oktober (belum di-commit): baris filter memakai grid label/input/error bersama, jadi pesan error tidak menggeser field lain; error Kelompok baru muncul setelah Jenjang dipilih.
 
 **K1. Siswa aktif tanpa kelompok tidak terlihat dari halaman Kelompok.**
 Data siswa menghitung 164 siswa, Kelompok menghitung 157 "siswa aktif dalam kelompok", dan Rekap/Katering 162. Selisih 7 adalah siswa aktif tanpa kelompok (6 di antaranya data UAT dari D1).
