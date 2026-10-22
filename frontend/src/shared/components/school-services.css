@@ -68,6 +68,11 @@
   justify-content: space-between
 }
 
+/* With a labelled field, buttons must line up with the input, not the label + input block. */
+.school-service-page .service-toolbar:has(> .service-field) {
+  align-items: end
+}
+
 .school-service-page .service-field,
 .service-dialog .service-field {
   display: grid;
@@ -225,10 +230,9 @@
   font-size: var(--bee-type-ui)
 }
 
-.school-service-page .service-master-table th:first-child { width: 36% }
-.school-service-page .service-master-table th:nth-child(2) { width: 24% }
-.school-service-page .service-master-table th:nth-child(3) { width: 20% }
-.school-service-page .service-master-table th:last-child { width: 20% }
+.school-service-page .service-master-table th:first-child { width: 38% }
+.school-service-page .service-master-table th:nth-child(2) { width: 30% }
+.school-service-page .service-master-table th:last-child { width: 9rem }
 
 .school-service-page .service-master-table th,
 .school-service-page .service-master-table td {
@@ -261,9 +265,20 @@
   overflow-wrap: anywhere
 }
 
+/* Actions and amounts sit on the right edge, matching the other directories. */
+.school-service-page .service-master-table th:last-child,
+.school-service-page .service-master-table .service-master-actions,
+.school-service-page .service-master-table .service-master-number {
+  text-align: end
+}
+
 .school-service-page .service-master-table .service-master-actions {
-  text-align: start;
   white-space: nowrap
+}
+
+/* Pull the last icon button in so its glyph, not its hit area, lines up with the header text. */
+.school-service-page .service-master-table .service-master-actions .p-button:last-child {
+  margin-inline-end: calc(var(--bee-space-3) * -1)
 }
 
 .school-service-page .service-master-cards {
@@ -325,6 +340,15 @@
 
   .school-service-page .service-toolbar>.service-field {
     flex-basis: 100%
+  }
+
+  /* Stacked toolbar actions share the field's full width instead of leaving a ragged edge. */
+  .school-service-page .service-toolbar:has(> .service-field)>:not(.service-field) {
+    width: 100%
+  }
+
+  .school-service-page .service-toolbar:has(> .service-field)>:not(.service-field)>* {
+    flex: 1 1 100%
   }
 }
 

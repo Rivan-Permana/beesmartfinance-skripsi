@@ -255,6 +255,8 @@ td.bee-col-actions--xl { min-width: 18rem; width: 18rem; }
 }
 
 button.p-button, input.p-inputtext, .p-select .p-select-label { font-size: var(--bee-type-ui); line-height: var(--bee-leading-control); }
+/* A 20px icon is taller than the label line; let it overhang so labelled buttons stay at the 44px control height inputs use. */
+.p-button:not(.p-button-icon-only) > .bee-icon { margin-block: -1px; }
 @media(max-width:767px) { input.p-inputtext, .p-select .p-select-label { font-size: var(--bee-type-body); } }
 
 /* Shared controls respond to an action; data and navigation stay still. */

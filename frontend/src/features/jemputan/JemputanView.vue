@@ -375,7 +375,7 @@ onBeforeUnmount(() => {
             <tr>
               <th scope="col">Siswa dan armada</th>
               <th scope="col">Alamat penjemputan</th>
-              <th scope="col">Tarif / perjalanan</th>
+              <th scope="col" class="service-master-number">Tarif / perjalanan</th>
               <th scope="col">Tindakan</th>
             </tr>
           </thead>
@@ -384,7 +384,7 @@ onBeforeUnmount(() => {
               <th scope="row">{{ row.nama }}<small>{{ row.nis||'NIS belum diisi' }} ·
                   {{ row.armadaLabel }}</small></th>
               <td>{{ row.alamat }}</td>
-              <td class="service-money">{{ formatRp(row.harga) }}</td>
+              <td class="service-money service-master-number">{{ formatRp(row.harga) }}</td>
               <td class="service-master-actions"><Button :aria-label="`Ubah pendaftaran ${row.nama}`"
                   severity="secondary" text :disabled="saving" @click="openRegistration(row)"><template #icon>
                     <Icon name="pencil-simple" />
