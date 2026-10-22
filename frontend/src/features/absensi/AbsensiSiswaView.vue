@@ -9,6 +9,8 @@ import { useConfirm } from 'primevue/useconfirm';
 import { useToast } from 'primevue/usetoast';
 import PageLayout from '@/shared/components/PageLayout.vue';
 import Icon from '@/shared/components/PhosphorIcon.vue';
+import SearchField from '@/shared/components/SearchField.vue';
+import { useTableSearch } from '@/shared/composables/useTableSearch';
 import { calendarTextMatches, formatLocalDate } from '@/core/format';
 import { friendlyError, notifySuccess } from '@/core/errors';
 import { siswaApi } from '@/features/siswa/api';
@@ -31,12 +33,16 @@ const invalidDate = ref(false), attempted = ref(false), choosing = ref(false);
 const scope = ref<Scope | null>(null), students = ref<Siswa[]>([]);
 const attendance = ref<Record<number, AttendanceRow>>({}), baseline = ref<Record<number, AttendanceRow>>({});
 const loading = ref(false), saving = ref(false), loadError = ref(''), saveError = ref(''), failedIds = ref<number[]>([]), saveMessage = ref('');
+const { query, filtered: visibleStudents } = useTableSearch(students, student => [student.nama, student.nis]);
 let groupSequence = 0, gridSequence = 0;
 const dateString = computed(() => date.value && Number.isFinite(date.value.getTime()) ? formatLocalDate(date.value) : '');
 const hasChanges = computed(() => Object.values(attendance.value).some(row => attendanceChanged(row, baseline.value[row.siswaId])));
 const hasDraft = computed(() => hasChanges.value || failedIds.value.length > 0);
 const unresolvedCount = computed(() => new Set([...pendingRows.value.map(row => row.siswaId), ...failedIds.value]).size);
 const pendingRows = computed(() => Object.values(attendance.value).filter(row => attendanceNeedsSave(row, baseline.value[row.siswaId])));
+const visibleRows = computed(() => visibleStudents.value.map(student => attendance.value[student.id]).filter((row): row is AttendanceRow => !!row));
+const absentVisible = computed(() => visibleRows.value.filter(row => row.status !== 'hadir').length);
+const cateringMissing = computed(() => visibleRows.value.filter(row => row.status === 'hadir' && !row.ikut_katering).length);
 const contextChanged = computed(() => !!scope.value && (level.value !== scope.value.jenjang.id || group.value !== scope.value.kelompok.id || dateString.value !== scope.value.tanggal || invalidDate.value));
 function message(error: unknown, fallback: string) { const result = friendlyError(error, fallback); return [result.summary, result.detail].filter(Boolean).join('. '); }
 async function loadLevels() { levelsLoading.value = true; levelsError.value = ''; try {
@@ -123,6 +129,7 @@ async function apply() {
     try {
         if (hasDraft.value && !await ask('Menampilkan kelompok atau tanggal lain akan membuang perubahan pada daftar saat ini.'))
             return;
+        query.value = '';
         await loadGrid(target);
     }
     finally {
@@ -183,6 +190,25 @@ async function save() {
     finally {
         saving.value = false;
     }
+}
+// Bulk actions only touch students visible under the current search; changes stay drafts until saved.
+function markVisiblePresent() {
+    if (saving.value || !canEdit.value)
+        return;
+    const next = { ...attendance.value };
+    for (const row of visibleRows.value)
+        if (row.status !== 'hadir')
+            next[row.siswaId] = { ...row, status: 'hadir' };
+    attendance.value = next;
+}
+function cateringForVisiblePresent() {
+    if (saving.value || !canEdit.value)
+        return;
+    const next = { ...attendance.value };
+    for (const row of visibleRows.value)
+        if (row.status === 'hadir' && !row.ikut_katering)
+            next[row.siswaId] = { ...row, ikut_katering: true };
+    attendance.value = next;
 }
 function remove(studentId: number) {
     const row = attendance.value[studentId], current = scope.value, student = students.value.find(item => item.id === studentId);
@@ -300,17 +326,35 @@ onBeforeUnmount(() => { gridSequence += 1; groupSequence += 1; window.removeEven
       <p v-if="saveMessage" class="attendance-saved-note" role="status">
         <Icon name="check-circle" />{{ saveMessage }}
       </p>
-      <AttendanceGrid :students="students" v-model="attendance" :baseline="baseline"
+      <div class="attendance-toolbar">
+        <div class="attendance-field attendance-search"><label for="attendance-search">Cari dalam daftar</label>
+          <SearchField input-id="attendance-search" v-model="query" placeholder="Nama atau NIS" /></div>
+        <div class="attendance-bulk" role="group" aria-label="Aksi untuk siswa yang ditampilkan"><Button
+            label="Tandai semua hadir" severity="secondary" :disabled="saving||!canEdit||!absentVisible"
+            @click="markVisiblePresent"><template #icon>
+              <Icon name="check" />
+            </template></Button><Button label="Katering untuk semua yang hadir" severity="secondary"
+            :disabled="saving||!canEdit||!cateringMissing" @click="cateringForVisiblePresent"><template #icon>
+              <Icon name="fork-knife" />
+            </template></Button><Button label="Muat ulang catatan" severity="secondary" text :disabled="saving"
+            @click="refresh"><template #icon>
+              <Icon name="arrows-clockwise" />
+            </template></Button></div>
+      </div>
+      <p class="attendance-small-note">{{ visibleStudents.length }} dari {{ students.length }} siswa ditampilkan.
+        Siswa tanpa catatan disiapkan sebagai Hadir. Aksi massal hanya mengubah siswa yang ditampilkan; Simpan
+        mencakup seluruh pilihan, termasuk yang tersembunyi oleh pencarian.</p>
+      <div v-if="!visibleStudents.length" class="attendance-empty">
+        <Icon name="magnifying-glass" />
+        <h3>Tidak ada siswa yang cocok</h3><Button label="Hapus pencarian" severity="secondary"
+          @click="query=''" />
+      </div>
+      <AttendanceGrid v-else :students="visibleStudents" v-model="attendance" :baseline="baseline"
         :readonly="saving||!canEdit" :failed-ids="failedIds" @delete="remove" />
       <div class="attendance-savebar">
-        <div><strong>{{ students.length }} siswa · {{ unresolvedCount }} catatan
-            {{ failedIds.length?'belum terkonfirmasi':'belum tersimpan' }}</strong>
-          <p>Siswa tanpa catatan disiapkan sebagai Hadir. Periksa pilihan sebelum menyimpan.</p>
-        </div>
-        <div class="attendance-save-actions"><Button label="Muat ulang catatan" severity="secondary" text
-            :disabled="saving" @click="refresh"><template #icon>
-              <Icon name="arrows-clockwise" />
-            </template></Button><Button :label="saving?'Menyimpan…':'Simpan absensi'" :loading="saving"
+        <strong>{{ unresolvedCount }} catatan {{ failedIds.length?'belum terkonfirmasi':'belum tersimpan' }}<span
+            class="attendance-savebar-total"> · {{ students.length }} siswa</span></strong>
+        <div class="attendance-save-actions"><Button :label="saving?'Menyimpan…':'Simpan absensi'" :loading="saving"
             :disabled="!canEdit||!unresolvedCount" @click="save"><template #icon>
               <Icon name="check" />
             </template><template #loadingicon>

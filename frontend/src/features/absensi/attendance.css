@@ -106,37 +106,60 @@
   color: var(--app-text-muted)
 }
 
-.absensi-page .attendance-savebar {
+.absensi-page .attendance-toolbar {
   display: flex;
-  align-items: center;
+  align-items: end;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: var(--bee-space-4);
-  padding: var(--bee-space-4) var(--bee-space-5);
-  background: var(--bee-color-surface-subtle);
-  border-block: 1px solid var(--app-border)
+  padding: var(--bee-space-4) var(--bee-space-5) var(--bee-space-3);
+  border-top: 1px solid var(--app-border)
 }
 
-.absensi-page .attendance-savebar>div:first-child {
-  flex: 1 1 280px
+.absensi-page .attendance-search {
+  flex: 1 1 260px;
+  max-width: 420px
+}
+
+.absensi-page .attendance-search .bee-search-field {
+  min-width: 0
+}
+
+.absensi-page .attendance-bulk {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--bee-space-2)
+}
+
+/* Sticky so long rosters can be saved without scrolling to the end. */
+.absensi-page .attendance-savebar {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--bee-space-4);
+  padding: var(--bee-space-3) var(--bee-space-5) calc(var(--bee-space-3) + env(safe-area-inset-bottom));
+  background: var(--bee-color-surface-subtle);
+  border-top: 1px solid var(--app-border);
+  border-radius: 0 0 var(--bee-radius-panel) var(--bee-radius-panel)
 }
 
 .absensi-page .attendance-savebar strong {
-  font-weight: 500
+  font-weight: 500;
+  min-width: 0
 }
 
-.absensi-page .attendance-savebar p {
+.absensi-page .attendance-savebar-total {
   color: var(--app-text-muted);
-  font-size: var(--bee-type-caption);
-  margin: var(--bee-space-1) 0 0;
-  max-width: 64ch
+  font-weight: 400
 }
 
 .absensi-page .attendance-save-actions {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: var(--bee-space-3)
+  flex-shrink: 0
 }
 
 .absensi-page .attendance-saved-note {
@@ -235,19 +258,29 @@
     padding-inline: var(--bee-space-4)
   }
 
-  .absensi-page .attendance-savebar {
-    padding: var(--bee-space-4)
+  .absensi-page .attendance-toolbar {
+    padding-inline: var(--bee-space-4)
   }
 
-  .absensi-page .attendance-save-actions {
+  .absensi-page .attendance-search {
+    flex-basis: 100%;
+    max-width: none
+  }
+
+  .absensi-page .attendance-bulk {
     width: 100%;
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: var(--bee-space-2)
+    grid-template-columns: minmax(0, 1fr)
   }
 
-  .absensi-page .attendance-save-actions .p-button {
-    font-size: var(--bee-type-caption)
+  .absensi-page .attendance-savebar {
+    gap: var(--bee-space-3);
+    padding-inline: var(--bee-space-4);
+    font-size: var(--bee-type-ui)
+  }
+
+  .absensi-page .attendance-savebar-total {
+    display: none
   }
 
   .recap-page .recap-display-controls {

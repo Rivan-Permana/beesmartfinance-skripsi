@@ -92,7 +92,7 @@ function state(row: AttendanceRow) {
 
 .attendance-student {
   display: grid;
-  grid-template-columns: minmax(140px, 1fr) minmax(300px, 2fr) minmax(160px, 1fr) 44px;
+  grid-template-columns: minmax(140px, 0.8fr) minmax(300px, 1.6fr) minmax(300px, 1.6fr) 44px;
   gap: var(--bee-space-5);
   padding: var(--bee-space-5);
   border-top: 1px solid var(--app-border);
@@ -129,7 +129,7 @@ function state(row: AttendanceRow) {
 
 .attendance-status-buttons {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--bee-space-2)
 }
 
@@ -165,9 +165,15 @@ function state(row: AttendanceRow) {
   height: 16px
 }
 
+/* Unchecked options reserve no icon space so labels fit on one line. */
+.attendance-status-buttons button[aria-pressed=false] .bee-icon {
+  display: none
+}
+
 .attendance-service-fields {
-  display: grid;
-  gap: var(--bee-space-1)
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--bee-space-4)
 }
 
 .attendance-service-fields label {
@@ -219,7 +225,25 @@ function state(row: AttendanceRow) {
 
   .attendance-person {
     grid-column: 1;
-    grid-row: 1
+    grid-row: 1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--bee-space-1) var(--bee-space-2)
+  }
+
+  .attendance-person strong {
+    flex-basis: 100%
+  }
+
+  /* Each control already carries the student name in its accessible label. */
+  .attendance-section-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap
   }
 
   .attendance-delete {
@@ -233,19 +257,34 @@ function state(row: AttendanceRow) {
   }
 
   .attendance-service-fields {
+    display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: var(--bee-space-3)
   }
 }
 
 @container attendance-grid (max-width:480px) {
-  .attendance-service-fields {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 0
+  .attendance-student {
+    gap: var(--bee-space-3)
   }
 
+  .attendance-service-fields {
+    gap: var(--bee-space-2)
+  }
+
+  .attendance-service-fields label {
+    line-height: 1.2
+  }
+
+  /* Pressed state stays visible through fill, border and weight. */
   .attendance-status-buttons button {
-    font-size: var(--bee-type-ui)
+    padding-inline: var(--bee-space-1);
+    line-height: 1.2;
+    text-align: center
+  }
+
+  .attendance-status-buttons .bee-icon {
+    display: none
   }
 }
 </style>
