@@ -1,0 +1,43 @@
+# Audit visual role Keuangan — 22 Oktober 2026
+
+Lanjutan [audit Admin TU](./2026-10-22-audit-visual-admin-tu.md). Hanya mencatat temuan; belum ada perbaikan.
+
+## Cakupan dan metode
+
+- Role `keuangan` (Staff Keuangan), database demo lokal, branch `codex/auto-deploy-fe-be` (`485d967`).
+- Route: `/dashboard`, `/jurnal`, `/jurnal?jenis=masuk`, `/tunggakan-tagihan`, `/gaji`, `/pinjaman`, `/aset`, `/anggaran`, `/periode`, `/coa`, `/laporan`, `/audit-log`. Pegawai dan Absensi pegawai sudah tercakup di audit Admin TU.
+- Setiap route dimuat di iframe 1440px dan 375px, lalu diperiksa lewat DOM: overflow horizontal, tombol tanpa nama, target sentuh, teks <12px, kesejajaran kolom aksi, jenis paginator, error JavaScript. Halaman bermasalah diperiksa lebih dalam.
+- Hanya baca; tidak ada data yang diubah.
+
+## Lolos di semua route
+
+Tidak ada overflow horizontal halaman, tidak ada tombol tanpa nama aksesibel, tidak ada error JavaScript, di kedua lebar.
+
+## Temuan
+
+### Tinggi
+
+**K-L1. Neraca saldo menampilkan semua akun, termasuk ±177 dari 191 yang bersaldo nol.**
+Laporan jadi sulit dibaca. Di 375px tabelnya setinggi ±17.300px dan bergeser horizontal (680px di wadah 303px); halaman Laporan total ±18.200px. Saat ini akun nol hanya disembunyikan ketika dicetak.
+Usul: sembunyikan akun bersaldo nol secara bawaan dengan sakelar "Tampilkan akun bersaldo nol", dan kartu ringkas di mobile.
+
+### Sedang
+
+**K-A1. Kolom aksi Gaji tidak sejajar dengan header.**
+Kolom memakai grid dua jalur (tombol + 44px untuk menu ⌄). Pada baris tanpa menu, jalur kedua kosong sehingga "Lihat slip" berhenti 56px sebelum tepi header "Tindakan" (tombol berakhir di 1327px, header di 1383px).
+
+**K-A2. Header "Aksi" di Anggaran dan Daftar akun (COA) rata kiri, tombolnya di kanan.**
+Anggaran: header 1239–1265px, tombol 1329–1370px. COA: header 1252–1278px, tombol 1341–1382px. Halaman lain memakai header "Tindakan" rata kanan.
+
+**K-P1. Tiga daftar masih memakai paginator bawaan DataTable**, berbeda dari pager bersama: Anggaran, Periode akuntansi, Log audit.
+
+### Rendah
+
+- **K-T1.** Teks 11,7px (di bawah 12px) pada nomor bukti di Dashboard ("DFT-202610-02 · 2026"), keterangan "Tanpa saldo awal" di COA mobile, dan periode tagihan di Tunggakan mobile.
+- **K-T2.** Tombol geser tab analisis di Dashboard mobile 40×50px, di bawah target sentuh 44px (komponen bawaan PrimeVue).
+- **K-L2.** Locale PrimeVue belum menerjemahkan teks bantu komponen Password; layar login masih memuat "Enter a password".
+- **K-N1.** Label kolom aksi belum seragam: "Tindakan" (sebagian besar), "Aksi" (Anggaran, COA, Periode), "Rincian" (Jurnal).
+
+## Belum dicakup
+
+Cetak laporan, dialog tulis (jurnal baru, posting, slip gaji, tutup buku), state error API, Kepala Sekolah dan Guru PIC.
