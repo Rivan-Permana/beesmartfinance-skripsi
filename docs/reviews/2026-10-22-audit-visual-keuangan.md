@@ -1,6 +1,6 @@
 # Audit visual role Keuangan — 22 Oktober 2026
 
-Lanjutan [audit Admin TU](./2026-10-22-audit-visual-admin-tu.md). Hanya mencatat temuan; belum ada perbaikan.
+Lanjutan [audit Admin TU](./2026-10-22-audit-visual-admin-tu.md). Semua temuan di bawah sudah diperbaiki pada 22 Oktober; lihat bagian Status perbaikan.
 
 ## Cakupan dan metode
 
@@ -37,6 +37,20 @@ Anggaran: header 1239–1265px, tombol 1329–1370px. COA: header 1252–1278px,
 - **K-T2.** Tombol geser tab analisis di Dashboard mobile 40×50px, di bawah target sentuh 44px (komponen bawaan PrimeVue).
 - **K-L2.** Locale PrimeVue belum menerjemahkan teks bantu komponen Password; layar login masih memuat "Enter a password".
 - **K-N1.** Label kolom aksi belum seragam: "Tindakan" (sebagian besar), "Aksi" (Anggaran, COA, Periode), "Rincian" (Jurnal).
+
+## Status perbaikan (22 Oktober)
+
+| Temuan | Perbaikan | Bukti setelah perbaikan |
+| --- | --- | --- |
+| K-L1 | Neraca saldo menyembunyikan akun tanpa mutasi (debit, kredit, saldo nol); sakelar "Tampilkan N akun tanpa mutasi"; disembunyikan juga saat cetak | 191 → 16 baris; total tetap Rp 755.150.000 / Rp 755.150.000 sebelum dan sesudah sakelar; halaman 375px 2.323px |
+| K-A1 | Tombol tunggal di kolom Gaji mengisi kedua jalur grid | Tepi tombol/ikon terakhir 1383px = tepi header |
+| K-A2, K-N1 | "Aksi" → "Tindakan", rata kanan (aturan bersama untuk kolom `bee-col-actions`, COA) | Anggaran 1382px, COA 1382px vs header 1383px |
+| K-P1 | Anggaran dan Log audit memakai pager bersama; Periode tanpa paginasi (satu baris per tahun pelajaran) | Tidak ada lagi paginator bawaan DataTable |
+| K-T1 | `small` mengikuti token caption (13px), bukan `smaller` bawaan browser | Tidak ada teks <12px di Dashboard, COA, Tunggakan |
+| K-T2 | Tombol geser tab 44px | 44×50px di 375px |
+| K-L2 | Locale Password: "Masukkan kata sandi", Lemah/Sedang/Kuat | Layar login tidak lagi memuat teks Inggris |
+
+Label "Rincian" di Jurnal dipertahankan: kolom itu memang hanya berisi tombol rincian.
 
 ## Belum dicakup
 

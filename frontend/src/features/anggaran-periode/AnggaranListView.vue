@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import BeePaginator from "@/shared/components/BeePaginator.vue"
 import Button from "primevue/button"
 import Column from "primevue/column"
 import DataTable from "primevue/datatable"
@@ -205,7 +206,7 @@ onMounted(async () => {
       <div v-if="!loading && !error && !filtered.length" class="budget-empty"><Icon :name="query || year ? 'magnifying-glass' : 'chart-pie'" /><h2>{{ query || year ? 'Tidak ada anggaran yang cocok' : 'Belum ada anggaran' }}</h2><p>{{ query || year ? 'Ubah pencarian atau tahun anggaran.' : 'Pagu beban belum dicatat untuk laporan realisasi.' }}</p><Button v-if="query || year" label="Hapus filter" severity="secondary" @click="query = ''; year = null" /></div>
       <p v-if="!error && filtered.length" class="budget-scroll-hint"><Icon name="caret-right" /> Geser tabel untuk melihat pagu, carry-over, dan aksi.</p>
       <div v-if="!error && (loading || filtered.length)" class="budget-table-scroll" role="region" tabindex="0" aria-label="Tabel anggaran dapat digulir horizontal">
-    <DataTable v-model:first="tableFirst" :value="filtered" :loading="loading" paginator :rows="15" data-key="id" striped-rows>
+    <DataTable :value="filtered.slice(tableFirst, tableFirst + 15)" :loading="loading" data-key="id" striped-rows>
       <Column header="Akun">
         <template #body="{ data }">
           <strong>{{ data.kode_akun }}</strong>
@@ -223,7 +224,7 @@ onMounted(async () => {
       <Column header="Carry-over">
         <template #body="{ data }">{{ data.carry_over ? "Ditandai" : "Tidak" }}</template>
       </Column>
-      <Column v-if="canWrite" header="Aksi" headerClass="bee-col-actions--md" bodyClass="bee-col-actions--md">
+      <Column v-if="canWrite" header="Tindakan" headerClass="bee-col-actions--md" bodyClass="bee-col-actions--md">
         <template #body="{ data }">
           <div v-if="canWrite" class="bee-actions">
             <Button label="Ubah" text severity="secondary" :disabled="!!coaError" @click="openEdit(data)" />
@@ -233,6 +234,7 @@ onMounted(async () => {
       </Column>
     </DataTable>
       </div>
+      <BeePaginator v-model:first="tableFirst" :rows="15" :total-records="filtered.length" />
     </section>
 
     <Dialog

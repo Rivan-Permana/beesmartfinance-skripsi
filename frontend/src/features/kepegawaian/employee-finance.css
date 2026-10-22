@@ -1,6 +1,8 @@
 .employee-panel { container: employee-panel / inline-size; min-width: 0; background: var(--app-surface); border: 1px solid var(--app-border); border-radius: var(--bee-radius-panel); }
 .employee-row-actions { display: grid; grid-template-columns: max-content var(--bee-size-control); align-items: center; justify-content: end; gap: var(--bee-space-2); }
 .employee-row-actions>.p-button { white-space: nowrap; }
+/* Rows with a single action (no menu) let it fill both tracks so it still ends at the column edge. */
+.employee-row-actions>.p-button:only-child { grid-column: 1 / -1; justify-self: end; }
 .employee-action-menu .p-menu-item-link { min-height: var(--bee-size-control); gap: var(--bee-space-3); }
 .employee-action-menu .employee-action-danger .p-menu-item-link { color: var(--bee-color-critical); }
 .employee-heading { display: flex; align-items: start; justify-content: space-between; gap: var(--bee-space-4); flex-wrap: wrap; padding: var(--bee-space-5); }

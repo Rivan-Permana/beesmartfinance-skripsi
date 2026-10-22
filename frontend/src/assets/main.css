@@ -224,6 +224,8 @@ a {
 :where(button, a, input, select, textarea, [tabindex]):focus-visible { outline: 3px solid var(--bee-color-focus); outline-offset: 3px; }
 .bee-icon { display: inline-block; width: var(--bee-size-icon); height: var(--bee-size-icon); flex: none; vertical-align: middle; }
 button, input, textarea, select { font-family: inherit; }
+/* Browser "smaller" turns 14px text into 11.7px; keep secondary text at the caption size. */
+small { font-size: var(--bee-type-caption); }
 @media (prefers-reduced-motion: no-preference) {
   .bee-route-enter-active { transition: opacity var(--bee-motion-overlay) var(--bee-motion-ease-out), transform var(--bee-motion-overlay) var(--bee-motion-ease-out); }
   .bee-route-leave-active { transition: opacity var(--bee-motion-press) var(--bee-motion-ease-out); }

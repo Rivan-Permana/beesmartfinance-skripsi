@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed } from "vue"
+import { computed, ref } from "vue"
+import ToggleSwitch from "primevue/toggleswitch"
 import ProgressBar from "primevue/progressbar"
 import AccountReportTable from "./AccountReportTable.vue"
-import { budgetPercent, groupBalance, ledgerBalances, reportMoney, sumAmounts, type ReportSnapshot } from "./presentation"
+import { budgetPercent, groupBalance, ledgerBalances, reportCents, reportMoney, sumAmounts, type ReportSnapshot } from "./presentation"
 import { journalDate } from "@/features/jurnal/presentation"
 const props=defineProps<{snapshot:ReportSnapshot}>()
 const assets=computed(()=>props.snapshot.kind==='pk'?groupBalance(props.snapshot.data.aset,'D'):null)
@@ -10,11 +11,17 @@ const liabilities=computed(()=>props.snapshot.kind==='pk'?groupBalance(props.sna
 const equity=computed(()=>props.snapshot.kind==='pk'?groupBalance(props.snapshot.data.ekuitas,'K'):null)
 const difference=computed(()=>assets.value===null||liabilities.value===null||equity.value===null?null:sumAmounts([assets.value,-liabilities.value,-equity.value]))
 const ledger=computed(()=>props.snapshot.kind==='bb'?ledgerBalances(props.snapshot.data,props.snapshot.scope.account?.posisi_normal):[])
+// Trial balance hides accounts with no movement at all; totals are unchanged because those rows are zero.
+const showIdle=ref(false)
+const trialRows=computed(()=>props.snapshot.kind==='neraca'?props.snapshot.data:[])
+const idleCount=computed(()=>trialRows.value.filter(row=>[row.total_debit,row.total_kredit,row.saldo_akhir].every(v=>reportCents(v)===0)).length)
+const visibleTrialRows=computed(()=>showIdle.value?trialRows.value:trialRows.value.filter(row=>[row.total_debit,row.total_kredit,row.saldo_akhir].some(v=>reportCents(v)!==0)))
 const lastBalance=computed(()=>ledger.value.length?ledger.value[ledger.value.length-1]!.saldo:0)
 </script>
 <template>
   <template v-if="snapshot.kind==='neraca'">
-    <AccountReportTable :rows="snapshot.data" caption="Neraca saldo dalam rupiah" detailed />
+    <label v-if="idleCount" class="report-idle-toggle"><ToggleSwitch v-model="showIdle" input-id="report-show-idle" /><span>Tampilkan {{ idleCount }} akun tanpa mutasi</span></label>
+    <AccountReportTable :rows="visibleTrialRows" caption="Neraca saldo dalam rupiah" detailed />
     <p class="report-explanation">Debit dan kredit kumulatif termasuk saldo awal bertanggal. Saldo akhir setiap akun mengikuti posisi normalnya; kolom saldo tidak dijumlahkan lintas posisi.</p>
   </template>
   <template v-else-if="snapshot.kind==='lr'">

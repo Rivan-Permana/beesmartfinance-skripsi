@@ -2,6 +2,7 @@
 export const primevueLocale = {
   accept: "Ya", reject: "Tidak", choose: "Pilih", upload: "Unggah", cancel: "Batal",
   clear: "Hapus pilihan", apply: "Terapkan", today: "Hari ini",
+  passwordPrompt: "Masukkan kata sandi", weak: "Lemah", medium: "Sedang", strong: "Kuat",
   dayNames: ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"],
   dayNamesShort: ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"],
   dayNamesMin: ["Mi", "Sn", "Sl", "Rb", "Km", "Jm", "Sb"],

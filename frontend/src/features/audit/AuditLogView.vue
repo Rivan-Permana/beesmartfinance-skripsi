@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import BeePaginator from "@/shared/components/BeePaginator.vue"
 import Button from "primevue/button"
 import Column from "primevue/column"
 import DataTable from "primevue/datatable"
@@ -303,10 +304,6 @@ onMounted(async () => {
       :value="rows"
       :loading="loading"
       lazy
-      paginator
-      :rows="pageSize"
-      :total-records="total"
-      :first="(page - 1) * pageSize"
       data-key="id"
       striped-rows
       @page="onPage"
@@ -349,6 +346,7 @@ onMounted(async () => {
       </Column>
     </DataTable>
       </div>
+      <BeePaginator v-if="!error" :first="(page - 1) * pageSize" :rows="pageSize" :total-records="total" @page="onPage" />
     </section>
 
     <Dialog

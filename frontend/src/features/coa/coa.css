@@ -43,7 +43,7 @@
 .coa-table small { display: block; margin-top: var(--bee-space-1); color: var(--app-text-muted); font-size: var(--bee-type-caption); }
 .coa-table .coa-code { font-variant-numeric: tabular-nums; }
 .coa-table .coa-number { text-align: end; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.coa-table .coa-actions { width: 176px; text-align: start; white-space: nowrap; }
+.coa-table .coa-actions { width: 176px; text-align: end; white-space: nowrap; }
 .coa-actions .p-button + .p-button { margin-inline-start: var(--bee-space-1); }
 .coa-cards { display: none; padding: 0; margin: 0; list-style: none; }
 .coa-sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }

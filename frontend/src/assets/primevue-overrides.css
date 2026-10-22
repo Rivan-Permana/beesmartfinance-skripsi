@@ -53,6 +53,10 @@
   white-space: nowrap;
 }
 
+/* Action columns sit on the right edge, like "Tindakan" elsewhere. */
+.p-datatable :is(th, td)[class*="bee-col-actions"] { text-align: end; }
+.p-datatable th[class*="bee-col-actions"] .p-datatable-column-header-content { justify-content: flex-end; }
+
 /* Lebar kolom aksi di DataTable */
 th.bee-col-actions--sm,
 td.bee-col-actions--sm { min-width: 9.5rem; width: 9.5rem; }
@@ -289,3 +293,5 @@ button.p-button, input.p-inputtext, .p-select .p-select-label { font-size: var(-
 @media (prefers-reduced-motion: reduce) {
   .bee-spin { animation: none; }
 }
+/* Tab scroll arrows (e.g. dashboard analysis tabs) need the same 44px touch target as other controls. */
+:root .p-tablist-nav-button { width: var(--bee-size-control); min-width: var(--bee-size-control); }

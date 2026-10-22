@@ -130,7 +130,7 @@ onMounted(load)
       <p v-if="!error && rows.length" class="period-scroll-hint"><Icon name="caret-right" /> Geser tabel untuk melihat status{{ canClose ? ' dan aksi' : '' }}.</p>
       <div v-if="!error && (loading || rows.length)" class="period-table-scroll" role="region" tabindex="0" aria-label="Tabel periode dapat digulir horizontal">
 
-    <DataTable :value="rows" :loading="loading" paginator :rows="10" data-key="id" striped-rows>
+    <DataTable :value="rows" :loading="loading" data-key="id" striped-rows>
       <Column field="kode" header="Periode" />
       <Column header="Mulai"><template #body="{ data }">{{ dateLabel(data.tgl_mulai) }}</template></Column>
       <Column header="Selesai"><template #body="{ data }">{{ dateLabel(data.tgl_selesai) }}</template></Column>
@@ -142,7 +142,7 @@ onMounted(load)
           />
         </template>
       </Column>
-      <Column v-if="canClose" header="Aksi" headerClass="bee-col-actions--md" bodyClass="bee-col-actions--md">
+      <Column v-if="canClose" header="Tindakan" headerClass="bee-col-actions--md" bodyClass="bee-col-actions--md">
         <template #body="{ data }">
           <div class="bee-actions">
             <Button
