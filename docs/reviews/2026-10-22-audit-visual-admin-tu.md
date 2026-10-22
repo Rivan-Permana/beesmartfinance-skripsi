@@ -63,6 +63,8 @@ Paginator hanya menampilkan halaman 1–3 dan prev/next, tanpa halaman pertama/t
 
 Ukuran halaman juga berbeda-beda: Siswa 10, Katering/Pegawai 15, Rekap 20.
 
+Status 22 Oktober: semua 15 daftar kini memakai komponen `BeePaginator` dengan pemilih lompat halaman dan keterangan "dari N halaman"; halaman terakhir cukup satu klik. Ukuran halaman per daftar belum diseragamkan.
+
 **A1. Validasi filter Absensi siswa.**
 Menekan "Tampilkan siswa" tanpa pilihan memberi error pada Jenjang dan juga pada Kelompok, padahal Kelompok masih disabled. Pesan error juga menggeser baris: label Tanggal dan tombol tidak lagi sejajar dengan Jenjang/Kelompok.
 
@@ -72,11 +74,17 @@ Status 22 Oktober (belum di-commit): baris filter memakai grid label/input/error
 Data siswa menghitung 164 siswa, Kelompok menghitung 157 "siswa aktif dalam kelompok", dan Rekap/Katering 162. Selisih 7 adalah siswa aktif tanpa kelompok (6 di antaranya data UAT dari D1).
 Halaman Kelompok tidak menandai mereka, dan alur "Pindah siswa" mensyaratkan kelompok asal, sehingga siswa ini hanya bisa ditempatkan lewat edit profil.
 
+Status 22 Oktober: selesai bersama pembersihan D1; ketujuh siswa tanpa kelompok adalah data uji, kini 157 siswa aktif semuanya berkelompok.
+
 **T1. Tombol chevron di Tagihan membuka menu aksi, bukan rincian.**
 Tombol berikon chevron berlabel aksesibel "Rincian tagihan …" ternyata membuka menu (`role=menu`) berisi Riwayat pembayaran, Lihat faktur, Ubah tagihan, dan Batalkan tagihan. Ikon chevron mengesankan baris akan dibuka, padahal ada aksi destruktif di dalamnya.
 
+Status 22 Oktober: ikon panah bawah untuk menu tindakan ternyata pola di seluruh aplikasi (Pegawai, Kasbon, Kegiatan); label tombolnya diseragamkan menjadi "Tindakan tagihan …" / "Tindakan".
+
 **T2. "Simpan pembayaran" aktif saat nominal Rp 0.**
 Di dialog Catat pembayaran, tombol simpan sudah aktif sebelum nominal apa pun diisi. Tombol tidak diklik, jadi respons validasinya belum diverifikasi.
+
+Status 22 Oktober: bukan cacat. Saat diklik dengan Rp 0, form tidak terkirim, pesan error muncul, dan fokus pindah ke field yang salah; pola validasi saat kirim ini sama dengan form lain.
 
 **G3. Pola antar halaman tidak konsisten.**
 - Sub-navigasi: tab bergaris bawah (Kelompok, Absensi pegawai) vs kontrol segmen (Katering, Jemputan).
