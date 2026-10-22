@@ -17,7 +17,7 @@ export const pegawaiApi = {
     let page = 1
     let hasNext = true
     while (hasNext) {
-      const data = await pegawaiApi.list({ ...params, page })
+      const data = await pegawaiApi.list({ page_size: 200, ...params, page })
       out.push(...data.results)
       hasNext = !!data.next
       page += 1
@@ -38,7 +38,7 @@ export const absenPegawaiApi = {
   async listAll(params?: Record<string, unknown>): Promise<AbsenPegawai[]> {
     const rows: AbsenPegawai[] = []
     let page = 1, next = true
-    while (next) { const data = await absenPegawaiApi.list({ ...params, page }); rows.push(...data.results); next = !!data.next; page++ }
+    while (next) { const data = await absenPegawaiApi.list({ page_size: 200, ...params, page }); rows.push(...data.results); next = !!data.next; page++ }
     return rows
   },
   bulkSave: (tanggal: string, items: Omit<AbsenPegawai, "id" | "tanggal">[]) =>
@@ -55,7 +55,7 @@ export const gajiApi = {
   async listAll(): Promise<Gaji[]> {
     const rows: Gaji[] = []
     let page = 1, next = true
-    while (next) { const data = await gajiApi.list({ page }); rows.push(...data.results); next = !!data.next; page++ }
+    while (next) { const data = await gajiApi.list({ page_size: 200, page }); rows.push(...data.results); next = !!data.next; page++ }
     return rows
   },
   get: (id: number) => api.get<Gaji>(`/gaji/${id}/`).then((r) => r.data),
@@ -75,7 +75,7 @@ export const pinjamanApi = {
   async listAll(): Promise<Pinjaman[]> {
     const rows: Pinjaman[] = []
     let page = 1, next = true
-    while (next) { const data = await pinjamanApi.list({ page }); rows.push(...data.results); next = !!data.next; page++ }
+    while (next) { const data = await pinjamanApi.list({ page_size: 200, page }); rows.push(...data.results); next = !!data.next; page++ }
     return rows
   },
   create: (payload: Partial<Pinjaman>) =>

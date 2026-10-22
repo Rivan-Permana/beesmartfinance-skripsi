@@ -10,7 +10,7 @@ import type {
 async function allPages<T>(path: string, params?: Record<string, unknown>): Promise<T[]> {
   const rows: T[] = []
   for (let page = 1; ; page++) {
-    const { data } = await api.get<Paginated<T>>(path, { params: { ...params, page } })
+    const { data } = await api.get<Paginated<T>>(path, { params: { page_size: 200, ...params, page } })
     rows.push(...data.results)
     if (!data.next) return rows
   }

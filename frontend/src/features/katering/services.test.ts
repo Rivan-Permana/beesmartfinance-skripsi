@@ -32,7 +32,7 @@ describe('transport pagination', () => {
     it.each([['armada', '/armada-jemputan/', () => armadaApi.listAll(), {}], ['registrations', '/pendaftaran-jemputan/', () => pendaftaranJemputanApi.listAll({ siswa: 1 }), { siswa: 1 }]] as const)('reads every %s page without losing scope', async (_name, path, run, scope) => {
         vi.mocked(api.get).mockResolvedValueOnce({ data: { results: [{ id: 1 }], next: '?page=2' } }).mockResolvedValueOnce({ data: { results: [{ id: 2 }], next: null } });
         expect(await run()).toEqual([{ id: 1 }, { id: 2 }]);
-        expect(api.get).toHaveBeenLastCalledWith(path, { params: { ...scope, page: 2 } });
+        expect(api.get).toHaveBeenLastCalledWith(path, { params: { page_size: 200, ...scope, page: 2 } });
     });
     it('rejects a partial list when page two fails', async () => {
         vi.mocked(api.get).mockResolvedValueOnce({ data: { results: [{ id: 1 }], next: '?page=2' } }).mockRejectedValueOnce(new Error('Unavailable'));

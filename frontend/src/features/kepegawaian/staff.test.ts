@@ -14,7 +14,7 @@ describe('pegawai and attendance contract',()=>{
   it('loads all date-filtered attendance pages and offers fresh employee detail',async()=>{
     vi.mocked(api.get).mockReset().mockResolvedValueOnce({data:{results:[{id:1}],next:'next'}}).mockResolvedValueOnce({data:{results:[{id:2}],next:null}})
     expect(await absenPegawaiApi.listAll({tanggal:'2026-10-18'})).toEqual([{id:1},{id:2}])
-    expect(api.get).toHaveBeenNthCalledWith(2,'/absen-pegawai/',{params:{tanggal:'2026-10-18',page:2}})
+    expect(api.get).toHaveBeenNthCalledWith(2,'/absen-pegawai/',{params:{page_size:200,tanggal:'2026-10-18',page:2}})
     vi.mocked(api.get).mockResolvedValueOnce({data:{id:3,nama:'Contoh'}})
     expect(await pegawaiApi.get(3)).toMatchObject({id:3,nama:'Contoh'})
   })

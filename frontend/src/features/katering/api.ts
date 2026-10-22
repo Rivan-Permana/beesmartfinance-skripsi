@@ -10,7 +10,7 @@ export const menuKateringApi = {
     let page = 1
     let hasNext = true
     while (hasNext) {
-      const data = await menuKateringApi.list({ ...params, page })
+      const data = await menuKateringApi.list({ page_size: 200, ...params, page })
       out.push(...data.results)
       hasNext = !!data.next
       page += 1

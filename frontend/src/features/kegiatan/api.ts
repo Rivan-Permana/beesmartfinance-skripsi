@@ -9,7 +9,7 @@ export const kegiatanApi = {
     let page = 1
     let hasNext = true
     while (hasNext) {
-      const data = await kegiatanApi.list({ ...params, page })
+      const data = await kegiatanApi.list({ page_size: 200, ...params, page })
       rows.push(...data.results)
       hasNext = Boolean(data.next)
       page += 1

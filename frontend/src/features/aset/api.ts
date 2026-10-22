@@ -9,7 +9,7 @@ export const asetApi = {
     let page = 1
     let next = true
     while (next) {
-      const { data } = await api.get<Paginated<FixedAsset>>("/aset/", { params: { page } })
+      const { data } = await api.get<Paginated<FixedAsset>>("/aset/", { params: { page_size: 200, page } })
       rows.push(...data.results)
       next = !!data.next
       page += 1

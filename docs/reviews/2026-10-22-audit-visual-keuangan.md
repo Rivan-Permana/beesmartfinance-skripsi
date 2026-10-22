@@ -52,6 +52,15 @@ Anggaran: header 1239–1265px, tombol 1329–1370px. COA: header 1252–1278px,
 
 Label "Rincian" di Jurnal dipertahankan: kolom itu memang hanya berisi tombol rincian.
 
+## Kepala Sekolah dan Guru PIC (22 Oktober)
+
+Route Kepala Sekolah (`/dashboard`, `/jurnal`, `/kegiatan`, `/tunggakan-tagihan`, `/anggaran`, `/periode`, `/coa`, `/laporan`, `/audit-log`) dan Guru PIC (`/kegiatan`, `/rekap-siswa`) diaudit dengan cara yang sama. Tidak ada overflow, tombol tanpa nama, atau teks <12px.
+
+| Temuan | Perbaikan | Bukti |
+| --- | --- | --- |
+| Kolom "Tindakan" Kegiatan rata kiri, tombol di kanan (header 1167px, tombol 1378px) | Header dan tombol rata kanan | Ikon terakhir 1379px = tepi header (Kepala Sekolah dan Guru PIC) |
+| Laporan dan Log audit sesekali melempar pengguna ke login | Penyebab: COA dimuat 25 baris per request (8 request) sehingga batas 120/menit tercapai, lalu `init()` menghapus token untuk error apa pun termasuk 429. Kini token hanya dihapus pada 401, dan semua loader daftar meminta 200 baris per request | COA 8 → 1 request; Laporan, Log audit, Kegiatan, COA dimuat tanpa dialihkan ke login |
+
 ## Belum dicakup
 
 Cetak laporan, dialog tulis (jurnal baru, posting, slip gaji, tutup buku), state error API, Kepala Sekolah dan Guru PIC.

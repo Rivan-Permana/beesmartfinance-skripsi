@@ -28,7 +28,7 @@ export const coaApi = {
     let hasNext = true
     while (hasNext) {
       const { data } = await api.get<Paginated<Coa>>("/coa/", {
-        params: { page },
+        params: { page_size: 200, page },
       })
       out.push(...data.results)
       hasNext = !!data.next

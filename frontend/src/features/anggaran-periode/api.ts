@@ -6,7 +6,7 @@ async function allPages<T>(path: string): Promise<T[]> {
   let page = 1
   let next = true
   while (next) {
-    const { data } = await api.get<Paginated<T>>(path, { params: { page } })
+    const { data } = await api.get<Paginated<T>>(path, { params: { page_size: 200, page } })
     rows.push(...data.results)
     next = !!data.next
     page++
