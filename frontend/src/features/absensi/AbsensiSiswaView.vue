@@ -280,9 +280,9 @@ onBeforeUnmount(() => { gridSequence += 1; groupSequence += 1; window.removeEven
       <div class="attendance-field"><label for="attendance-group">Kelompok</label><Select :key="(saving||!level||groupsLoading) ? 'locked' : 'editable'"
           input-id="attendance-group" v-model="group" :options="groups" option-label="nama" option-value="id"
           :loading="groupsLoading" :disabled="saving||!level||groupsLoading" placeholder="Pilih kelompok"
-          :invalid="attempted&&!group" :aria-invalid="attempted&&!group"><template #dropdownicon>
+          :invalid="attempted&&!!level&&!group" :aria-invalid="attempted&&!!level&&!group"><template #dropdownicon>
             <Icon name="caret-down" />
-          </template></Select><small v-if="attempted&&!group" class="attendance-field-error">Pilih
+          </template></Select><small v-if="attempted&&!!level&&!group" class="attendance-field-error">Pilih
           kelompok.</small></div><Button label="Tampilkan siswa" type="submit" severity="secondary"
         :disabled="saving||loading||choosing||groupsLoading"><template #icon>
           <Icon name="users" />

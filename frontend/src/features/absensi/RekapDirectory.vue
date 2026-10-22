@@ -55,7 +55,7 @@ watch(() => props.rows, () => { first.value = 0; });
             v-if="!attendanceDays(data)" class="recap-secondary">Belum ada catatan</small></template></Column>
       <Column v-for="field in [...statuses,...services]" :key="field.key" :header="field.label"
         header-class="recap-numeric" body-class="recap-numeric"><template #body="{data}"><span
-            :class="{'recap-zero':data[field.key]===0}">{{ data[field.key] }}</span></template></Column>
+            :class="{'recap-zero':data[field.key]===0}">{{ data[field.key] }} hari</span></template></Column>
     </DataTable>
     <ul class="recap-mobile">
       <li v-for="row in pageRows" :key="row.siswaId"><strong class="recap-name">{{ row.nama }}</strong><small
