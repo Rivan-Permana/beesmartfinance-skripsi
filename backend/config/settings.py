@@ -73,7 +73,9 @@ REST_FRAMEWORK = {
     ),
     "DEFAULT_THROTTLE_RATES": {
         "anon": "30/min",
-        "user": "1000/day",
+        # Per minute, not per day: one page can load 15-20 paginated requests, so a daily cap
+        # locked staff out mid-day. Brute force on login stays limited by the "login" scope.
+        "user": "120/min",
         "login": "5/min",
     },
 }
