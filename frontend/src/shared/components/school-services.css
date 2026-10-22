@@ -276,11 +276,6 @@
   white-space: nowrap
 }
 
-/* Pull the last icon button in so its glyph, not its hit area, lines up with the header text. */
-.school-service-page .service-master-table .service-master-actions .p-button:last-child {
-  margin-inline-end: calc(var(--bee-space-3) * -1)
-}
-
 .school-service-page .service-master-cards {
   display: none;
   list-style: none;

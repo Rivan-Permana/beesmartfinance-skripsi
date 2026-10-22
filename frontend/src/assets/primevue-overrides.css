@@ -6,6 +6,13 @@
 .p-dialog .p-dialog-content { scrollbar-gutter: stable; scroll-padding-block: var(--bee-space-4); }
 .p-dialog .p-dialog-footer { flex-wrap: wrap; border-top: 1px solid var(--app-border); padding-block-start: var(--bee-space-4); }
 .p-inputtext, .p-select, .p-inputnumber-input, .p-password-input, .p-button { min-height: var(--bee-size-control); font-size: var(--bee-type-ui); }
+/* Focus adds a ring, so a focused field never reads as the 1px red border of an invalid one.
+   :root raises specificity above PrimeVue's runtime-injected focus rules. */
+:root :is(.p-inputtext:enabled:focus, .p-textarea:enabled:focus, .p-select.p-focus, .p-multiselect.p-focus) { outline: 2px solid var(--bee-color-focus); outline-offset: 1px; }
+:root :is(.p-inputtext.p-invalid:enabled:focus, .p-inputtext[aria-invalid="true"]:enabled:focus, .p-textarea.p-invalid:enabled:focus,
+  .p-select.p-invalid.p-focus, .p-multiselect.p-invalid.p-focus, .p-invalid .p-inputtext:enabled:focus) { outline-color: var(--bee-color-critical); border-color: var(--bee-color-critical); }
+:root :is(.p-inputtext.p-invalid:enabled:hover, .p-inputtext[aria-invalid="true"]:enabled:hover, .p-textarea.p-invalid:enabled:hover,
+  .p-select.p-invalid:not(.p-disabled):hover, .p-multiselect.p-invalid:not(.p-disabled):hover) { border-color: var(--bee-color-critical); }
 .p-button.p-button-icon-only, .p-dialog-header-actions .p-button { min-width: var(--bee-size-control); min-height: var(--bee-size-control); width: var(--bee-size-control); height: var(--bee-size-control); }
 .p-tabular-nums, .tabular-nums { font-variant-numeric: tabular-nums; }
 .p-message-text { line-height: var(--bee-leading-body); }
@@ -55,6 +62,10 @@ th.bee-col-actions--lg,
 td.bee-col-actions--lg { min-width: 15rem; width: 15rem; }
 th.bee-col-actions--xl,
 td.bee-col-actions--xl { min-width: 18rem; width: 18rem; }
+
+/* Action columns: pull the last borderless button out by its padding so its text or icon,
+   not its hit area, lines up with the "Tindakan" header. */
+td[class*="action"] .p-button-text:last-child { position: relative; inset-inline-end: calc(var(--p-button-padding-x) * -1); }
 
 .p-datatable-tbody td:has(.bee-actions) {
   vertical-align: middle;
