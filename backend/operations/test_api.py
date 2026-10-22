@@ -100,6 +100,14 @@ class KeuanganActionApiTests(APITestCase):
         self.assertEqual(r.status_code, 200)
         self.assertIn("jurnal_id", r.data)
 
+    def test_keuangan_batalkan_draf_gaji_lewat_api(self):
+        jid = self.client.post(f"/api/v1/gaji/{self.gaji.id}/posting/").data["jurnal_id"]
+        r = self.client.post(f"/api/v1/jurnal/{jid}/batal-penerimaan/", {"alasan": "Hari hadir salah"}, format="json")
+        self.assertEqual(r.status_code, 200, r.data)
+        self.assertEqual(r.data["status"], "VOID")
+        r = self.client.patch(f"/api/v1/gaji/{self.gaji.id}/", {"hari_hadir": 19}, format="json")
+        self.assertEqual(r.status_code, 200)
+
     def test_slip_gaji_terkunci_setelah_posting(self):
         self.client.post(f"/api/v1/gaji/{self.gaji.id}/posting/")
         r = self.client.patch(f"/api/v1/gaji/{self.gaji.id}/", {"gaji_pokok": "9000000"}, format="json")

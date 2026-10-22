@@ -232,7 +232,10 @@ class TrJurnalViewSet(viewsets.ModelViewSet):
         payload.is_valid(raise_exception=True)
         try:
             target = self.get_object()
-            if target.tipe_sumber in {"AUTO_PENDAFTARAN", "AUTO_SITIN"}:
+            if target.tipe_sumber in {"AUTO_PAYROLL", "AUTO_KASBON"}:
+                from operations.services.payroll import batalkan_draf_kepegawaian
+                jurnal = batalkan_draf_kepegawaian(target, request.user, payload.validated_data["alasan"])
+            elif target.tipe_sumber in {"AUTO_PENDAFTARAN", "AUTO_SITIN"}:
                 from operations.services.registration import batalkan_penerimaan_pendaftaran
                 jurnal = batalkan_penerimaan_pendaftaran(target, request.user, payload.validated_data["alasan"])
             else:

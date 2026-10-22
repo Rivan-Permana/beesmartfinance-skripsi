@@ -55,10 +55,10 @@ export function journalPayload(form: JournalForm): JurnalInput {
   return { no_bukti: form.no_bukti.trim(), tanggal: formatLocalDate(form.tanggal!), keterangan: form.keterangan,
     detail: form.detail.map(line => ({ kode_akun: line.kode_akun!, debit: line.debit.toFixed(2), kredit: line.kredit.toFixed(2) })) }
 }
-export type JournalAction = "edit" | "remove" | "submit" | "approve" | "reject" | "catat" | "cancel" | "void"
+export type JournalAction = "edit" | "remove" | "submit" | "approve" | "reject" | "catat" | "cancel" | "cancelDraft" | "void"
 export interface JournalAccess { finance: boolean; principal: boolean; userId?: number }
 export const journalActionLabels: Record<JournalAction, string> = {
-  edit: "Ubah draf", remove: "Hapus draf", submit: "Ajukan persetujuan", approve: "Setujui dan catat", reject: "Tolak pengajuan", catat: "Catat ke buku besar", cancel: "Batalkan penerimaan", void: "Buat jurnal pembalik",
+  edit: "Ubah draf", remove: "Hapus draf", submit: "Ajukan persetujuan", approve: "Setujui dan catat", reject: "Tolak pengajuan", catat: "Catat ke buku besar", cancel: "Batalkan penerimaan", cancelDraft: "Batalkan draf", void: "Buat jurnal pembalik",
 }
 export function journalActions(row: Jurnal, access: JournalAccess): JournalAction[] {
   if (row.is_deleted) return []
@@ -68,6 +68,7 @@ export function journalActions(row: Jurnal, access: JournalAccess): JournalActio
     if (row.status === "DRAFT" && !row.can_finance_post) actions.push("submit")
     if (["DRAFT", "PENDING"].includes(row.status) && row.can_finance_post) actions.push("catat")
     if (["DRAFT", "PENDING"].includes(row.status) && ["AUTO_BILLING", "AUTO_PENDAFTARAN", "AUTO_SITIN"].includes(row.tipe_sumber)) actions.push("cancel")
+    if (["DRAFT", "PENDING"].includes(row.status) && ["AUTO_PAYROLL", "AUTO_KASBON"].includes(row.tipe_sumber)) actions.push("cancelDraft")
   }
   if (access.principal) {
     if (row.status === "PENDING" && !row.can_finance_post && !row.perlu_rekonsiliasi && access.userId !== undefined && row.created_by !== access.userId) actions.push("approve", "reject")

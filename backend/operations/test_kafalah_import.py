@@ -152,6 +152,48 @@ class PotongPinjamanTests(TestCase):
         gaji.refresh_from_db()
         self.assertFalse(gaji.kasbon_diselesaikan)
         self.assertFalse(gaji.potongan_kasbon.exists())
+        self.assertIsNone(gaji.jurnal_id)
+        ulang = post_gaji(gaji)
+        self.assertTrue(ulang.no_bukti.endswith("-R1"))
+        self.assertNotEqual(ulang.pk, jurnal.pk)
+
+    def test_slip_lama_tanpa_alokasi_tidak_dipotong_dua_kali(self):
+        from accounting.services import post_reversal
+
+        gaji = self._gaji()
+        apply_potongan_pinjaman(gaji, save=True)
+        jurnal = post_gaji(gaji)
+        # slip lama: saldo sudah dikurangi aturan lama, tanpa catatan alokasi
+        PinjamanPegawai.objects.filter(pegawai=self.pegawai).update(sudah_terbayar=Decimal("100000"))
+        GajiPegawai.objects.filter(pk=gaji.pk).update(kasbon_diselesaikan=True)
+        post_reversal(self._setujui(jurnal))
+        gaji.refresh_from_db()
+        self.assertIsNone(gaji.jurnal_id)
+        self.assertTrue(gaji.kasbon_diselesaikan)
+        self._setujui(post_gaji(gaji))
+        self.assertEqual(self.pegawai.pinjaman.first().sudah_terbayar, Decimal("100000"))
+
+    def test_batalkan_draf_gaji_dan_kasbon_membuka_sumber(self):
+        from operations.services.payroll import batalkan_draf_kepegawaian, post_pencairan_kasbon
+
+        gaji = self._gaji()
+        jurnal = post_gaji(gaji)
+        self.assertEqual(batalkan_draf_kepegawaian(jurnal, None, "Salah hari hadir").status, "VOID")
+        gaji.refresh_from_db()
+        self.assertIsNone(gaji.jurnal_id)
+        self.assertTrue(post_gaji(gaji).no_bukti.endswith("-R1"))
+
+        baru = PinjamanPegawai.objects.create(
+            pegawai=self.pegawai, tanggal_pinjaman="2025-04-02",
+            jumlah_pinjaman=Decimal("300000"), angsuran_per_bulan=Decimal("300000"),
+        )
+        kb = post_pencairan_kasbon(baru, akun_piutang="1103", akun_kas="1101")
+        batalkan_draf_kepegawaian(kb, None, "Nominal salah")
+        baru.refresh_from_db()
+        self.assertIsNone(baru.jurnal_id)
+        self.assertEqual(post_pencairan_kasbon(baru, akun_piutang="1103", akun_kas="1101").no_bukti, f"KB-{baru.pk}-R1")
+        with self.assertRaises(ValueError):
+            batalkan_draf_kepegawaian(kb, None, "lagi")
 
     def test_persetujuan_ditolak_bila_saldo_kasbon_kurang(self):
         pertama, kedua = self._gaji(), self._gaji(bulan=5)

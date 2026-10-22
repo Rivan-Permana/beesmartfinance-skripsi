@@ -24,6 +24,7 @@ describe('journal workflow contracts',()=>{
     expect(journalActions(journalSamples[0]!,finance)).toEqual(['edit','remove','catat'])
     expect(journalActions(journalSamples[1]!,finance)).toEqual(['catat','cancel'])
     expect(journalActions(journalSamples[6]!,finance)).toEqual(['submit'])
+    expect(journalActions({...journalSamples[6]!,tipe_sumber:'AUTO_PAYROLL',status:'PENDING'},finance)).toEqual(['cancelDraft'])
     expect(journalActions(journalSamples[4]!,finance)).toEqual([])
   })
   it('blocks own approval, reconciliation and direct-post journals for the principal',()=>{

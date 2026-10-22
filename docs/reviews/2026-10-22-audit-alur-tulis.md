@@ -34,7 +34,7 @@ Pendukung UAT: `frontend/vite.config.ts` membaca `API_PROXY_TARGET` (default tet
 ## Belum diubah (perlu keputusan)
 
 1. ~~Potongan kasbon menghitung kasbon yang belum dicairkan.~~ Selesai: lihat bagian "Keputusan 1" di bawah.
-2. ~~Saldo kasbon berkurang saat jurnal gaji dibuat; void tidak mengembalikannya.~~ Selesai: lihat bagian "Keputusan 2". Slip yang jurnalnya di-void tetap terkunci dan belum bisa diposting ulang (butuh nomor bukti baru).
+2. ~~Saldo kasbon berkurang saat jurnal gaji dibuat; void tidak mengembalikannya.~~ Selesai: lihat bagian "Keputusan 2". Slip yang jurnalnya di-void kini terbuka lagi (lihat "Keputusan 5").
 3. ~~Kepala Sekolah tidak punya tindakan "tolak".~~ Selesai: lihat bagian "Keputusan 3".
 4. Tidak ada kwitansi per pembayaran; yang bisa dicetak hanya faktur tagihan.
 
@@ -68,3 +68,11 @@ Data uji di UAT: periode `UAT-C86B14-2026-09` (CLOSED), periode `UAT-FE6AF6-2026
 - UI: "Tolak pengajuan" tampil di samping "Setujui dan catat" dengan kolom alasan wajib. Toast "Pengajuan ditolak" muncul dan baris kembali berstatus Draf.
 - Batasan: jurnal otomatis gaji dan kasbon yang ditolak hanya bisa diajukan ulang tanpa perubahan, karena slip sumbernya terkunci (lihat keputusan 5).
 - Verifikasi: backend 124 OK (peran salah 403, alasan kosong 400, tolak ulang 400, ajukan ulang → PENDING), frontend 131/131, build bersih. Di UAT sebagai kepsek, jurnal `UAT-TOLAK-UI` ditolak lewat UI: alasan kosong memunculkan "Isi alasan penolakan.", lalu jurnal kembali Draf dengan alasan tercatat.
+
+## Keputusan 5 — slip dibuka lagi setelah void atau pembatalan draf
+
+- Void jurnal gaji: saldo kasbon dikembalikan sesuai alokasi, lalu slip dilepas dari jurnalnya sehingga bisa diubah dan diposting ulang. Slip dari sebelum pencatatan alokasi tetap ditandai "kasbon sudah diselesaikan" agar posting ulang tidak memotong dua kali. Jejaknya tetap ada di riwayat slip dan di pasangan jurnal asli + `REV-…`.
+- Jurnal gaji/kasbon yang masih DRAFT/PENDING (termasuk yang ditolak Kepala Sekolah) bisa dibatalkan oleh Keuangan lewat "Batalkan draf" dengan alasan wajib (`batal-penerimaan`). Jurnal menjadi VOID dan slip atau kasbon sumbernya terbuka lagi.
+- Posting ulang memakai nomor bukti berakhiran `-R1`, `-R2`, dan seterusnya (`GJ-…`, `KB-…`).
+- Belum dicakup: void atas jurnal pencairan kasbon yang sudah POSTED tidak membuka kasbonnya, karena sebagian kasbon mungkin sudah terpotong gaji.
+- Verifikasi: backend 127 OK (void → buka → posting ulang `-R1`, slip lama tanpa alokasi tidak terpotong dua kali, batal draf gaji dan kasbon, batal lewat API), frontend 131/131, build bersih. Di UAT, slip #7: approve → void `REV-GJ-7-202612` → slip terbuka dan diubah → posting ulang `GJ-7-202612-R1`. Draf `-R1` dibatalkan lewat UI ("Draf jurnal dibatalkan"), dan slip kembali tampil "Belum dijurnal".

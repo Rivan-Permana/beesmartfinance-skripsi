@@ -79,11 +79,12 @@ async function confirmAction(reason:string){
   const current=actionTarget.value, currentAction=action.value
   if(!current||!currentAction||pending.value)return
   if(!journalActions(current,access.value).includes(currentAction)){actionError.value="Status atau kewenangan tidak lagi sesuai. Periksa ulang daftar.";return}
-  if((currentAction==='cancel'||currentAction==='reject')&&!reason.trim())return
+  if((currentAction==='cancel'||currentAction==='cancelDraft'||currentAction==='reject')&&!reason.trim())return
   pending.value=true;actionError.value=""
   try{
-    const result=await (currentAction==='remove'?jurnalApi.remove(current.id):currentAction==='cancel'?jurnalApi.batalPenerimaan(current.id,reason):currentAction==='reject'?jurnalApi.tolak(current.id,reason):jurnalApi[currentAction](current.id))
+    const result=await (currentAction==='remove'?jurnalApi.remove(current.id):currentAction==='cancel'||currentAction==='cancelDraft'?jurnalApi.batalPenerimaan(current.id,reason):currentAction==='reject'?jurnalApi.tolak(current.id,reason):jurnalApi[currentAction](current.id))
     if(currentAction==='remove'||currentAction==='cancel')notifySuccess(toast,currentAction==='remove'?"Draf jurnal dihapus":"Penerimaan dibatalkan")
+    else if(currentAction==='cancelDraft')notifySuccess(toast,"Draf jurnal dibatalkan",{detail:`${current.no_bukti} batal; slip gaji atau kasbon sumbernya dapat diperbaiki dan diposting ulang.`})
     else if(currentAction==='reject')notifySuccess(toast,"Pengajuan ditolak",{detail:`${current.no_bukti} dikembalikan ke Draf untuk diperbaiki Staff Keuangan.`})
     else{const message=jurnalActionSuccessMessage(currentAction,result);notifySuccess(toast,message.summary,{detail:message.detail})}
     detail.value=null;actionTarget.value=null;action.value=null

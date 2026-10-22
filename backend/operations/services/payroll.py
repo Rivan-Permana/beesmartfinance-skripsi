@@ -65,17 +65,56 @@ def settle_pinjaman_from_gaji(gaji) -> None:
 
 
 def kembalikan_potongan_kasbon(jurnal) -> None:
-    """Void jurnal gaji: kembalikan saldo kasbon sesuai alokasi yang tercatat."""
+    """Void jurnal gaji: kembalikan saldo kasbon sesuai alokasi, lalu buka slip untuk diposting ulang.
+
+    Slip dari sebelum pencatatan alokasi tidak punya alokasi; saldo kasbonnya tetap
+    berkurang dan penandanya dibiarkan agar posting ulang tidak memotong dua kali.
+    """
     from operations.models import GajiPegawai, PinjamanPegawai
 
-    for gaji in GajiPegawai.objects.select_for_update().filter(jurnal=jurnal, kasbon_diselesaikan=True):
-        for alokasi in gaji.potongan_kasbon.all():
+    for gaji in GajiPegawai.objects.select_for_update().filter(jurnal=jurnal):
+        fields = ["jurnal", "updated_at"]
+        alokasi_list = list(gaji.potongan_kasbon.all())
+        for alokasi in alokasi_list:
             pinj = PinjamanPegawai.all_objects.select_for_update().get(pk=alokasi.pinjaman_id)
             pinj.sudah_terbayar -= alokasi.nominal
             pinj.save(update_fields=["sudah_terbayar", "updated_at"])
-        gaji.potongan_kasbon.all().delete()
-        gaji.kasbon_diselesaikan = False
-        gaji.save(update_fields=["kasbon_diselesaikan", "updated_at"])
+        if alokasi_list:
+            gaji.potongan_kasbon.all().delete()
+            gaji.kasbon_diselesaikan = False
+            fields.append("kasbon_diselesaikan")
+        gaji.jurnal = None
+        gaji.save(update_fields=fields)
+
+
+def batalkan_draf_kepegawaian(jurnal, user, alasan):
+    """Batalkan jurnal gaji/kasbon yang belum POSTED dan buka kembali slip atau kasbon sumbernya."""
+    from accounting.models import TrJurnal
+    from operations.models import GajiPegawai, PinjamanPegawai
+
+    with transaction.atomic(), audit_user(user):
+        jurnal = TrJurnal.objects.select_for_update().get(pk=jurnal.pk)
+        if jurnal.tipe_sumber not in {"AUTO_PAYROLL", "AUTO_KASBON"} or jurnal.status not in ("DRAFT", "PENDING"):
+            raise ValueError("Hanya jurnal gaji atau kasbon yang belum POSTED dapat dibatalkan oleh Finance.")
+        for sumber in [*GajiPegawai.objects.select_for_update().filter(jurnal=jurnal),
+                       *PinjamanPegawai.objects.select_for_update().filter(jurnal=jurnal)]:
+            sumber.jurnal = None
+            sumber.save(update_fields=["jurnal", "updated_at"])
+        jurnal.status = "VOID"
+        jurnal.keterangan = f"{jurnal.keterangan or ''}\nDibatalkan: {alasan}".strip()
+        jurnal.save(update_fields=["status", "keterangan"])
+        return jurnal
+
+
+def _no_bukti_tersedia(dasar: str) -> str:
+    """Nomor bukti auto-jurnal; posting ulang setelah dibatalkan memakai akhiran -R1, -R2, …"""
+    from accounting.models import TrJurnal
+
+    no_bukti, ke = dasar, 0
+    while TrJurnal.objects.filter(no_bukti=no_bukti).exists():
+        ke += 1
+        no_bukti = f"{dasar}-R{ke}"
+    return no_bukti
 
 
 def post_pencairan_kasbon(pinjaman, user=None, akun_piutang=None, akun_kas=None):
@@ -89,7 +128,7 @@ def post_pencairan_kasbon(pinjaman, user=None, akun_piutang=None, akun_kas=None)
     with transaction.atomic():
         with audit_user(user):
             jurnal = buat_jurnal(
-                no_bukti=f"KB-{pinjaman.id}",
+                no_bukti=_no_bukti_tersedia(f"KB-{pinjaman.id}"),
                 tanggal=pinjaman.tanggal_pinjaman,
                 keterangan=f"Pencairan kasbon {pinjaman.pegawai}",
                 tipe="AUTO_KASBON",
@@ -124,7 +163,7 @@ def post_gaji(gaji, user=None, akun_beban=None, akun_kas=None,
     with transaction.atomic():
         with audit_user(user):
             jurnal = buat_jurnal(
-                no_bukti=f"GJ-{gaji.id}-{gaji.periode_tahun}{gaji.periode_bulan:02d}",
+                no_bukti=_no_bukti_tersedia(f"GJ-{gaji.id}-{gaji.periode_tahun}{gaji.periode_bulan:02d}"),
                 tanggal=date(gaji.periode_tahun, gaji.periode_bulan, 28),
                 keterangan=f"Gaji {gaji.pegawai} {gaji.periode_bulan}/{gaji.periode_tahun}",
                 tipe="AUTO_PAYROLL", baris=baris, user=user,
