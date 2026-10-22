@@ -123,9 +123,48 @@ class PotongPinjamanTests(TestCase):
         )
         apply_potongan_pinjaman(gaji, save=True)
         self.assertEqual(gaji.potongan_pinjaman, Decimal("100000"))
-        post_gaji(gaji)
+        jurnal = post_gaji(gaji)
         pinj = self.pegawai.pinjaman.first()
+        self.assertEqual(pinj.sudah_terbayar, Decimal("0"))
+        self._setujui(jurnal)
+        pinj.refresh_from_db()
         self.assertEqual(pinj.sudah_terbayar, Decimal("100000"))
+
+    def _setujui(self, jurnal):
+        from django.contrib.auth import get_user_model
+
+        from accounting.models import TrJurnal
+        from accounting.services import post_jurnal
+
+        kepsek, _ = get_user_model().objects.get_or_create(username="kepsek-uji")
+        TrJurnal.objects.filter(pk=jurnal.pk).update(status="PENDING")
+        return post_jurnal(jurnal, kepsek, approve=True)
+
+    def test_void_jurnal_gaji_mengembalikan_saldo_kasbon(self):
+        from accounting.services import post_reversal
+
+        gaji = self._gaji()
+        apply_potongan_pinjaman(gaji, save=True)
+        jurnal = self._setujui(post_gaji(gaji))
+        post_reversal(jurnal)
+        pinj = self.pegawai.pinjaman.first()
+        self.assertEqual(pinj.sudah_terbayar, Decimal("0"))
+        gaji.refresh_from_db()
+        self.assertFalse(gaji.kasbon_diselesaikan)
+        self.assertFalse(gaji.potongan_kasbon.exists())
+
+    def test_persetujuan_ditolak_bila_saldo_kasbon_kurang(self):
+        pertama, kedua = self._gaji(), self._gaji(bulan=5)
+        PinjamanPegawai.objects.filter(pegawai=self.pegawai).update(jumlah_pinjaman=Decimal("100000"))
+        for gaji in (pertama, kedua):
+            apply_potongan_pinjaman(gaji, save=True)
+        jurnal_pertama, jurnal_kedua = post_gaji(pertama), post_gaji(kedua)
+        self._setujui(jurnal_pertama)
+        with self.assertRaisesMessage(ValueError, "tidak lagi mencukupi"):
+            self._setujui(jurnal_kedua)
+        jurnal_kedua.refresh_from_db()
+        self.assertEqual(jurnal_kedua.status, "PENDING")
+        self.assertEqual(self.pegawai.pinjaman.first().sudah_terbayar, Decimal("100000"))
 
 
 class AnggaranParserTests(TestCase):

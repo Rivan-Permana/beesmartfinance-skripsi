@@ -14,7 +14,7 @@ def pinjaman_terpotong(pegawai):
     return (
         pegawai.pinjaman.filter(is_deleted=False)
         .filter(Q(is_legacy=True) | Q(jurnal__status="POSTED", jurnal__reversals__isnull=True))
-        .distinct().order_by("tanggal_pinjaman", "pk")
+        .order_by("tanggal_pinjaman", "pk")
     )
 
 
@@ -34,11 +34,18 @@ def apply_potongan_pinjaman(gaji, *, save: bool = False) -> Decimal:
 
 
 def settle_pinjaman_from_gaji(gaji) -> None:
-    """Kurangi saldo pinjaman setelah gaji diposting."""
-    sisa_potong = gaji.potongan_pinjaman
-    if sisa_potong <= 0:
+    """Kurangi saldo kasbon sebesar potongan slip; dipanggil saat jurnal gaji POSTED.
+
+    Jurnal mencatat pelunasan piutang sebesar potongan slip, jadi saldo kasbon harus
+    tertutup penuh. Bila tidak, persetujuan dibatalkan (dipanggil dalam transaksi).
+    """
+    from operations.models import GajiPegawai, PotonganKasbonGaji
+
+    gaji = GajiPegawai.objects.select_for_update().get(pk=gaji.pk)
+    if gaji.kasbon_diselesaikan:
         return
-    for pinj in pinjaman_terpotong(gaji.pegawai):
+    sisa_potong = gaji.potongan_pinjaman
+    for pinj in pinjaman_terpotong(gaji.pegawai).select_for_update(of=("self",)):
         if sisa_potong <= 0:
             break
         bayar = min(pinj.sisa_pinjaman, pinj.angsuran_per_bulan or pinj.sisa_pinjaman, sisa_potong)
@@ -46,7 +53,29 @@ def settle_pinjaman_from_gaji(gaji) -> None:
             continue
         pinj.sudah_terbayar += bayar
         pinj.save(update_fields=["sudah_terbayar", "updated_at"])
+        PotonganKasbonGaji.objects.create(gaji=gaji, pinjaman=pinj, nominal=bayar)
         sisa_potong -= bayar
+    if sisa_potong > 0:
+        raise ValueError(
+            f"Saldo kasbon {gaji.pegawai} tidak lagi mencukupi potongan slip "
+            f"(kurang {sisa_potong:,.0f}). Periksa slip gaji lain yang memotong kasbon yang sama."
+        )
+    gaji.kasbon_diselesaikan = True
+    gaji.save(update_fields=["kasbon_diselesaikan", "updated_at"])
+
+
+def kembalikan_potongan_kasbon(jurnal) -> None:
+    """Void jurnal gaji: kembalikan saldo kasbon sesuai alokasi yang tercatat."""
+    from operations.models import GajiPegawai, PinjamanPegawai
+
+    for gaji in GajiPegawai.objects.select_for_update().filter(jurnal=jurnal, kasbon_diselesaikan=True):
+        for alokasi in gaji.potongan_kasbon.all():
+            pinj = PinjamanPegawai.all_objects.select_for_update().get(pk=alokasi.pinjaman_id)
+            pinj.sudah_terbayar -= alokasi.nominal
+            pinj.save(update_fields=["sudah_terbayar", "updated_at"])
+        gaji.potongan_kasbon.all().delete()
+        gaji.kasbon_diselesaikan = False
+        gaji.save(update_fields=["kasbon_diselesaikan", "updated_at"])
 
 
 def post_pencairan_kasbon(pinjaman, user=None, akun_piutang=None, akun_kas=None):
@@ -102,5 +131,4 @@ def post_gaji(gaji, user=None, akun_beban=None, akun_kas=None,
             )
             gaji.jurnal = jurnal
             gaji.save(update_fields=["jurnal", "updated_at"])
-            settle_pinjaman_from_gaji(gaji)
     return jurnal

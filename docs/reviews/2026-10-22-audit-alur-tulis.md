@@ -34,7 +34,7 @@ Pendukung UAT: `frontend/vite.config.ts` membaca `API_PROXY_TARGET` (default tet
 ## Belum diubah (perlu keputusan)
 
 1. ~~Potongan kasbon menghitung kasbon yang belum dicairkan.~~ Selesai: lihat bagian "Keputusan 1" di bawah.
-2. Saldo kasbon berkurang saat jurnal gaji dibuat (DRAFT), bukan saat disetujui. Void atas jurnal gaji tidak mengembalikan saldo kasbon dan tidak membuka slip untuk diposting ulang.
+2. ~~Saldo kasbon berkurang saat jurnal gaji dibuat; void tidak mengembalikannya.~~ Selesai: lihat bagian "Keputusan 2". Slip yang jurnalnya di-void tetap terkunci dan belum bisa diposting ulang (butuh nomor bukti baru).
 3. Kepala Sekolah tidak punya tindakan "tolak" untuk jurnal PENDING; jurnal hanya bisa disetujui.
 4. Tidak ada kwitansi per pembayaran; yang bisa dicetak hanya faktur tagihan.
 
@@ -54,3 +54,10 @@ Data uji di UAT: periode `UAT-C86B14-2026-09` (CLOSED), periode `UAT-FE6AF6-2026
 - Field read-only `is_legacy` dan `ikut_potongan` ditambahkan di API kasbon. Pratinjau potongan di form gaji memakai `ikut_potongan`, dan peringatannya kini menyebut pengajuan yang tidak ikut dipotong.
 - Verifikasi: backend 121 OK, frontend 131/131, build bersih. Migrasi diterapkan di UAT dan diuji turun-naik (`0013` ↔ `0014`). Di UAT, slip November untuk Pak Rudi berpotongan 0 selama kasbonnya belum disetujui, lalu menjadi 200.000 setelah pencairan POSTED.
 - Produksi: migrasi ikut jalan otomatis ketika branch ini di-merge ke `main`.
+
+## Keputusan 2 — saldo kasbon mengikuti persetujuan jurnal gaji
+
+- Migrasi `operations.0015` (reversible): kolom `GajiPegawai.kasbon_diselesaikan` dan tabel `PotonganKasbonGaji` (alokasi potongan per kasbon). Backfill: semua slip yang sudah berjurnal ditandai selesai, karena aturan lama sudah mengurangi saldonya; hal ini mencegah potongan ganda.
+- Posting gaji hanya membuat jurnal DRAFT. Saat jurnal gaji POSTED (approve Kepala Sekolah), saldo kasbon dikurangi dan alokasinya dicatat dalam transaksi yang sama. Bila saldo tidak lagi cukup menutup potongan slip, persetujuan ditolak dan jurnal tetap PENDING.
+- Void jurnal gaji mengembalikan saldo sesuai alokasi. Slip dari sebelum migrasi tidak punya alokasi, jadi saldonya tidak dikembalikan otomatis.
+- Verifikasi: backend 123 OK (tes approve, void, dan saldo kurang), frontend 131/131, build bersih. Migrasi diuji turun-naik (`0014` ↔ `0015`) di UAT. Di UAT dengan slip #6: saldo tetap saat DRAFT, berkurang 200.000 setelah approve, kembali setelah void `REV-GJ-6-202611`.

@@ -79,6 +79,11 @@ def post_jurnal(jurnal, user, *, approve=False):
             jurnal.submitted_by = user
             fields.append("submitted_by")
         jurnal.save(update_fields=fields)
+        if jurnal.tipe_sumber == "AUTO_PAYROLL":
+            from operations.models import GajiPegawai
+            from operations.services.payroll import settle_pinjaman_from_gaji
+            for gaji in GajiPegawai.objects.filter(jurnal=jurnal):
+                settle_pinjaman_from_gaji(gaji)
         return jurnal
 
 
@@ -117,6 +122,9 @@ def post_reversal(jurnal, user=None):
             pembalik.save(update_fields=["status", "posted_at"])
             from operations.services.billing import batalkan_pembayaran_jurnal
             batalkan_pembayaran_jurnal(jurnal, user, f"Pembalik {pembalik.no_bukti}")
+            if jurnal.tipe_sumber == "AUTO_PAYROLL":
+                from operations.services.payroll import kembalikan_potongan_kasbon
+                kembalikan_potongan_kasbon(jurnal)
     return pembalik
 
 
