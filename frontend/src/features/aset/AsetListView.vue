@@ -1,10 +1,10 @@
 <script setup lang="ts">
+import BeePaginator from '@/shared/components/BeePaginator.vue'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { onBeforeRouteLeave, RouterLink } from 'vue-router'
 import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'
 import Message from 'primevue/message'
-import Paginator from 'primevue/paginator'
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
 import { notifySuccess } from '@/core/errors'
@@ -160,7 +160,7 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload', beforeUnload))
       <template v-else>
         <table class="employee-table asset-table"><caption class="employee-sr-only">Register aset tetap, 15 aset per halaman</caption><thead><tr><th>Aset</th><th>Perolehan</th><th class="employee-number">Akumulasi</th><th class="employee-number">Penyusutan per bulan</th><th class="employee-action-column">Tindakan</th></tr></thead><tbody><tr v-for="row in pageRows" :key="row.id"><td><strong>{{ row.nama }}</strong><small>Akun {{ account(row.akun_aset) }}</small></td><td><time :datetime="row.tanggal_perolehan">{{ dateLabel(row.tanggal_perolehan) }}</time><small class="asset-money">{{ money(row.harga_perolehan) }}</small></td><td class="employee-number">{{ money(row.akumulasi_penyusutan) }}</td><td class="employee-number">{{ money(row.penyusutan_per_bulan) }}<small>{{ row.umur_manfaat_bulan }} bulan · garis lurus</small></td><td class="employee-action-column"><Button label="Periksa" severity="secondary" :aria-label="`Periksa ${row.nama}`" :disabled="busy" @click="inspect(row)" /></td></tr></tbody></table>
         <ul class="employee-cards asset-cards" aria-label="Daftar aset"><li v-for="row in pageRows" :key="row.id"><header><div><strong>{{ row.nama }}</strong><small>Akun {{ account(row.akun_aset) }}</small></div></header><dl><div><dt>Tanggal perolehan</dt><dd><time :datetime="row.tanggal_perolehan">{{ dateLabel(row.tanggal_perolehan) }}</time></dd></div><div><dt>Harga perolehan</dt><dd>{{ money(row.harga_perolehan) }}</dd></div><div><dt>Akumulasi</dt><dd>{{ money(row.akumulasi_penyusutan) }}</dd></div><div><dt>Penyusutan per bulan</dt><dd>{{ money(row.penyusutan_per_bulan) }}</dd></div><div><dt>Masa manfaat</dt><dd>{{ row.umur_manfaat_bulan }} bulan</dd></div></dl><div class="employee-card-actions"><Button label="Periksa aset" severity="secondary" :aria-label="`Periksa ${row.nama}`" :disabled="busy" @click="inspect(row)" /></div></li></ul>
-        <Paginator v-model:first="first" :rows="15" :total-records="filtered.length" template="PrevPageLink PageLinks NextPageLink" :always-show="filtered.length > 15"><template #previcon><Icon name="caret-left" /></template><template #nexticon><Icon name="caret-right" /></template></Paginator>
+        <BeePaginator v-model:first="first" :rows="15" :total-records="filtered.length" :always-show="filtered.length > 15" />
       </template>
       <p class="employee-footnote"><Icon name="info" />Mencatat penyusutan menambah akumulasi aset dan membuat jurnal Draf. Jurnal perlu diproses lewat alur pencatatan keuangan.</p>
     </section>

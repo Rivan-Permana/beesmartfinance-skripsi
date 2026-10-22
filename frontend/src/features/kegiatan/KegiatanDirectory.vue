@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import BeePaginator from "@/shared/components/BeePaginator.vue"
 import SelectClearButton from "@/shared/components/SelectClearButton.vue"
 import { computed, ref, watch } from "vue"
 import Button from "primevue/button"
@@ -6,7 +7,6 @@ import Column from "primevue/column"
 import DataTable from "primevue/datatable"
 import Menu from "primevue/menu"
 import Message from "primevue/message"
-import Paginator from "primevue/paginator"
 import Select from "primevue/select"
 import Tag from "primevue/tag"
 import SearchField from "@/shared/components/SearchField.vue"
@@ -57,7 +57,7 @@ function periodLabel(row:Kegiatan){return row.periode_kode || (row.periode===nul
         <Column header="Tindakan" header-class="kegiatan-actions-column" body-class="kegiatan-actions-column"><template #body="{data}"><div class="kegiatan-actions"><Button v-if="canRecord" label="Catat realisasi" severity="secondary" :disabled="Number(data.sisa_pagu)<=0" :aria-label="`Catat realisasi ${data.nama}`" :title="Number(data.sisa_pagu)<=0?'Sisa pagu sudah habis':undefined" @click="emit('record',data)" /><Button label="Laporan" severity="secondary" text :aria-label="`Laporan ${data.nama}`" @click="emit('report',data)" /><Button v-if="canManage" severity="secondary" text :aria-label="`Tindakan kegiatan ${data.nama}`" aria-controls="kegiatan-action-menu" aria-haspopup="menu" :aria-expanded="menuOpen && active?.id===data.id" @click="openActions($event,data)"><template #icon><Icon name="caret-down" /></template></Button></div><small v-if="canRecord && Number(data.sisa_pagu)<=0" class="kegiatan-secondary">Sisa pagu sudah habis</small></template></Column>
       </DataTable>
       <ul class="kegiatan-mobile" aria-label="Kegiatan sekolah"><li v-for="row in pageRows" :key="row.id"><div class="kegiatan-mobile-heading"><div><strong class="kegiatan-name">{{ row.nama }}</strong><small class="kegiatan-secondary">{{ periodLabel(row) }}</small></div><Tag :value="KEGIATAN_STATUS[row.status].label" :severity="KEGIATAN_STATUS[row.status].severity" /></div><dl><div><dt>Pagu</dt><dd>{{ formatRp(row.pagu) }}</dd></div><div><dt>Realisasi</dt><dd>{{ formatRp(row.realisasi) }}</dd></div><div><dt>Sisa pagu</dt><dd class="kegiatan-amount" :class="{'kegiatan-over':Number(row.sisa_pagu)<0}">{{ formatRp(row.sisa_pagu) }}</dd></div></dl><KegiatanUsage :pagu="row.pagu" :realisasi="row.realisasi" :ratio="row.rasio_utilisasi" /><div class="kegiatan-mobile-actions"><Button v-if="canRecord" label="Catat realisasi" severity="secondary" :disabled="Number(row.sisa_pagu)<=0" @click="emit('record',row)" /><Button label="Laporan" severity="secondary" text :aria-label="`Laporan ${row.nama}`" @click="emit('report',row)" /><Button v-if="canManage" severity="secondary" text :aria-label="`Tindakan kegiatan ${row.nama}`" aria-controls="kegiatan-action-menu" aria-haspopup="menu" :aria-expanded="menuOpen && active?.id===row.id" @click="openActions($event,row)"><template #icon><Icon name="caret-down" /></template></Button></div><small v-if="canRecord && Number(row.sisa_pagu)<=0" class="kegiatan-secondary">Sisa pagu sudah habis</small></li></ul>
-      <Paginator v-if="filtered.length>10" v-model:first="first" :rows="10" :total-records="filtered.length" :page-link-size="3" template="PrevPageLink PageLinks NextPageLink"><template #prevpagelinkicon><Icon name="caret-left" /></template><template #nextpagelinkicon><Icon name="caret-right" /></template></Paginator>
+      <BeePaginator v-if="filtered.length>10" v-model:first="first" :rows="10" :total-records="filtered.length" />
     </template>
     <p class="kegiatan-footnote"><Icon name="info" /><span>Persentase membandingkan realisasi dengan pagu kegiatan. Catatan realisasi diteruskan ke proses pencatatan keuangan.</span></p>
     <Menu id="kegiatan-action-menu" ref="menu" :model="menuItems" class="kegiatan-action-menu" popup @show="menuOpen=true" @hide="menuOpen=false"><template #item="{item,props:itemProps}"><a v-bind="itemProps.action"><Icon v-if="item.icon" :name="item.icon" /><span>{{ item.label }}</span></a></template></Menu>

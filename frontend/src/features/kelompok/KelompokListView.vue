@@ -1,11 +1,11 @@
 <script setup lang="ts">
+import BeePaginator from "@/shared/components/BeePaginator.vue"
 import { computed, onMounted, reactive, ref, watch } from "vue"
 import Button from "primevue/button"
 import Dialog from "primevue/dialog"
 import InputText from "primevue/inputtext"
 import Message from "primevue/message"
 import MultiSelect from "primevue/multiselect"
-import Paginator from "primevue/paginator"
 import Select from "primevue/select"
 import Tab from "primevue/tab"
 import TabList from "primevue/tablist"
@@ -268,7 +268,7 @@ onMounted(loadAll)
             <template v-else-if="!listError">
               <table class="kelompok-table"><caption class="kelompok-sr-only">Daftar kelompok belajar</caption><thead><tr><th>Kelompok</th><th>Jenjang</th><th class="kelompok-number">Siswa aktif</th><th class="kelompok-actions">Tindakan</th></tr></thead><tbody><tr v-for="group in pageGroups" :key="group.id"><td><strong>{{ group.nama }}</strong></td><td>{{ group.jenjang_kode || levelName(group.jenjang) }}<small>{{ group.jenjang_nama || levels.find(level => level.id === group.jenjang)?.nama }}</small></td><td class="kelompok-number">{{ group.siswa_aktif ?? "—" }}</td><td class="kelompok-actions"><Button label="Ubah" severity="secondary" :aria-label="'Ubah ' + groupName(group.id)" @click="openForm('kelompok', group)" /><Button v-if="group.siswa_aktif" label="Pindahkan siswa" severity="secondary" text :aria-label="'Pindahkan siswa dari ' + groupName(group.id)" @click="showMove(group)" /><Button v-else label="Hapus" severity="secondary" text :aria-label="'Hapus ' + groupName(group.id)" @click="removeGroup(group)" /></td></tr></tbody></table>
               <ul class="kelompok-cards" aria-label="Daftar kelompok belajar"><li v-for="group in pageGroups" :key="group.id"><div><strong>{{ group.nama }}</strong><span>{{ group.jenjang_kode || levelName(group.jenjang) }} · {{ group.jenjang_nama }}</span></div><p><strong>{{ group.siswa_aktif ?? "—" }}</strong> siswa aktif</p><div class="kelompok-card-actions"><Button label="Ubah kelompok" severity="secondary" @click="openForm('kelompok', group)" /><Button v-if="group.siswa_aktif" label="Pindahkan siswa" severity="secondary" text @click="showMove(group)" /><Button v-else label="Hapus" severity="secondary" text @click="removeGroup(group)" /></div></li></ul>
-              <Paginator v-if="filteredGroups.length > 12" v-model:first="first" :rows="12" :total-records="filteredGroups.length" template="PrevPageLink PageLinks NextPageLink"><template #previcon><Icon name="caret-left" /></template><template #nexticon><Icon name="caret-right" /></template></Paginator>
+              <BeePaginator v-if="filteredGroups.length > 12" v-model:first="first" :rows="12" :total-records="filteredGroups.length" />
             </template>
             <p class="kelompok-footnote"><Icon name="info" />Jumlah di sini hanya siswa berstatus aktif. Kelompok dengan siswa aktif baru dapat dihapus setelah siswanya dipindah.</p>
           </section>
@@ -284,7 +284,7 @@ onMounted(loadAll)
             <template v-else-if="!listError">
               <table class="kelompok-table kelompok-level-table"><caption class="kelompok-sr-only">Jenjang sekolah</caption><thead><tr><th>Kode</th><th>Nama jenjang</th><th class="kelompok-number">Kelompok</th><th class="kelompok-actions">Tindakan</th></tr></thead><tbody><tr v-for="level in pageLevels" :key="level.id"><td><strong>{{ level.kode }}</strong></td><td>{{ level.nama }}</td><td class="kelompok-number">{{ groups.filter(group => group.jenjang === level.id).length }}</td><td class="kelompok-actions"><Button label="Ubah" severity="secondary" :aria-label="'Ubah jenjang ' + level.kode" @click="openForm('jenjang', level)" /><Button v-if="groups.some(group => group.jenjang === level.id)" label="Lihat kelompok" severity="secondary" text :aria-label="'Lihat kelompok jenjang ' + level.kode" @click="showLevelGroups(level)" /><Button v-else label="Hapus" severity="secondary" text :aria-label="'Hapus jenjang ' + level.kode" @click="removeLevel(level)" /></td></tr></tbody></table>
               <ul class="kelompok-cards" aria-label="Jenjang sekolah"><li v-for="level in pageLevels" :key="level.id"><div><strong>{{ level.kode }}</strong><span>{{ level.nama }}</span></div><p><strong>{{ groups.filter(group => group.jenjang === level.id).length }}</strong> kelompok</p><div class="kelompok-card-actions"><Button label="Ubah jenjang" severity="secondary" @click="openForm('jenjang', level)" /><Button v-if="groups.some(group => group.jenjang === level.id)" label="Lihat kelompok" severity="secondary" text @click="showLevelGroups(level)" /><Button v-else label="Hapus" severity="secondary" text @click="removeLevel(level)" /></div></li></ul>
-              <Paginator v-if="levels.length > 10" v-model:first="levelFirst" :rows="10" :total-records="levels.length" template="PrevPageLink PageLinks NextPageLink"><template #previcon><Icon name="caret-left" /></template><template #nexticon><Icon name="caret-right" /></template></Paginator>
+              <BeePaginator v-if="levels.length > 10" v-model:first="levelFirst" :rows="10" :total-records="levels.length" />
             </template>
           </section>
         </TabPanel>

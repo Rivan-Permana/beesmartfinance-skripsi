@@ -1,11 +1,11 @@
 <script setup lang="ts">
+import BeePaginator from "@/shared/components/BeePaginator.vue"
 import SelectClearButton from "@/shared/components/SelectClearButton.vue"
 import { computed, ref, watch } from "vue"
 import Button from "primevue/button"
 import Column from "primevue/column"
 import DataTable from "primevue/datatable"
 import Message from "primevue/message"
-import Paginator from "primevue/paginator"
 import Select from "primevue/select"
 import Tag from "primevue/tag"
 import Icon from "@/shared/components/PhosphorIcon.vue"
@@ -42,7 +42,7 @@ function amount(row:Jurnal){const totals=journalTotals(row.detail);return row.pe
     <template v-else>
       <DataTable class="journal-desktop" :value="rows" data-key="id" table-style="min-width: 700px"><Column header="Bukti dan keterangan"><template #body="{data}"><strong class="journal-proof">{{ data.no_bukti }}</strong><span class="journal-secondary">{{ data.keterangan||'Tanpa keterangan' }}</span></template></Column><Column header="Tanggal dan sumber"><template #body="{data}"><span>{{ journalDate(data.tanggal) }}</span><small class="journal-secondary">{{ journalSource(data.tipe_sumber) }}</small></template></Column><Column header="Nominal jurnal" header-class="journal-numeric" body-class="journal-numeric"><template #body="{data}"><strong class="journal-amount">{{ amount(data) }}</strong></template></Column><Column header="Status"><template #body="{data}"><Tag :value="journalState(data).label" :severity="journalState(data).severity" /></template></Column><Column header="Rincian" body-class="journal-inspect"><template #body="{data}"><Button label="Periksa" severity="secondary" text :aria-label="`Periksa jurnal ${data.no_bukti}`" @click="emit('inspect',data)"><template #icon><Icon name="eye" /></template></Button></template></Column></DataTable>
       <ul class="journal-mobile"><li v-for="row in rows" :key="row.id"><div class="journal-mobile-top"><div><strong class="journal-proof">{{ row.no_bukti }}</strong><small class="journal-secondary">{{ journalDate(row.tanggal) }}</small></div><Tag :value="journalState(row).label" :severity="journalState(row).severity" /></div><p class="journal-description">{{ row.keterangan||'Tanpa keterangan' }}</p><span class="journal-secondary">{{ journalSource(row.tipe_sumber) }}</span><div class="journal-mobile-bottom"><div><small class="journal-secondary">Nominal jurnal</small><strong class="journal-amount">{{ amount(row) }}</strong></div><Button label="Periksa" severity="secondary" :aria-label="`Periksa jurnal ${row.no_bukti}`" @click="emit('inspect',row)" /></div></li></ul>
-      <Paginator v-if="total>10" :first="(page-1)*10" :rows="10" :total-records="total" :page-link-size="3" template="PrevPageLink PageLinks NextPageLink" @page="emit('page',$event.page+1)"><template #prevpagelinkicon><Icon name="caret-left" /></template><template #nextpagelinkicon><Icon name="caret-right" /></template></Paginator>
+      <BeePaginator v-if="total>10" :first="(page-1)*10" :rows="10" :total-records="total" @page="emit('page',$event.page+1)" />
     </template>
     <p class="journal-footnote"><Icon name="info" /><span>Nominal jurnal adalah total debit yang seimbang dengan kredit, bukan jumlah kas masuk atau keluar. Rincian yang belum cocok tetap ditandai.</span></p>
   </section>

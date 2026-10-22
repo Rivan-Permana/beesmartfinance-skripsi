@@ -1,11 +1,11 @@
 <script setup lang="ts">
+import BeePaginator from '@/shared/components/BeePaginator.vue'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { onBeforeRouteLeave } from 'vue-router'
 import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'
 import Menu from 'primevue/menu'
 import Message from 'primevue/message'
-import Paginator from 'primevue/paginator'
 import Select from 'primevue/select'
 import Tag from 'primevue/tag'
 import { useToast } from 'primevue/usetoast'
@@ -129,7 +129,7 @@ onBeforeUnmount(()=>{window.removeEventListener('beforeunload',beforeUnload);win
       <template v-else>
         <table class="employee-table"><caption class="employee-sr-only">Slip gaji seluruh hasil pencarian, 15 slip per halaman</caption><thead><tr><th>Pegawai dan periode</th><th class="employee-number">Bruto</th><th class="employee-number">Potongan</th><th class="employee-number">Netto</th><th>Status</th><th class="employee-action-column">Tindakan</th></tr></thead><tbody><tr v-for="row in pageRows" :key="row.id"><td><strong>{{ name(row.pegawai) }}</strong><small>{{ salaryPeriod(row) }}</small></td><td class="employee-number">{{ money(row.total_bruto) }}</td><td class="employee-number">{{ money(row.total_potongan) }}</td><td class="employee-number"><strong>{{ money(row.total_netto) }}</strong></td><td><Tag :value="row.jurnal?'Jurnal dibuat':'Belum dijurnal'" :severity="row.jurnal?'info':'warn'" /></td><td class="employee-action-column"><div class="employee-row-actions"><Button label="Lihat slip" severity="secondary" :aria-label="`Lihat slip ${name(row.pegawai)} ${salaryPeriod(row)}`" :disabled="busy" @click="showSlip(row)" /><Button v-if="canWrite&&!row.jurnal" severity="secondary" text :aria-label="`Tindakan slip ${name(row.pegawai)} ${salaryPeriod(row)}`" title="Tindakan lainnya" aria-controls="salary-actions" aria-haspopup="menu" :aria-expanded="menuOpen&&menuTarget?.id===row.id" :disabled="busy" @click="openMenu($event,row)"><template #icon><Icon name="caret-down" /></template></Button></div></td></tr></tbody></table>
         <ul class="employee-cards" aria-label="Slip gaji"><li v-for="row in pageRows" :key="row.id"><header><div><strong>{{ name(row.pegawai) }}</strong><small>{{ salaryPeriod(row) }}</small></div><Tag :value="row.jurnal?'Jurnal dibuat':'Belum dijurnal'" :severity="row.jurnal?'info':'warn'" /></header><dl><div><dt>Bruto</dt><dd>{{ money(row.total_bruto) }}</dd></div><div><dt>Potongan</dt><dd>{{ money(row.total_potongan) }}</dd></div><div><dt>Netto</dt><dd><strong>{{ money(row.total_netto) }}</strong></dd></div></dl><div class="employee-card-actions"><Button label="Lihat slip" severity="secondary" :aria-label="`Lihat slip ${name(row.pegawai)} ${salaryPeriod(row)}`" :disabled="busy" @click="showSlip(row)" /><Button v-if="canWrite&&!row.jurnal" label="Tindakan" severity="secondary" text :aria-label="`Tindakan slip ${name(row.pegawai)} ${salaryPeriod(row)}`" aria-controls="salary-actions" aria-haspopup="menu" :aria-expanded="menuOpen&&menuTarget?.id===row.id" :disabled="busy" @click="openMenu($event,row)"><template #icon><Icon name="caret-down" /></template></Button></div></li></ul>
-        <Paginator v-if="filtered.length>15" v-model:first="first" :rows="15" :total-records="filtered.length" :page-link-size="3" template="PrevPageLink PageLinks NextPageLink"><template #prevpagelinkicon><Icon name="caret-left" /></template><template #nextpagelinkicon><Icon name="caret-right" /></template></Paginator>
+        <BeePaginator v-if="filtered.length>15" v-model:first="first" :rows="15" :total-records="filtered.length" />
       </template>
       <p class="employee-footnote"><Icon name="info" /><span>Jurnal dibuat berarti jurnal tertaut pada slip. Persetujuan dan pencatatan ke buku besar dilanjutkan pada modul Jurnal.</span></p>
     </section>

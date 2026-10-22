@@ -1,11 +1,11 @@
 <script setup lang="ts">
+import BeePaginator from "@/shared/components/BeePaginator.vue"
 import SelectClearButton from "@/shared/components/SelectClearButton.vue"
 import { computed, ref, watch } from "vue"
 import Button from "primevue/button"
 import Column from "primevue/column"
 import DataTable from "primevue/datatable"
 import Message from "primevue/message"
-import Paginator from "primevue/paginator"
 import Select from "primevue/select"
 import Tag from "primevue/tag"
 import Icon from "@/shared/components/PhosphorIcon.vue"
@@ -86,7 +86,7 @@ function reset() { query.value = ""; status.value = null; group.value = null }
           <div class="mobile-record-actions"><Button label="Ubah data" severity="secondary" text :aria-label="`Ubah ${row.nama}`" @click="emit('edit', row)"><template #icon><Icon name="pencil-simple" /></template></Button><Button severity="secondary" text :aria-label="`Hapus ${row.nama}`" @click="emit('remove', row)"><template #icon><Icon name="trash" /></template></Button></div>
         </li>
       </ul>
-      <Paginator v-if="filtered.length > 10" v-model:first="first" :rows="10" :total-records="filtered.length" :page-link-size="3" template="PrevPageLink PageLinks NextPageLink"><template #prevpagelinkicon><Icon name="caret-left" /></template><template #nextpagelinkicon><Icon name="caret-right" /></template></Paginator>
+      <BeePaginator v-if="filtered.length > 10" v-model:first="first" :rows="10" :total-records="filtered.length" />
     </template>
     <div class="directory-footnote"><Icon name="info" /><span>SPP di sini adalah tarif bulanan siswa. Status pembayaran tersedia pada menu Tagihan.</span></div>
   </section>

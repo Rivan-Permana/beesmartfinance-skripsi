@@ -1,7 +1,7 @@
 <script setup lang="ts">
+import BeePaginator from '@/shared/components/BeePaginator.vue';
 import { computed, ref, watch } from 'vue';
 import Button from 'primevue/button';
-import Paginator from 'primevue/paginator';
 import Tag from 'primevue/tag';
 import Icon from '@/shared/components/PhosphorIcon.vue';
 import type { PendaftaranSiswa } from '@/types/api';
@@ -108,12 +108,7 @@ function level(row: PendaftaranSiswa) {
           </template></Button>
       </li>
     </ul>
-    <Paginator v-if="rows.length>15" v-model:first="first" :rows="15" :total-records="rows.length"
-      :page-link-size="3" template="PrevPageLink PageLinks NextPageLink"><template #prevpagelinkicon>
-        <Icon name="caret-left" />
-      </template><template #nextpagelinkicon>
-        <Icon name="caret-right" />
-      </template></Paginator>
+    <BeePaginator v-if="rows.length>15" v-model:first="first" :rows="15" :total-records="rows.length" />
   </template>
 </div>
 </template>

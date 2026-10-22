@@ -1,8 +1,8 @@
 <script setup lang="ts">
+import BeePaginator from "@/shared/components/BeePaginator.vue"
 import { computed, onMounted, ref, watch } from "vue"
 import Button from "primevue/button"
 import Message from "primevue/message"
-import Paginator from "primevue/paginator"
 import Select from "primevue/select"
 import Tag from "primevue/tag"
 import ToggleSwitch from "primevue/toggleswitch"
@@ -108,7 +108,7 @@ onMounted(load)
       <template v-else-if="!error">
         <table class="outstanding-table"><caption class="outstanding-sr-only">Tagihan dengan sisa positif atau perlu dicocokkan</caption><thead><tr><th>Siswa</th><th>Periode</th><th class="outstanding-number">Sisa tagihan</th><th>Status</th></tr></thead><tbody><tr v-for="row in pageRows" :key="row.id"><td><strong>{{ studentName(row) }}</strong></td><td>{{ tagihanPeriod(row) }}</td><td class="outstanding-number" :class="{ 'outstanding-unknown': reviewNeeded(row) }">{{ balance(row) }}</td><td><Tag :value="statusLabel(row)" :severity="reviewNeeded(row) ? 'warn' : tagihanState(row).severity" /></td></tr></tbody></table>
         <ul class="outstanding-cards" aria-label="Tagihan yang perlu ditinjau"><li v-for="row in pageRows" :key="row.id"><header><div><strong>{{ studentName(row) }}</strong><small>{{ tagihanPeriod(row) }}</small></div><Tag :value="statusLabel(row)" :severity="reviewNeeded(row) ? 'warn' : tagihanState(row).severity" /></header><dl><div><dt>Sisa tagihan</dt><dd :class="{ 'outstanding-unknown': reviewNeeded(row) }">{{ balance(row) }}</dd></div></dl></li></ul>
-        <Paginator v-if="filtered.length > 10" v-model:first="first" :rows="10" :total-records="filtered.length" template="PrevPageLink PageLinks NextPageLink"><template #previcon><Icon name="caret-left" /></template><template #nexticon><Icon name="caret-right" /></template></Paginator>
+        <BeePaginator v-if="filtered.length > 10" v-model:first="first" :rows="10" :total-records="filtered.length" />
       </template>
       <p class="outstanding-footnote"><Icon name="info" />Halaman ini untuk memantau. Admin TU mencatat pembayaran dan memeriksa riwayat pada menu Tagihan.</p>
     </section>

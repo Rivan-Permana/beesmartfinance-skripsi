@@ -4,7 +4,7 @@ import Dialog from "primevue/dialog"
 import InputNumber from "primevue/inputnumber"
 import InputText from "primevue/inputtext"
 import Message from "primevue/message"
-import Paginator from "primevue/paginator"
+import BeePaginator from "@/shared/components/BeePaginator.vue"
 import Select from "primevue/select"
 import Tab from "primevue/tab"
 import TabList from "primevue/tablist"
@@ -276,7 +276,7 @@ onMounted(loadAll)
         <ul class="coa-cards"><li v-for="row in pageRows" :key="tab === 'akun' ? (row as Coa).kode_akun : (row as SubGolongan).id"><template v-if="tab === 'akun'"><div class="coa-card-title"><span>{{ (row as Coa).kode_akun }}</span><Tag :value="(row as Coa).is_active ? 'Aktif' : 'Nonaktif'" :severity="(row as Coa).is_active ? 'success' : 'secondary'" /></div><h3>{{ (row as Coa).nama_akun }}</h3><p>{{ parentName(row as Coa) }}</p><dl><div><dt>Posisi normal</dt><dd>{{ (row as Coa).posisi_normal === 'D' ? 'Debit' : 'Kredit' }}</dd></div><div><dt>Saldo awal</dt><dd>{{ saldoLabel(row as Coa) }}<small>{{ cents((row as Coa).saldo_awal) === 0n ? 'Tanpa saldo awal' : dateLabel((row as Coa).tanggal_saldo_awal) }}</small></dd></div></dl><div v-if="canWrite" class="coa-card-actions"><Button label="Ubah" severity="secondary" @click="openEditAkun(row as Coa)" /><Button label="Hapus" text severity="danger" @click="confirmRemove('akun', (row as Coa).kode_akun, (row as Coa).nama_akun)" /></div></template>
           <template v-else-if="tab === 'sub'"><div class="coa-card-title"><span>{{ (row as SubGolongan).kode_sub }}</span></div><h3>{{ (row as SubGolongan).nama_sub }}</h3><p>{{ golonganMap.get((row as SubGolongan).golongan)?.nama_golongan ?? 'Golongan tidak ditemukan' }}</p><div class="coa-card-actions"><Button :label="`${akun.filter((a) => a.sub_golongan === (row as SubGolongan).kode_sub).length} akun`" text severity="secondary" @click="showAccounts(row as SubGolongan)" /><Button v-if="canWrite" label="Ubah" severity="secondary" @click="openEditSub(row as SubGolongan)" /><Button v-if="canWrite" label="Hapus" text severity="danger" @click="confirmRemove('sub', (row as SubGolongan).id, (row as SubGolongan).nama_sub)" /></div></template>
           <template v-else><div class="coa-card-title"><span>{{ (row as Golongan).kode_golongan }}</span></div><h3>{{ (row as Golongan).nama_golongan }}</h3><p>{{ (row as Golongan).deskripsi || 'Tanpa deskripsi' }}</p><div class="coa-card-actions"><Button :label="`${subGolongan.filter((sub) => sub.golongan === (row as Golongan).id).length} subgolongan`" text severity="secondary" @click="showSub(row as Golongan)" /><Button v-if="canWrite" label="Ubah" severity="secondary" @click="openEditGolongan(row as Golongan)" /><Button v-if="canWrite" label="Hapus" text severity="danger" @click="confirmRemove('golongan', (row as Golongan).id, (row as Golongan).nama_golongan)" /></div></template></li></ul>
-        <Paginator v-if="filtered.length > 15" v-model:first="first" :rows="15" :total-records="filtered.length" />
+        <BeePaginator v-if="filtered.length > 15" v-model:first="first" :rows="15" :total-records="filtered.length" />
       </template>
       </div>
     </section>

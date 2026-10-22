@@ -1,10 +1,10 @@
 <script setup lang="ts">
+import BeePaginator from '@/shared/components/BeePaginator.vue'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { onBeforeRouteLeave, RouterLink } from 'vue-router'
 import Button from 'primevue/button'
 import Menu from 'primevue/menu'
 import Message from 'primevue/message'
-import Paginator from 'primevue/paginator'
 import Select from 'primevue/select'
 import Tag from 'primevue/tag'
 import { useConfirm } from 'primevue/useconfirm'
@@ -97,7 +97,7 @@ onBeforeUnmount(() => window.removeEventListener('beforeunload',beforeUnload))
       <template v-else>
         <table class="employee-table"><caption class="employee-sr-only">Direktori pegawai, 15 pegawai per halaman</caption><thead><tr><th>Pegawai</th><th>Kontak</th><th>Masa kerja</th><th>Status dan akun</th><th class="employee-action-column">Tindakan</th></tr></thead><tbody><tr v-for="row in pageRows" :key="row.id"><td><strong>{{ row.nama }}</strong><small>{{ row.jabatan || 'Jabatan belum dicatat' }}</small><small>{{ row.nip ? `NIP ${row.nip}` : 'NIP belum dicatat' }}</small></td><td>{{ row.nomor_hp || 'Belum dicatat' }}</td><td>{{ staffPeriod(row) }}</td><td><Tag :value="row.status_aktif?'Aktif':'Nonaktif'" :severity="row.status_aktif?'success':'secondary'" /><small>{{ row.user ? 'Akun terhubung' : 'Tanpa akun aplikasi' }}</small></td><td class="employee-action-column"><div v-if="canWrite" class="employee-row-actions"><Button label="Ubah" severity="secondary" :aria-label="`Ubah ${row.nama}`" :disabled="busy" @click="edit(row)" /><Button severity="secondary" text :aria-label="`Tindakan ${row.nama}`" aria-haspopup="menu" aria-controls="staff-actions" :aria-expanded="menuOpen&&menuTarget?.id===row.id" :disabled="busy" @click="menuTarget=row;menu?.toggle($event)"><template #icon><Icon name="caret-down" /></template></Button></div></td></tr></tbody></table>
         <ul class="employee-cards" aria-label="Daftar pegawai"><li v-for="row in pageRows" :key="row.id"><header><div><strong>{{ row.nama }}</strong><small>{{ row.jabatan || 'Jabatan belum dicatat' }}</small></div><Tag :value="row.status_aktif?'Aktif':'Nonaktif'" :severity="row.status_aktif?'success':'secondary'" /></header><dl><div><dt>NIP</dt><dd>{{ row.nip || 'Belum dicatat' }}</dd></div><div><dt>Telepon</dt><dd>{{ row.nomor_hp || 'Belum dicatat' }}</dd></div><div><dt>Masa kerja</dt><dd>{{ staffPeriod(row) }}</dd></div><div><dt>Akun aplikasi</dt><dd>{{ row.user?'Akun terhubung':'Belum terhubung' }}</dd></div></dl><div v-if="canWrite" class="employee-card-actions"><Button label="Ubah pegawai" severity="secondary" :aria-label="`Ubah ${row.nama}`" :disabled="busy" @click="edit(row)" /><Button label="Tindakan" severity="secondary" text :aria-label="`Tindakan ${row.nama}`" aria-haspopup="menu" aria-controls="staff-actions" :aria-expanded="menuOpen&&menuTarget?.id===row.id" :disabled="busy" @click="menuTarget=row;menu?.toggle($event)"><template #icon><Icon name="caret-down" /></template></Button></div></li></ul>
-        <Paginator v-model:first="first" :rows="15" :total-records="filtered.length" template="PrevPageLink PageLinks NextPageLink" :always-show="filtered.length>15"><template #previcon><Icon name="caret-left" /></template><template #nexticon><Icon name="caret-right" /></template></Paginator>
+        <BeePaginator v-model:first="first" :rows="15" :total-records="filtered.length" :always-show="filtered.length>15" />
       </template>
       <p class="employee-footnote"><Icon name="info" />Nonaktifkan pegawai yang sudah tidak bertugas agar riwayat tetap mudah ditemukan. <RouterLink to="/absensi-pegawai">Buka absensi pegawai</RouterLink></p>
     </section>

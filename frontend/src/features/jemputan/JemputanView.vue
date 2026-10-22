@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import BeePaginator from "@/shared/components/BeePaginator.vue";
 import SelectClearButton from "@/shared/components/SelectClearButton.vue"
 import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue';
 import { onBeforeRouteLeave, RouterLink } from 'vue-router';
@@ -8,7 +9,6 @@ import InputNumber from 'primevue/inputnumber';
 import InputText from 'primevue/inputtext';
 import Textarea from 'primevue/textarea';
 import Select from 'primevue/select';
-import Paginator from 'primevue/paginator';
 import Message from 'primevue/message';
 import { useConfirm } from 'primevue/useconfirm';
 import { useToast } from 'primevue/usetoast';
@@ -410,13 +410,8 @@ onBeforeUnmount(() => {
           </li>
         </ul>
       </template>
-      <Paginator v-if="directoryRows.length>10" v-model:first="first" :rows="10"
-        :total-records="directoryRows.length" :page-link-size="3"
-        template="PrevPageLink PageLinks NextPageLink"><template #prevpagelinkicon>
-          <Icon name="caret-left" />
-        </template><template #nextpagelinkicon>
-          <Icon name="caret-right" />
-        </template></Paginator>
+      <BeePaginator v-if="directoryRows.length>10" v-model:first="first" :rows="10"
+        :total-records="directoryRows.length" />
     </template>
   </section>
   <div v-else class="bee-subpage">

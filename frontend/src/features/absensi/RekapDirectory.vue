@@ -1,9 +1,9 @@
 <script setup lang="ts">
+import BeePaginator from '@/shared/components/BeePaginator.vue';
 import { computed, ref, watch } from 'vue';
 import Button from 'primevue/button';
 import Column from 'primevue/column';
 import DataTable from 'primevue/datatable';
-import Paginator from 'primevue/paginator';
 import Icon from '@/shared/components/PhosphorIcon.vue';
 import type { RekapAbsensiRow } from './api';
 import { attendanceDays } from './presentation';
@@ -76,12 +76,7 @@ watch(() => props.rows, () => { first.value = 0; });
         </dl>
       </li>
     </ul>
-    <Paginator v-if="rows.length>20" v-model:first="first" :rows="20" :total-records="rows.length"
-      :page-link-size="3" template="PrevPageLink PageLinks NextPageLink"><template #prevpagelinkicon>
-        <Icon name="caret-left" />
-      </template><template #nextpagelinkicon>
-        <Icon name="caret-right" />
-      </template></Paginator>
+    <BeePaginator v-if="rows.length>20" v-model:first="first" :rows="20" :total-records="rows.length" />
   </template>
 </div>
 </template>
