@@ -24,34 +24,40 @@
   max-width: 85ch
 }
 
+/* Same underline tabs as Kelompok and Absensi pegawai. */
 .school-service-page .service-nav {
   display: flex;
-  gap: var(--bee-space-2);
-  padding: var(--bee-space-2);
+  gap: var(--bee-space-1);
+  overflow-x: auto;
   background: var(--app-surface);
-  border: 1px solid var(--app-border);
-  border-radius: var(--bee-radius-panel);
+  border-bottom: 1px solid var(--app-border);
   margin-bottom: var(--bee-space-5)
 }
 
 .school-service-page .service-nav button {
+  flex: 0 0 auto;
   min-height: 44px;
-  flex: 1;
   border: 0;
-  border-radius: var(--bee-radius-control);
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
   background: transparent;
   color: var(--app-text-muted);
   font: inherit;
   font-size: var(--bee-type-ui);
   font-weight: 500;
+  white-space: nowrap;
   cursor: pointer;
-  padding: var(--bee-space-2);
-  transition: background-color var(--bee-motion-overlay) var(--bee-motion-ease-out), color var(--bee-motion-overlay) var(--bee-motion-ease-out)
+  padding: var(--bee-space-3) var(--bee-space-4);
+  transition: color var(--bee-motion-overlay) var(--bee-motion-ease-out), border-color var(--bee-motion-overlay) var(--bee-motion-ease-out)
+}
+
+.school-service-page .service-nav button:hover {
+  color: var(--app-text)
 }
 
 .school-service-page .service-nav button[aria-pressed=true] {
-  background: var(--bee-color-brand-tint);
-  color: var(--bee-color-brand)
+  color: var(--bee-color-brand);
+  border-bottom-color: var(--bee-color-brand)
 }
 
 .school-service-page .service-controls,
@@ -157,14 +163,24 @@
   font-variant-numeric: tabular-nums
 }
 
+/* Header shortcut uses the outlined secondary style other pages use for "Buka rekap". */
 .school-service-page .service-link {
   display: inline-flex;
   align-items: center;
   gap: var(--bee-space-2);
   min-height: 44px;
-  text-decoration: none;
+  padding: var(--bee-space-2) var(--bee-space-4);
+  border: 1px solid var(--bee-color-control-border);
+  border-radius: var(--bee-radius-control);
+  background: var(--app-surface);
+  color: var(--app-text);
   font-size: var(--bee-type-ui);
-  color: var(--bee-color-brand)
+  font-weight: 500;
+  text-decoration: none
+}
+
+.school-service-page .service-link:hover {
+  border-color: var(--app-text)
 }
 
 .service-dialog {

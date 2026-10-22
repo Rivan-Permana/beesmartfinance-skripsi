@@ -348,7 +348,7 @@ onBeforeUnmount(() => {
               <td class="service-master-actions"><Button :aria-label="`Ubah armada ${row.nama_supir}`"
                   severity="secondary" text :disabled="saving" @click="openFleet(row)"><template #icon>
                     <Icon name="pencil-simple" />
-                  </template></Button><Button :aria-label="`Hapus armada ${row.nama_supir}`" severity="danger"
+                  </template></Button><Button :aria-label="`Hapus armada ${row.nama_supir}`" severity="secondary"
                   text :disabled="saving" @click="removeFleet(row)"><template #icon>
                     <Icon name="trash" />
                   </template></Button></td>
@@ -362,7 +362,7 @@ onBeforeUnmount(() => {
             <p>{{ row.keterangan||'Keterangan / rute belum diisi' }}</p>
             <div class="service-buttons"><Button label="Ubah armada" severity="secondary" :disabled="saving"
                 @click="openFleet(row)" /><Button :aria-label="`Hapus armada ${row.nama_supir}`"
-                severity="danger" text :disabled="saving" @click="removeFleet(row)"><template #icon>
+                severity="secondary" text :disabled="saving" @click="removeFleet(row)"><template #icon>
                   <Icon name="trash" />
                 </template></Button></div>
           </li>
@@ -388,7 +388,7 @@ onBeforeUnmount(() => {
               <td class="service-master-actions"><Button :aria-label="`Ubah pendaftaran ${row.nama}`"
                   severity="secondary" text :disabled="saving" @click="openRegistration(row)"><template #icon>
                     <Icon name="pencil-simple" />
-                  </template></Button><Button :aria-label="`Hapus pendaftaran ${row.nama}`" severity="danger"
+                  </template></Button><Button :aria-label="`Hapus pendaftaran ${row.nama}`" severity="secondary"
                   text :disabled="saving" @click="removeRegistration(row)"><template #icon>
                     <Icon name="trash" />
                   </template></Button></td>
@@ -403,7 +403,7 @@ onBeforeUnmount(() => {
             <p class="service-money">{{ formatRp(row.harga) }} / perjalanan</p>
             <div class="service-buttons"><Button label="Ubah pendaftaran" severity="secondary"
                 :disabled="saving" @click="openRegistration(row)" /><Button
-                :aria-label="`Hapus pendaftaran ${row.nama}`" severity="danger" text :disabled="saving"
+                :aria-label="`Hapus pendaftaran ${row.nama}`" severity="secondary" text :disabled="saving"
                 @click="removeRegistration(row)"><template #icon>
                   <Icon name="trash" />
                 </template></Button></div>
