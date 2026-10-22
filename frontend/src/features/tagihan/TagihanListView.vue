@@ -12,6 +12,7 @@ import { computed, onBeforeUnmount, onMounted, reactive, ref, watch } from "vue"
 
 import { tagihanApi } from "./api"
 import InvoicePreview from "./InvoicePreview.vue"
+import PaymentReceipt from "./PaymentReceipt.vue"
 import { friendlyError, notifyError, notifySuccess } from "@/core/errors"
 import { formatRp } from "@/core/format"
 import { coaApi } from "@/features/jurnal/api"
@@ -29,6 +30,7 @@ import type {
   Coa,
   Jenjang,
   Kelompok,
+  PembayaranTagihan,
   Siswa,
   StrukTagihan,
   Tagihan,
@@ -480,6 +482,17 @@ async function lihatRiwayat(t: Tagihan) {
   catch (e) { notifyError(toast, e, "Gagal memuat riwayat pembayaran.") }
 }
 
+// --- kwitansi per pembayaran ---
+const kwitansi = ref<{ invoice: StrukTagihan; tagihan: Tagihan; payment: PembayaranTagihan } | null>(null)
+const kwitansiDialog = computed({ get: () => !!kwitansi.value, set: (open: boolean) => { if (!open) kwitansi.value = null } })
+const kwitansiKas = computed(() => kasOptions.value.find((c) => c.kode_akun === kwitansi.value?.payment.akun_kas)?.nama_akun)
+async function lihatKwitansi(payment: PembayaranTagihan) {
+  const tagihan = riwayatTarget.value
+  if (!tagihan) return
+  try { kwitansi.value = { invoice: await tagihanApi.struk(tagihan.id), tagihan, payment } }
+  catch (e) { notifyError(toast, e, "Gagal memuat kwitansi.") }
+}
+
 // --- struk / cetak ---
 const strukDialog = ref(false)
 const struk = ref<StrukTagihan | null>(null)
@@ -538,7 +551,15 @@ onMounted(async () => {
     <TagihanDirectory :rows="rows" :names="siswaNama" :loading="loading" :error="loadError" @create="openGenerate" @retry="load" @pay="bayar" @edit="editTagihan" @remove="batalkanTagihan" @history="lihatRiwayat" @invoice="lihatStruk" />
     <TagihanPaymentDialog v-model="bayarDialog" v-model:form="bayarForm" :target="bayarTarget" :student-name="bayarTarget ? siswaNama.get(bayarTarget.siswa) ?? bayarTarget.siswa_nama ?? 'Siswa' : ''" :accounts="kasOptions" :saving="bayarSaving" :error="bayarError" @save="simpanPembayaran" @reload-accounts="loadAccounts" />
 
-    <TagihanHistoryDialog v-model:target="riwayatTarget" :student-name="riwayatTarget ? siswaNama.get(riwayatTarget.siswa) : undefined" />
+    <TagihanHistoryDialog v-model:target="riwayatTarget" :student-name="riwayatTarget ? siswaNama.get(riwayatTarget.siswa) : undefined" @receipt="lihatKwitansi" />
+    <Dialog v-model:visible="kwitansiDialog" header="Kwitansi pembayaran" modal :draggable="false" :style="{ width: '560px' }" class="struk-dialog" :pt="{ mask: { class: 'struk-print-mask' } }" :close-button-props="{ severity: 'secondary', text: true, 'aria-label': 'Tutup kwitansi' }">
+      <template #closeicon><Icon name="x" /></template>
+      <PaymentReceipt v-if="kwitansi" :invoice="kwitansi.invoice" :tagihan="kwitansi.tagihan" :payment="kwitansi.payment" :cash-account="kwitansiKas" />
+      <template #footer>
+        <Button label="Tutup" severity="secondary" text @click="kwitansi = null" />
+        <Button label="Cetak kwitansi" :disabled="!kwitansi" @click="cetak"><template #icon><Icon name="printer" /></template></Button>
+      </template>
+    </Dialog>
 
     <!-- Generate -->
     <Dialog :close-button-props="{severity: 'secondary', text: true}" v-model:visible="genDialog" header="Buat tagihan" modal :closable="!previewLoading" :close-on-escape="!previewLoading" :style="{ width: '32rem' }">

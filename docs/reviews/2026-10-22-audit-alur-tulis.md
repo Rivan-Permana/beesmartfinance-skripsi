@@ -36,7 +36,7 @@ Pendukung UAT: `frontend/vite.config.ts` membaca `API_PROXY_TARGET` (default tet
 1. ~~Potongan kasbon menghitung kasbon yang belum dicairkan.~~ Selesai: lihat bagian "Keputusan 1" di bawah.
 2. ~~Saldo kasbon berkurang saat jurnal gaji dibuat; void tidak mengembalikannya.~~ Selesai: lihat bagian "Keputusan 2". Slip yang jurnalnya di-void kini terbuka lagi (lihat "Keputusan 5").
 3. ~~Kepala Sekolah tidak punya tindakan "tolak".~~ Selesai: lihat bagian "Keputusan 3".
-4. Tidak ada kwitansi per pembayaran; yang bisa dicetak hanya faktur tagihan.
+4. ~~Tidak ada kwitansi per pembayaran.~~ Selesai: lihat bagian "Keputusan 4".
 
 ## Hasil verifikasi
 
@@ -76,3 +76,9 @@ Data uji di UAT: periode `UAT-C86B14-2026-09` (CLOSED), periode `UAT-FE6AF6-2026
 - Posting ulang memakai nomor bukti berakhiran `-R1`, `-R2`, dan seterusnya (`GJ-…`, `KB-…`).
 - Belum dicakup: void atas jurnal pencairan kasbon yang sudah POSTED tidak membuka kasbonnya, karena sebagian kasbon mungkin sudah terpotong gaji.
 - Verifikasi: backend 127 OK (void → buka → posting ulang `-R1`, slip lama tanpa alokasi tidak terpotong dua kali, batal draf gaji dan kasbon, batal lewat API), frontend 131/131, build bersih. Di UAT, slip #7: approve → void `REV-GJ-7-202612` → slip terbuka dan diubah → posting ulang `GJ-7-202612-R1`. Draf `-R1` dibatalkan lewat UI ("Draf jurnal dibatalkan"), dan slip kembali tampil "Belum dijurnal".
+
+## Keputusan 4 — kwitansi cetak per pembayaran
+
+- Tombol "Kwitansi" untuk tiap pembayaran aktif di dialog Riwayat pembayaran (Admin TU). Isi kwitansi: identitas siswa, nomor kwitansi, tanggal, tagihan dan periode, akun kas penerima, rincian komponen yang dilunasi, jumlah diterima, sisa tagihan saat dicetak, dan kolom tanda tangan Tata Usaha. Pembayaran yang dibatalkan tidak diberi tombol; bila tetap ditampilkan, kwitansinya bertanda "tidak berlaku".
+- Hanya perubahan frontend (`PaymentReceipt.vue`). Data diambil dari API yang sudah ada; pencetakan memakai mekanisme `bee-print-struk` yang sama dengan faktur.
+- Verifikasi: frontend 132/132 (tes kwitansi aktif dan dibatalkan), build bersih. Di UAT sebagai admin.tu, kwitansi `UAT-BROWSER-20261020-01` (Aisyah Putri, Rp 1.250.000, Kas di Tangan) tampil benar. Pada media print hanya kwitansi yang terlihat (riwayat, sidebar, dan semua tombol tersembunyi), dan pada lebar 375 px tidak ada scroll horizontal.
