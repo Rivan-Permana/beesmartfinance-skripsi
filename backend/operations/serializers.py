@@ -102,14 +102,19 @@ class PendaftaranJemputanSerializer(serializers.ModelSerializer):
 
 class PinjamanPegawaiSerializer(serializers.ModelSerializer):
     sisa_pinjaman = serializers.ReadOnlyField()
+    ikut_potongan = serializers.SerializerMethodField()
+
+    def get_ikut_potongan(self, obj) -> bool:
+        jurnal = obj.jurnal
+        return obj.is_legacy or (jurnal is not None and jurnal.status == "POSTED" and not jurnal.reversals.all())
 
     class Meta:
         model = PinjamanPegawai
         fields = [
             "id", "pegawai", "tanggal_pinjaman", "jumlah_pinjaman", "tenor_bulan",
-            "angsuran_per_bulan", "sudah_terbayar", "sisa_pinjaman", "jurnal",
+            "angsuran_per_bulan", "sudah_terbayar", "sisa_pinjaman", "jurnal", "is_legacy", "ikut_potongan",
         ]
-        read_only_fields = ["jurnal"]
+        read_only_fields = ["jurnal", "is_legacy"]
 
 
 class GajiPegawaiSerializer(serializers.ModelSerializer):

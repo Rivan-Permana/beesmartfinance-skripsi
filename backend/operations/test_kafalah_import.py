@@ -81,7 +81,40 @@ class PotongPinjamanTests(TestCase):
             tanggal_pinjaman="2025-04-01",
             jumlah_pinjaman=Decimal("500000"),
             angsuran_per_bulan=Decimal("100000"),
+            is_legacy=True,
         )
+
+    def _gaji(self, bulan=4):
+        return GajiPegawai.objects.create(
+            pegawai=self.pegawai, periode_bulan=bulan, periode_tahun=2025,
+            gaji_pokok=Decimal("2000000"),
+        )
+
+    def test_kasbon_belum_dicairkan_tidak_dipotong(self):
+        PinjamanPegawai.objects.create(
+            pegawai=self.pegawai, tanggal_pinjaman="2025-04-02",
+            jumlah_pinjaman=Decimal("300000"), angsuran_per_bulan=Decimal("300000"),
+        )
+        self.assertEqual(apply_potongan_pinjaman(self._gaji()), Decimal("100000"))
+
+    def test_kasbon_dipotong_setelah_pencairan_posted(self):
+        from accounting.models import TrJurnal
+        from operations.services.payroll import post_pencairan_kasbon
+
+        baru = PinjamanPegawai.objects.create(
+            pegawai=self.pegawai, tanggal_pinjaman="2025-04-02",
+            jumlah_pinjaman=Decimal("300000"), angsuran_per_bulan=Decimal("300000"),
+        )
+        jurnal = post_pencairan_kasbon(baru, akun_piutang="1103", akun_kas="1101")
+        self.assertEqual(apply_potongan_pinjaman(self._gaji()), Decimal("100000"))
+        TrJurnal.objects.filter(pk=jurnal.pk).update(status="POSTED")
+        self.assertEqual(apply_potongan_pinjaman(self._gaji(bulan=5)), Decimal("400000"))
+
+    def test_kasbon_legacy_tidak_bisa_dicairkan(self):
+        from operations.services.payroll import post_pencairan_kasbon
+
+        with self.assertRaises(ValueError):
+            post_pencairan_kasbon(self.pegawai.pinjaman.get(), akun_piutang="1103", akun_kas="1101")
 
     def test_apply_dan_settle_pinjaman(self):
         gaji = GajiPegawai.objects.create(

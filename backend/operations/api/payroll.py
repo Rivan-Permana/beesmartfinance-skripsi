@@ -13,9 +13,8 @@ from operations.services import post_gaji, post_pencairan_kasbon
 from operations.services.payroll import apply_potongan_pinjaman
 
 
+# Data sumber yang sudah dijurnal dikoreksi lewat jurnal pembalik, bukan diedit.
 class _TerkunciSetelahJurnal:
-    """Data sumber yang sudah dijurnal dikoreksi lewat jurnal pembalik, bukan diedit."""
-
     pesan_terkunci = ""
 
     def _tolak_bila_dijurnal(self, instance):
@@ -33,7 +32,7 @@ class _TerkunciSetelahJurnal:
 
 class PinjamanPegawaiViewSet(_TerkunciSetelahJurnal, viewsets.ModelViewSet):
     pesan_terkunci = "Kasbon yang sudah dicairkan tidak dapat diubah atau dihapus."
-    queryset = PinjamanPegawai.objects.select_related("pegawai").order_by("-tanggal_pinjaman")
+    queryset = PinjamanPegawai.objects.select_related("pegawai", "jurnal").prefetch_related("jurnal__reversals").order_by("-tanggal_pinjaman")
     serializer_class = PinjamanPegawaiSerializer
     permission_classes = [IsFinanceWriteFinancePrincipalRead]
 

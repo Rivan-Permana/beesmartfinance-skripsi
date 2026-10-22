@@ -14,14 +14,14 @@ const global={plugins:[[PrimeVue,{unstyled:true,locale:primevueLocale}]]}
 const base={modelValue:true,optionsLoading:false,optionsError:'',saving:false,uncertain:false,error:'',staff:payrollStaff}
 describe('payroll forms',()=>{
   it('keeps every salary component and local metadata, uses server-calculated loan deduction, preserves input on error',async()=>{
-    const view=mount(GajiFormDialog,{global,props:{...base,row:payrollSalary,loans:[payrollLoan]}})
+    const view=mount(GajiFormDialog,{global,props:{...base,row:payrollSalary,loans:[payrollLoan,{...payrollLoan,id:2,is_legacy:false,ikut_potongan:false}]}})
     try{
       await nextTick()
       await view.get('form').trigger('submit')
       const payload=view.emitted('save')?.[0]?.[0]
       expect(payload).toMatchObject({tunjangan_asuransi:'25000.25',uang_makan:'50000.50',hari_hadir:18,gaji_pokok:'4000000.10',potongan_asuransi:'10000.10'})
       expect(payload).not.toHaveProperty('potongan_pinjaman')
-      expect(view.text()).toContain('pengajuan kasbon yang belum dicairkan')
+      expect(view.text()).toContain('tidak ikut dipotong pada slip ini')
       await view.setProps({error:'Data ditolak'})
       expect(view.findAllComponents(InputNumber).find(c=>c.props('inputId')==='salary-uang_makan')!.props('modelValue')).toBe(50000.5)
       await view.setProps({saving:true});await view.get('form').trigger('submit');expect(view.emitted('save')).toHaveLength(1)

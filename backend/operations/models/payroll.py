@@ -21,6 +21,8 @@ class PinjamanPegawai(SoftDeleteModel, TimeStampedModel):
         "accounting.TrJurnal", on_delete=models.SET_NULL, db_constraint=False,
         blank=True, null=True, related_name="pinjaman",
     )
+    # Saldo kasbon dari impor KAFALAH: sudah dicairkan di luar sistem, tanpa jurnal pencairan.
+    is_legacy = models.BooleanField(default=False)
 
     history = HistoricalRecords()
 

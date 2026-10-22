@@ -2173,6 +2173,8 @@ export interface components {
             readonly sisa_pinjaman?: number;
             /** Format: uuid */
             readonly jurnal?: string | null;
+            readonly is_legacy?: boolean;
+            readonly ikut_potongan?: boolean;
         };
         PatchedSiswa: {
             readonly id?: number;
@@ -2332,6 +2334,8 @@ export interface components {
             readonly sisa_pinjaman: number;
             /** Format: uuid */
             readonly jurnal: string | null;
+            readonly is_legacy: boolean;
+            readonly ikut_potongan: boolean;
         };
         /**
          * @description * `D` - Debit
@@ -2498,6 +2502,8 @@ export interface operations {
                 ordering?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
                 pegawai?: number;
                 /** @description A search term. */
                 search?: string;
@@ -2694,6 +2700,8 @@ export interface operations {
                 ordering?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
                 /** @description A search term. */
                 search?: string;
             };
@@ -2844,6 +2852,8 @@ export interface operations {
                 ordering?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
                 /** @description A search term. */
                 search?: string;
             };
@@ -2994,6 +3004,8 @@ export interface operations {
                 ordering?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
                 /** @description A search term. */
                 search?: string;
             };
@@ -3176,6 +3188,8 @@ export interface operations {
                 ordering?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
                 /** @description A search term. */
                 search?: string;
                 table_name?: string;
@@ -3317,6 +3331,8 @@ export interface operations {
                 ordering?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
                 /** @description A search term. */
                 search?: string;
             };
@@ -3589,6 +3605,8 @@ export interface operations {
                 ordering?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
                 /** @description A search term. */
                 search?: string;
             };
@@ -3767,6 +3785,8 @@ export interface operations {
                 ordering?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
                 /** @description A search term. */
                 search?: string;
             };
@@ -3917,6 +3937,8 @@ export interface operations {
                 ordering?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
                 /** @description A search term. */
                 search?: string;
             };
@@ -4362,6 +4384,8 @@ export interface operations {
                 ordering?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
                 penanggung_jawab?: number;
                 periode?: number;
                 /** @description A search term. */
@@ -4571,6 +4595,8 @@ export interface operations {
                 ordering?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
                 /** @description A search term. */
                 search?: string;
                 siswa?: number;
@@ -4733,6 +4759,8 @@ export interface operations {
                 ordering?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
                 /** @description A search term. */
                 search?: string;
             };
@@ -5018,6 +5046,8 @@ export interface operations {
                 ordering?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
                 /** @description A search term. */
                 search?: string;
                 tanggal?: string;
@@ -5171,6 +5201,8 @@ export interface operations {
                 ordering?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
                 /** @description A search term. */
                 search?: string;
             };
@@ -5322,6 +5354,8 @@ export interface operations {
                 ordering?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
                 /** @description A search term. */
                 search?: string;
                 siswa?: number;
@@ -5473,6 +5507,8 @@ export interface operations {
                 ordering?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
                 /** @description A search term. */
                 search?: string;
                 /**
@@ -5713,6 +5749,8 @@ export interface operations {
                 ordering?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
                 /** @description A search term. */
                 search?: string;
             };
@@ -5891,6 +5929,8 @@ export interface operations {
                 ordering?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
                 /** @description A search term. */
                 search?: string;
             };
@@ -6070,6 +6110,8 @@ export interface operations {
                 ordering?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
                 /** @description A search term. */
                 search?: string;
                 /**
@@ -6229,6 +6271,8 @@ export interface operations {
                 ordering?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
                 /** @description A search term. */
                 search?: string;
             };
@@ -6379,6 +6423,8 @@ export interface operations {
                 ordering?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
                 periode_bulan?: number;
                 periode_tahun?: number;
                 /** @description A search term. */

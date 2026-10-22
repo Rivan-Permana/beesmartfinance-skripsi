@@ -33,7 +33,7 @@ Pendukung UAT: `frontend/vite.config.ts` membaca `API_PROXY_TARGET` (default tet
 
 ## Belum diubah (perlu keputusan)
 
-1. Potongan kasbon di slip gaji juga menghitung kasbon yang belum dicairkan. Kasbon legacy KAFALAH tidak punya jurnal, jadi pembedanya butuh penanda baru (migrasi). UI sudah menampilkan peringatan.
+1. ~~Potongan kasbon menghitung kasbon yang belum dicairkan.~~ Selesai: lihat bagian "Keputusan 1" di bawah.
 2. Saldo kasbon berkurang saat jurnal gaji dibuat (DRAFT), bukan saat disetujui. Void atas jurnal gaji tidak mengembalikan saldo kasbon dan tidak membuka slip untuk diposting ulang.
 3. Kepala Sekolah tidak punya tindakan "tolak" untuk jurnal PENDING; jurnal hanya bisa disetujui.
 4. Tidak ada kwitansi per pembayaran; yang bisa dicetak hanya faktur tagihan.
@@ -45,3 +45,12 @@ Pendukung UAT: `frontend/vite.config.ts` membaca `API_PROXY_TARGET` (default tet
 - Audit ulang di UAT dengan kode final (run `FE6AF6`, periode Juni 2026): 66/68 lulus; dua sisanya C2 dan C5, yaitu keputusan 1 dan 2 di atas.
 
 Data uji di UAT: periode `UAT-C86B14-2026-09` (CLOSED), periode `UAT-FE6AF6-2026-06` (CLOSED), serta tagihan, pendaftaran, kasbon, dan slip gaji berawalan `UAT-`/`KW-`.
+
+## Keputusan 1 — potongan hanya dari kasbon yang sudah cair
+
+- Kolom baru `PinjamanPegawai.is_legacy` (migrasi `operations.0014`, reversible). Backfill: kasbon tanpa jurnal milik pegawai ber-NIP `KAF-…` ditandai legacy. Impor KAFALAH berikutnya langsung mengisi penanda ini.
+- Potongan gaji dan pelunasan kasbon hanya memakai kasbon yang `is_legacy` atau jurnal pencairannya POSTED dan belum dibalik (`pinjaman_terpotong`).
+- Kasbon legacy ditolak bila dicairkan (mencegah kas keluar dua kali). Di UI statusnya tampil "Saldo legacy" tanpa tombol Cairkan.
+- Field read-only `is_legacy` dan `ikut_potongan` ditambahkan di API kasbon. Pratinjau potongan di form gaji memakai `ikut_potongan`, dan peringatannya kini menyebut pengajuan yang tidak ikut dipotong.
+- Verifikasi: backend 121 OK, frontend 131/131, build bersih. Migrasi diterapkan di UAT dan diuji turun-naik (`0013` ↔ `0014`). Di UAT, slip November untuk Pak Rudi berpotongan 0 selama kasbonnya belum disetujui, lalu menjadi 200.000 setelah pencairan POSTED.
+- Produksi: migrasi ikut jalan otomatis ketika branch ini di-merge ke `main`.

@@ -37,12 +37,18 @@ export function salaryPeriod(row: Pick<Gaji, 'periode_bulan' | 'periode_tahun'>)
 export function dateLabel(iso: string) { return new Intl.DateTimeFormat('id-ID',{day:'numeric',month:'short',year:'numeric'}).format(new Date(`${iso}T12:00:00`)) }
 export function loanDeduction(rows: Pinjaman[], employee: number | null): number | null {
   const values: number[] = []
-  for (const row of rows.filter(row => row.pegawai === employee)) {
+  for (const row of rows.filter(row => row.pegawai === employee && row.ikut_potongan)) {
     const rest = cents(row.sisa_pinjaman), monthly = cents(row.angsuran_per_bulan)
     if (rest == null || monthly == null) return null
     values.push(Math.min(rest, monthly > 0 ? monthly : rest) / 100)
   }
   return sumMoney(values)
+}
+export function loanDisbursed(row: Pick<Pinjaman, 'jurnal' | 'is_legacy'>) { return !!row.jurnal || row.is_legacy }
+export function loanStatus(row: Pick<Pinjaman, 'jurnal' | 'is_legacy' | 'ikut_potongan'>): { label: string, severity: 'info' | 'warn' | 'secondary' } {
+  if (row.is_legacy) return { label: 'Saldo legacy', severity: 'secondary' }
+  if (!row.jurnal) return { label: 'Menunggu pencairan', severity: 'warn' }
+  return row.ikut_potongan ? { label: 'Sudah dicairkan', severity: 'info' } : { label: 'Pencairan menunggu persetujuan', severity: 'warn' }
 }
 export function errorText(value: unknown, fallback: string) { const error = friendlyError(value,fallback); return [error.summary,error.detail].filter(Boolean).join('. ') }
 export function ambiguous(value: unknown) { const status = (value as {response?: {status?: number}})?.response?.status; return status == null || status >= 500 }

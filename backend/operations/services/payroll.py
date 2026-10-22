@@ -4,14 +4,24 @@ from datetime import date
 from decimal import Decimal
 
 from django.db import transaction
+from django.db.models import Q
 
 from .common import akun_sistem, audit_user, buat_jurnal
+
+
+def pinjaman_terpotong(pegawai):
+    """Kasbon yang boleh dipotong dari gaji: saldo legacy atau pencairan POSTED yang belum dibalik."""
+    return (
+        pegawai.pinjaman.filter(is_deleted=False)
+        .filter(Q(is_legacy=True) | Q(jurnal__status="POSTED", jurnal__reversals__isnull=True))
+        .distinct().order_by("tanggal_pinjaman", "pk")
+    )
 
 
 def apply_potongan_pinjaman(gaji, *, save: bool = False) -> Decimal:
     """Hitung potongan kasbon aktif pegawai untuk periode gaji."""
     potong = Decimal(0)
-    for pinj in gaji.pegawai.pinjaman.filter(is_deleted=False).order_by("tanggal_pinjaman"):
+    for pinj in pinjaman_terpotong(gaji.pegawai):
         sisa = pinj.sisa_pinjaman
         if sisa <= 0:
             continue
@@ -28,7 +38,7 @@ def settle_pinjaman_from_gaji(gaji) -> None:
     sisa_potong = gaji.potongan_pinjaman
     if sisa_potong <= 0:
         return
-    for pinj in gaji.pegawai.pinjaman.filter(is_deleted=False).order_by("tanggal_pinjaman"):
+    for pinj in pinjaman_terpotong(gaji.pegawai):
         if sisa_potong <= 0:
             break
         bayar = min(pinj.sisa_pinjaman, pinj.angsuran_per_bulan or pinj.sisa_pinjaman, sisa_potong)
@@ -43,6 +53,8 @@ def post_pencairan_kasbon(pinjaman, user=None, akun_piutang=None, akun_kas=None)
     """Pencairan kasbon pegawai (Dr Piutang Karyawan, Cr Kas)."""
     if pinjaman.jurnal_id:
         raise ValueError("Pinjaman ini sudah dijurnal.")
+    if pinjaman.is_legacy:
+        raise ValueError("Saldo kasbon legacy sudah dicairkan di luar sistem dan tidak perlu dicairkan lagi.")
     akun_piutang = akun_piutang or akun_sistem("PIUTANG_KARYAWAN", "114")
     akun_kas = akun_kas or akun_sistem("KAS", "111")
     with transaction.atomic():

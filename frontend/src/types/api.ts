@@ -362,6 +362,10 @@ export interface Pinjaman {
   sudah_terbayar: string
   sisa_pinjaman: string
   jurnal: string | null
+  /** Saldo impor KAFALAH: sudah cair di luar sistem, tanpa jurnal pencairan. */
+  is_legacy: boolean
+  /** Dihitung server: saldo legacy atau pencairan POSTED yang belum dibalik. */
+  ikut_potongan: boolean
 }
 
 // --- Aset & Kegiatan ---

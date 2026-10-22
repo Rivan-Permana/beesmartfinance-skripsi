@@ -21,7 +21,7 @@ const deduction = computed(()=>props.optionsLoading||props.optionsError?null:loa
 const gross = computed(()=>sumMoney(earnings.map(field=>form[field.key])))
 const deductions = computed(()=>sumMoney([deduction.value,form.potongan_asuransi]))
 const net = computed(()=>gross.value==null||deductions.value==null?null:Math.round(gross.value*100-deductions.value*100)/100)
-const unpaidApplications = computed(()=>props.loans.some(row=>row.pegawai===form.pegawai&&!row.jurnal&&Number(row.sisa_pinjaman)>0))
+const unpaidApplications = computed(()=>props.loans.some(row=>row.pegawai===form.pegawai&&!row.ikut_potongan&&Number(row.sisa_pinjaman)>0))
 watch(visible,open=>{
   if(!open)return
   attempted.value=false
@@ -57,7 +57,7 @@ async function save(){
       <fieldset :disabled="locked" class="employee-form-section"><legend>Potongan <span>Rupiah</span></legend><div class="employee-fields">
         <div class="employee-field"><label for="salary-insurance">Potongan asuransi</label><InputNumber input-id="salary-insurance" v-model="form.potongan_asuransi" locale="id-ID" :min="0" :max-fraction-digits="2" :disabled="locked" :invalid="attempted&&cents(form.potongan_asuransi)==null" :input-props="{'aria-invalid':attempted&&cents(form.potongan_asuransi)==null}" fluid /></div>
         <div class="employee-field"><span class="employee-field-label">Perkiraan potongan kasbon</span><output class="employee-readonly">{{ money(deduction) }}</output><small>Server menghitung ulang saat slip disimpan, termasuk saat mengubah slip.</small><small v-if="row">Potongan pada slip tersimpan: {{ money(row.potongan_pinjaman) }}.</small></div>
-      </div><Message v-if="unpaidApplications" severity="warn" :closable="false" class="employee-inline-message">Perhitungan server juga mencakup pengajuan kasbon yang belum dicairkan. Periksa daftar kasbon pegawai sebelum menyimpan.</Message></fieldset>
+      </div><Message v-if="unpaidApplications" severity="info" :closable="false" class="employee-inline-message">Pegawai ini punya pengajuan kasbon yang belum dicairkan atau belum disetujui. Pengajuan itu tidak ikut dipotong pada slip ini.</Message></fieldset>
       <div class="employee-preview"><div><span>Bruto</span><strong>{{ money(gross) }}</strong></div><div><span>Potongan</span><strong>{{ money(deductions) }}</strong></div><div><span>Perkiraan netto</span><strong>{{ money(net) }}</strong></div></div>
       <Message v-if="net!=null&&net<0" severity="warn" :closable="false">Netto negatif. Periksa pendapatan dan potongan sebelum melanjutkan.</Message>
       <Message v-if="attempted&&invalid" severity="error" :closable="false">Periksa pegawai, periode, hari hadir, dan nominal. Gunakan angka nol untuk komponen yang tidak dikenakan.</Message>
