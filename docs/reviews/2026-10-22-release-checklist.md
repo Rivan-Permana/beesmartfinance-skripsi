@@ -41,6 +41,25 @@ Cara membaca hasilnya:
 | migrasi operations terakhir | `0013_…` | Produksi tidak sinkron dengan branch; jangan merge sebelum diperiksa. |
 | backup | Ada file `db-*.dump` | Deploy tetap membuat dump baru, tetapi backup harian di luar VPS belum dikonfigurasi. |
 
+## Hasil cek produksi — 22 Oktober 2026
+
+Dijalankan read-only (`default_transaction_read_only = on`) lewat SSH dengan VPN. Host key VPS `SHA256:1e+IUd0Yb5upPGxv4u/Pe7R7MiErTTmV4Wn4LiYmVdw` dicocokkan dengan konsol Hostinger sebelum disimpan.
+
+| Cek | Hasil | Penilaian |
+|---|---|---|
+| Versi ter-deploy | `045bfdd` (= `main`) | Sesuai |
+| Migrasi `operations` terakhir | `0013_…` | Sesuai; `0014` dan `0015` belum diterapkan |
+| Kasbon KAF- tanpa jurnal | 0 | Backfill `0014` tidak menandai apa pun |
+| Kasbon non-KAF tanpa jurnal dan masih bersaldo | 1 (id 2, dibuat 22/10/2026, belum dicairkan, belum terpotong) | Aman: pengajuan baru; aturan baru baru memotongnya setelah pencairan disetujui |
+| Slip berjurnal / slip dengan potongan kasbon | 0 / 0 | Backfill `0015` tidak mengubah apa pun |
+| Jurnal gaji/kasbon DRAFT/PENDING | 0 | Aman |
+| Jurnal DRAFT/PENDING lain | 7 (tagihan 3, pendaftaran 2, kegiatan 2; Sep–Okt 2026) | Tidak terkait migrasi. Tutup buku periode `2026/2027` (OPEN, s.d. 29/06/2027) akan menolak sampai jurnal ini diselesaikan |
+| Periode tumpang tindih | 0 | Aman |
+| Akun Laba Ditahan aktif | 1 | Tutup buku dapat berjalan |
+| Backup terakhir di VPS | `db-20261015T093125Z.dump` (15/10/2026) | Deploy berikutnya membuat dump baru; backup harian ke luar VPS belum ada |
+
+Kesimpulan: tidak ada temuan yang menghalangi merge dari sisi data dan migrasi.
+
 ## Rollback
 
 - Kode: revert merge commit di `main` lalu push. Poller akan men-deploy ulang (backend membuat dump baru lebih dulu).
@@ -49,6 +68,6 @@ Cara membaca hasilnya:
 
 ## Keputusan sebelum merge
 
-1. Hasil cek read-only di atas sudah diperiksa dan dapat diterima.
-2. Stash `stash@{0}` di `main` ("periode close-by-kepsek + jurnal Rincian") dibiarkan. Stash ini menyentuh area tutup buku yang sudah diubah di branch ini, jadi kemungkinan besar bentrok bila di-pop setelah merge.
-3. Merge dilakukan lewat PR ke `main`, bukan push langsung.
+1. ~~Hasil cek read-only di atas sudah diperiksa dan dapat diterima.~~ Sudah dijalankan, lihat "Hasil cek produksi".
+2. Stash `stash@{0}` di `main` ("periode close-by-kepsek + jurnal Rincian") dibiarkan (diputuskan 22/10/2026). Stash ini menyentuh area tutup buku yang sudah diubah di branch ini, jadi kemungkinan besar bentrok bila di-pop setelah merge.
+3. Merge lewat PR ke `main`, bukan push langsung: draft PR #21 sudah dibuka.
