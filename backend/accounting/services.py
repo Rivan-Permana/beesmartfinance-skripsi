@@ -13,6 +13,19 @@ from .utils import audit_user
 FINANCE_POST_SOURCES = {"MANUAL", "AUTO_BILLING", "AUTO_PENDAFTARAN", "AUTO_SITIN"}
 
 
+def periode_tertutup(tanggal):
+    """Periode CLOSED yang memuat tanggal ini (pilihan sama dengan trigger posting), atau None."""
+    periode = (MsPeriodeAkuntansi.objects.filter(tgl_mulai__lte=tanggal, tgl_selesai__gte=tanggal)
+               .order_by("-tgl_mulai").first())
+    return periode if periode and periode.status == "CLOSED" else None
+
+
+def tolak_periode_tertutup(tanggal):
+    periode = periode_tertutup(tanggal)
+    if periode:
+        raise ValueError(f"Periode {periode.kode} sudah ditutup. Gunakan tanggal pada periode yang masih terbuka.")
+
+
 def can_finance_post(jurnal):
     if jurnal.tipe_sumber in {"AUTO_PENDAFTARAN", "AUTO_SITIN"}:
         from operations.services.registration import jurnal_pendaftaran_perlu_rekonsiliasi
@@ -107,13 +120,25 @@ def post_reversal(jurnal, user=None):
     return pembalik
 
 
-def close_period(periode, user=None, akun_ekuitas="3102"):
+def close_period(periode, user=None, akun_ekuitas=None):
     """Tutup buku: nolkan akun nominal (Pendapatan 4.x & Beban 5.x) ke ekuitas.
 
     Surplus -> kredit ekuitas (laba ditahan); defisit -> debit ekuitas.
     """
     if periode.status == "CLOSED":
         raise ValueError("Periode sudah CLOSED.")
+    tertunda = TrJurnal.objects.filter(
+        is_deleted=False, status__in=("DRAFT", "PENDING"),
+        tanggal__range=(periode.tgl_mulai, periode.tgl_selesai),
+    ).count()
+    if tertunda:
+        raise ValueError(
+            f"Masih ada {tertunda} jurnal DRAFT/PENDING di periode ini. "
+            "Catat, setujui, atau batalkan dulu sebelum tutup buku."
+        )
+    if akun_ekuitas is None:
+        from operations.services.common import akun_sistem
+        akun_ekuitas = akun_sistem("LABA_DITAHAN")
 
     with connection.cursor() as cur:
         cur.execute(
@@ -183,5 +208,6 @@ def close_period(periode, user=None, akun_ekuitas="3102"):
             jurnal.status = "POSTED"
             jurnal.posted_at = timezone.now()
             jurnal.save(update_fields=["status", "posted_at"])
-            MsPeriodeAkuntansi.objects.filter(pk=periode.pk).update(status="CLOSED")
+            if not MsPeriodeAkuntansi.objects.filter(pk=periode.pk, status="OPEN").update(status="CLOSED"):
+                raise ValueError("Periode sudah CLOSED.")
     return jurnal

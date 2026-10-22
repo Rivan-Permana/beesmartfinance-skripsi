@@ -31,8 +31,10 @@ def buat_jurnal(no_bukti, tanggal, keterangan, tipe, baris, user, fiscal_period=
     if total_debit != total_kredit:
         raise ValueError(f"Jurnal tidak seimbang: D={total_debit} K={total_kredit}")
 
+    from accounting.services import tolak_periode_tertutup
     from operations.services.coa_resolve import validate_jurnal_accounts
 
+    tolak_periode_tertutup(tanggal)
     validate_jurnal_accounts([b[0] for b in baris])
 
     jurnal = TrJurnal.objects.create(

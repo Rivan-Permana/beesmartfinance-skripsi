@@ -23,6 +23,10 @@ SYSTEM_ACCOUNTS: dict[str, dict] = {
         "label": "Utang potongan gaji / BPJS",
         "candidates": ["211", "212", "2101"],
     },
+    "LABA_DITAHAN": {
+        "label": "Laba Ditahan (tutup buku)",
+        "candidates": ["312", "3102"],
+    },
 }
 
 _LABEL_BY_KEY = {k: v["label"] for k, v in SYSTEM_ACCOUNTS.items()}

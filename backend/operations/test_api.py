@@ -100,6 +100,14 @@ class KeuanganActionApiTests(APITestCase):
         self.assertEqual(r.status_code, 200)
         self.assertIn("jurnal_id", r.data)
 
+    def test_slip_gaji_terkunci_setelah_posting(self):
+        self.client.post(f"/api/v1/gaji/{self.gaji.id}/posting/")
+        r = self.client.patch(f"/api/v1/gaji/{self.gaji.id}/", {"gaji_pokok": "9000000"}, format="json")
+        self.assertEqual(r.status_code, 400)
+        self.assertEqual(self.client.delete(f"/api/v1/gaji/{self.gaji.id}/").status_code, 400)
+        self.gaji.refresh_from_db()
+        self.assertEqual(self.gaji.gaji_pokok, Decimal("3000000"))
+
     def test_susutkan_aset(self):
         r = self.client.post(f"/api/v1/aset/{self.aset.id}/susutkan/")
         self.assertEqual(r.status_code, 200)

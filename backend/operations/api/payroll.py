@@ -13,7 +13,26 @@ from operations.services import post_gaji, post_pencairan_kasbon
 from operations.services.payroll import apply_potongan_pinjaman
 
 
-class PinjamanPegawaiViewSet(viewsets.ModelViewSet):
+class _TerkunciSetelahJurnal:
+    """Data sumber yang sudah dijurnal dikoreksi lewat jurnal pembalik, bukan diedit."""
+
+    pesan_terkunci = ""
+
+    def _tolak_bila_dijurnal(self, instance):
+        if instance.jurnal_id:
+            raise ValidationError(self.pesan_terkunci)
+
+    def perform_update(self, serializer):
+        self._tolak_bila_dijurnal(serializer.instance)
+        super().perform_update(serializer)
+
+    def perform_destroy(self, instance):
+        self._tolak_bila_dijurnal(instance)
+        super().perform_destroy(instance)
+
+
+class PinjamanPegawaiViewSet(_TerkunciSetelahJurnal, viewsets.ModelViewSet):
+    pesan_terkunci = "Kasbon yang sudah dicairkan tidak dapat diubah atau dihapus."
     queryset = PinjamanPegawai.objects.select_related("pegawai").order_by("-tanggal_pinjaman")
     serializer_class = PinjamanPegawaiSerializer
     permission_classes = [IsFinanceWriteFinancePrincipalRead]
@@ -31,7 +50,8 @@ class PinjamanPegawaiViewSet(viewsets.ModelViewSet):
         })
 
 
-class GajiPegawaiViewSet(viewsets.ModelViewSet):
+class GajiPegawaiViewSet(_TerkunciSetelahJurnal, viewsets.ModelViewSet):
+    pesan_terkunci = "Slip gaji yang sudah diposting tidak dapat diubah atau dihapus."
     queryset = GajiPegawai.objects.select_related("pegawai").order_by("-periode_tahun", "-periode_bulan")
     serializer_class = GajiPegawaiSerializer
     permission_classes = [IsFinanceWriteFinancePrincipalRead]
@@ -41,6 +61,7 @@ class GajiPegawaiViewSet(viewsets.ModelViewSet):
         apply_potongan_pinjaman(gaji, save=True)
 
     def perform_update(self, serializer):
+        self._tolak_bila_dijurnal(serializer.instance)
         gaji = serializer.save()
         apply_potongan_pinjaman(gaji, save=True)
 

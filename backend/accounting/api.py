@@ -74,6 +74,11 @@ class MsPeriodeAkuntansiViewSet(viewsets.ModelViewSet):
     serializer_class = MsPeriodeAkuntansiSerializer
     permission_classes = [IsFinanceOrReadOnly]
 
+    def perform_destroy(self, instance):
+        if instance.status == "CLOSED":
+            raise ValidationError("Periode yang sudah ditutup tidak dapat dihapus.")
+        instance.delete()
+
     @action(detail=True, methods=["post"], permission_classes=[IsPrincipal])
     def tutup(self, request, pk=None):
         """Tutup buku (fiscal year closing) -> jurnal penutup + status CLOSED."""
@@ -82,6 +87,7 @@ class MsPeriodeAkuntansiViewSet(viewsets.ModelViewSet):
             jurnal = close_period(periode, user=request.user)
         except ValueError as exc:
             raise ValidationError(str(exc))
+        periode.refresh_from_db()
         return Response({
             "detail": f"Periode {periode.kode} berhasil ditutup; jurnal penutup dibuat.",
             "periode": self.get_serializer(periode).data,

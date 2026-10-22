@@ -212,5 +212,64 @@ class ClosingApiTests(APITestCase):
         r = self.client.post(f"/api/v1/periode/{self.periode.id}/tutup/")
         self.assertEqual(r.status_code, 200)
         self.assertIn("jurnal_penutup", r.data)
+        self.assertEqual(r.data["periode"]["status"], "CLOSED")
         self.periode.refresh_from_db()
         self.assertEqual(self.periode.status, "CLOSED")
+
+    def _jurnal(self, no, tanggal, status="DRAFT"):
+        import uuid as _uuid
+
+        from accounting.models import TrJurnalDetail
+
+        j = TrJurnal.objects.create(id=_uuid.uuid4(), no_bukti=no, tanggal=tanggal, status="DRAFT")
+        TrJurnalDetail.objects.create(jurnal=j, kode_akun_id="5101", debit=1000, kredit=0)
+        TrJurnalDetail.objects.create(jurnal=j, kode_akun_id="4101", debit=0, kredit=1000)
+        if status != "DRAFT":
+            TrJurnal.objects.filter(pk=j.pk).update(status=status)
+        return j
+
+    def test_tutup_memakai_laba_ditahan_coa_final(self):
+        MsCoa.objects.filter(pk="3102").update(is_active=False)
+        _coa("312", "Laba Ditahan", "K")
+        self.client.force_authenticate(self.principal)
+        r = self.client.post(f"/api/v1/periode/{self.periode.id}/tutup/")
+        self.assertEqual(r.status_code, 200, r.data)
+        penutup = TrJurnal.objects.get(pk=r.data["jurnal_penutup"])
+        self.assertTrue(penutup.detail.filter(kode_akun_id="312").exists())
+
+    def test_tutup_ditolak_bila_ada_jurnal_tertunda(self):
+        from datetime import date
+
+        self._jurnal("PND1", date(2026, 5, 1), status="PENDING")
+        self.client.force_authenticate(self.principal)
+        r = self.client.post(f"/api/v1/periode/{self.periode.id}/tutup/")
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("DRAFT/PENDING", str(r.data))
+        self.periode.refresh_from_db()
+        self.assertEqual(self.periode.status, "OPEN")
+
+    def test_periode_tertutup_mengunci_jurnal_dan_periode(self):
+        finance = User.objects.create_user("finance9", password="x")
+        finance.groups.add(Group.objects.get(name="Finance"))
+        self.client.force_authenticate(self.principal)
+        self.assertEqual(self.client.post(f"/api/v1/periode/{self.periode.id}/tutup/").status_code, 200)
+        self.client.force_authenticate(finance)
+        r = self.client.post("/api/v1/jurnal/", {
+            "no_bukti": "LATE1", "tanggal": "2026-06-01", "keterangan": "x",
+            "detail": [{"kode_akun": "5101", "debit": "1000", "kredit": "0"},
+                       {"kode_akun": "4101", "debit": "0", "kredit": "1000"}],
+        }, format="json")
+        self.assertEqual(r.status_code, 400)
+        self.assertIn("sudah ditutup", str(r.data))
+        url = f"/api/v1/periode/{self.periode.id}/"
+        self.assertEqual(self.client.patch(url, {"tgl_selesai": "2026-11-30"}, format="json").status_code, 400)
+        self.assertEqual(self.client.delete(url).status_code, 400)
+
+    def test_periode_tumpang_tindih_ditolak(self):
+        finance = User.objects.create_user("finance8", password="x")
+        finance.groups.add(Group.objects.get(name="Finance"))
+        self.client.force_authenticate(finance)
+        r = self.client.post("/api/v1/periode/", {"kode": "X", "tgl_mulai": "2026-12-01", "tgl_selesai": "2027-06-30"}, format="json")
+        self.assertEqual(r.status_code, 400)
+        r = self.client.post("/api/v1/periode/", {"kode": "Y", "tgl_mulai": "2027-06-30", "tgl_selesai": "2027-01-01"}, format="json")
+        self.assertEqual(r.status_code, 400)
