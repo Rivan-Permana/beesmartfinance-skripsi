@@ -14,7 +14,7 @@ from .students import Jenjang, Kelompok, KehadiranSiswa, Siswa
 from .staff import AbsenPegawai, Pegawai
 from .school_services import ArmadaJemputan, MenuKatering, PendaftaranJemputan, TarifKatering
 from .billing import AlokasiPembayaranTagihan, KomponenBiayaTemplate, MsPostingRule, PembayaranTagihan, Tagihan, TagihanDetail
-from .payroll import GajiPegawai, PinjamanPegawai
+from .payroll import GajiPegawai, PinjamanPegawai, PotonganKasbonGaji
 from .assets import FixedAsset
 from .activities import Kegiatan, RealisasiKegiatan
 from .registration import PendaftaranSiswa
@@ -26,7 +26,7 @@ __all__ = [
     "MenuKatering", "TarifKatering", "ArmadaJemputan", "PendaftaranJemputan",
     "MsPostingRule", "Tagihan", "TagihanDetail", "KomponenBiayaTemplate",
     "PembayaranTagihan", "AlokasiPembayaranTagihan",
-    "PinjamanPegawai", "GajiPegawai",
+    "PinjamanPegawai", "GajiPegawai", "PotonganKasbonGaji",
     "FixedAsset",
     "Kegiatan", "RealisasiKegiatan",
     "PendaftaranSiswa",

@@ -1,0 +1,145 @@
+/* Shared preview workspace; destinations and actions retain their role permissions. */
+.workspace-theme {
+  --workspace: #f5f6fa;
+  --text: #222841;
+  --muted: #657088;
+  --border: #e4e7ef;
+  --navy: #282651;
+  --radius-panel: 16px;
+  grid-template-columns: 236px minmax(0, 1fr);
+  background: var(--workspace);
+}
+.workspace-theme .sidebar { background: var(--navy); border: 0; padding: 28px 18px 20px; color: #fff; }
+.workspace-theme .school-brand { padding: 0 8px 30px; gap: 12px; }
+.workspace-theme .school-brand strong { color: #fff; font-size: 19px; }
+.workspace-theme .school-brand small { color: #c6c5df; font-size: 12px; margin-top: 2px; }
+.workspace-theme .school-brand img { width: 44px; height: 44px; }
+.workspace-theme .nav-group { margin-bottom: 21px; }
+.workspace-theme .nav-group h2 { color: #bebcd7; font-size: 12px; font-weight: 600; padding-left: 12px; }
+.workspace-theme .nav-item { color: #deddec; min-height: 43px; padding: 10px 12px; font-size: 14px; border-radius: 8px; gap: 12px; }
+.workspace-theme .nav-item--pending { color: #bbb9d0; }
+.workspace-theme .nav-item[aria-current] { background: #fff; color: var(--navy); box-shadow: none; font-weight: 800; }
+.workspace-theme .nav-item[aria-current] .icon { color: var(--brand); }
+.workspace-theme a.nav-item:hover:not([aria-current]) { background: #3a3865; color: white; }
+.workspace-theme .sidebar :focus-visible { outline-color: #f3b9da; }
+.workspace-theme .school { border-color: #4c496f; padding: 20px 8px 0; }
+.workspace-theme .school>.icon, .workspace-theme .school small { color: #d2d0e4; }
+.workspace-theme .topbar { background: white; padding: 13px 36px; min-height: 68px; }
+.workspace-theme .topbar-context { font-size: 14px; }
+.workspace-theme .identity strong { font-size: 13px; }
+.workspace-theme .avatar { width: 38px; height: 38px; border: 1px solid #f1d4e4; }
+.workspace-theme main { max-width: 1680px; padding: 30px 36px; }
+.workspace-theme h1 { font-size: 31px; font-weight: 800; letter-spacing: -.035em; }
+.workspace-theme h2 { font-size: 18px; font-weight: 800; }
+.workspace-theme .page-heading { gap: 16px; margin-bottom: 27px; }
+.workspace-theme .page-heading>div:first-child { margin-right: auto; }
+.workspace-theme .page-heading p { font-size: 14px; margin-top: 7px; }
+.workspace-theme .period-label { min-height: 44px; background: transparent; border-color: #d8dce6; }
+.workspace-theme .heading-action { padding-inline: 17px; white-space: nowrap; }
+.workspace-theme .metric-strip { grid-template-columns: 1.4fr 1fr 1fr 1fr; background: white; border: 1px solid var(--border); border-radius: 16px; padding: 26px 0; margin-bottom: 24px; box-shadow: 0 3px 14px #22284103; }
+.workspace-theme .metric { padding-inline: 24px; align-self: center; }
+.workspace-theme .metric:first-child { padding-left: 26px; }
+.workspace-theme .metric>span { color: #59647b; font-size: 13px; }
+.workspace-theme .metric strong { font-size: 26px; letter-spacing: -.035em; font-weight: 700; margin: 8px 0 4px; }
+.workspace-theme .metric--balance strong { font-size: 34px; font-weight: 800; }
+.workspace-theme .metric--balance>span { color: var(--navy); font-weight: 700; }
+.workspace-theme .metric--balance .icon { color: var(--brand); }
+.workspace-theme .metric small { font-size: 11px; }
+.workspace-theme .finance-workspace { display: grid; grid-template-columns: minmax(0, 1fr) 322px; gap: 24px; align-items: start; }
+.workspace-theme .panel { border-radius: 16px; box-shadow: 0 3px 14px #22284103; }
+.workspace-theme .panel-heading { padding: 24px 26px 0; }
+.workspace-theme .panel-heading p { font-size: 12px; margin-top: 6px; }
+.workspace-theme .primary-chart .panel-heading { align-items: flex-start; }
+.workspace-theme .segmented { background: #f1f2f7; padding: 4px; border-radius: 9px; }
+.workspace-theme .segmented button { padding-inline: 12px; min-height: 34px; border-radius: 6px; }
+.workspace-theme .flow-totals { display: flex; gap: 40px; padding: 22px 26px 0; }
+.workspace-theme .flow-totals span { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--muted); }
+.workspace-theme .flow-totals strong { display: block; font-size: 22px; font-weight: 700; letter-spacing: -.025em; margin-top: 4px; font-variant-numeric: tabular-nums; }
+.workspace-theme .flow-totals i { width: 7px; height: 7px; border-radius: 50%; }
+.workspace-theme .incoming-dot { background: #19765b; }
+.workspace-theme .outgoing-dot { background: var(--brand); }
+.workspace-theme .primary-chart .chart-body { height: 260px; padding: 18px 24px 0; }
+.workspace-theme .chart-description { padding: 8px 26px 0; color: #657088; }
+.workspace-theme .chart-data { padding: 0 26px 17px; }
+.workspace-theme .chart-data summary { font-weight: 600; font-size: 12px; }
+.workspace-theme .work-queue { border: 1px solid var(--border); border-radius: 16px; background: white; padding: 24px; display: block; }
+.workspace-theme .work-queue header { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; align-items: center; }
+.workspace-theme .queue-label { font-size: 11px; color: #895118; background: #fff4df; border-radius: 5px; padding: 4px 7px; }
+.workspace-theme .queue-item { padding: 21px 0; gap: 11px; }
+.workspace-theme .queue-item strong { font-size: 13px; font-weight: 700; line-height: 1.4; }
+.workspace-theme .queue-item small { font-size: 11px; line-height: 1.5; }
+.workspace-theme .queue-item>.icon { width: 16px; }
+.workspace-theme .queue-symbol { width: 35px; height: 35px; border-radius: 10px; background: #f1eff8; color: var(--navy); display: grid; place-items: center; flex: none; }
+.workspace-theme .queue-symbol--warning { background: #fff5e8; color: #94611e; }
+.workspace-theme .queue-symbol .icon { width: 19px; height: 19px; }
+.workspace-theme .receivable-summary { padding-top: 21px; }
+.workspace-theme .receivable-summary>strong { font-size: 26px; margin: 5px 0 8px; }
+.workspace-theme .receivable-summary p { font-size: 12px; }
+.workspace-theme .receivable-summary .button { width: 100%; margin-top: 9px; justify-content: space-between; }
+.workspace-theme .composition-panel .panel-heading { padding-inline: 24px; }
+.workspace-theme .composition-panel .chart-body--donut { display: block; padding: 20px 24px 0; }
+.workspace-theme .composition-panel .chart-body--donut>[data-pc-name="chart"] { height: 156px; width: 100%; }
+.workspace-theme .composition-list { margin-top: 20px; }
+.workspace-theme .composition-list li { padding-block: 9px; border-bottom: 1px solid #eef0f5; }
+.workspace-theme .composition-list li:last-child { border-bottom: none; }
+.workspace-theme .composition-list li>span, .workspace-theme .composition-list strong { font-size: 12px; }
+.workspace-theme .work-table .panel-heading { align-items: center; }
+.workspace-theme .work-table .table-scroll { margin-top: 20px; }
+.workspace-theme .work-table td, .workspace-theme .work-table th { padding-inline: 24px; }
+.workspace-theme .work-table td { padding-block: 16px; }
+.workspace-theme .work-table th { background: #f8f9fc; }
+.workspace-theme .work-table .transaction-link strong { font-size: 13px; display: flex; align-items: center; gap: 8px; }
+.workspace-theme .transaction-link .icon { color: #706a8c; width: 16px; height: 16px; }
+.workspace-theme .work-table .transaction-link small { font-size: 11px; margin-left: 24px; }
+.workspace-theme .work-table .panel-note { margin-top: 0; padding: 15px 24px; font-size: 11px; }
+.workspace-theme .work-table .status { font-size: 11px; }
+.workspace-theme .work-table .num { font-size: 13px; }
+@media (min-width: 1600px) { .workspace-theme .finance-workspace { grid-template-columns: minmax(0, 1fr) 360px; } .workspace-theme .primary-chart .chart-body { height: 320px; } }
+@media (max-width: 1250px) {
+  .workspace-theme { grid-template-columns: 212px minmax(0, 1fr); }
+  .workspace-theme main { padding: 26px 24px; }
+  .workspace-theme .topbar { padding-inline: 24px; }
+  .workspace-theme .finance-workspace { grid-template-columns: minmax(0, 1fr) 290px; gap: 18px; }
+
+  .workspace-theme .metric { padding-inline: 18px; }
+  .workspace-theme .metric strong { font-size: 22px; }
+  .workspace-theme .metric--balance strong { font-size: 27px; }
+  .workspace-theme .panel-heading { padding-inline: 20px; }
+  .workspace-theme .flow-totals { padding-inline: 20px; gap: 24px; }
+  .workspace-theme .flow-totals strong { font-size: 20px; }
+  .workspace-theme .work-queue { padding: 20px; }
+  .workspace-theme .page-heading { flex-wrap: wrap; }
+  .workspace-theme .page-heading>div:first-child { flex-basis: 100%; }
+}
+@media (max-width: 1050px) {
+  .workspace-theme .metric-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 0; }
+  .workspace-theme .metric:nth-child(3) { border: 0; padding-left: 26px; }
+  .workspace-theme .metric strong { font-size: 26px; }
+  .workspace-theme .finance-workspace { grid-template-columns: minmax(0, 1fr); }
+
+  .workspace-theme .flow-totals { gap: 40px; }
+}
+
+@media (max-width: 680px) {
+  .workspace-theme { display: block; }
+  .workspace-theme main { padding: 24px 16px; }
+  .workspace-theme .topbar { padding: 8px 16px; min-height: 60px; }
+  .workspace-theme h1 { font-size: 27px; }
+  .workspace-theme .page-heading { flex-direction: row; align-items: center; gap: 12px; margin-bottom: 22px; }
+  .workspace-theme .page-heading>div:first-child { width: 100%; }
+  .workspace-theme .page-heading p { font-size: 13px; }
+  .workspace-theme .period-label, .workspace-theme .heading-action { font-size: 12px; padding-inline: 12px; }
+  .workspace-theme .metric-strip { padding-block: 20px; gap: 20px 0; border-radius: 12px; }
+  .workspace-theme .metric, .workspace-theme .metric:first-child, .workspace-theme .metric:nth-child(3) { padding-inline: 16px; }
+  .workspace-theme .metric strong, .workspace-theme .metric--balance strong { font-size: 21px; }
+  .workspace-theme .metric small { font-size: 10px; }
+  .workspace-theme .metric>span { font-size: 12px; }
+  .workspace-theme .panel-heading { padding-top: 20px; }
+  .workspace-theme .primary-chart .panel-heading { gap: 14px; }
+  .workspace-theme .flow-totals { padding-inline: 20px; gap: 20px; }
+  .workspace-theme .flow-totals span { font-size: 10px; }
+  .workspace-theme .flow-totals strong { font-size: 18px; }
+  .workspace-theme .primary-chart .chart-body { padding-inline: 12px; height: 240px; }
+  .workspace-theme .chart-description, .workspace-theme .chart-data { padding-inline: 20px; }
+
+}

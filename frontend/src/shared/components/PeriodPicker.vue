@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import Select from "primevue/select"
+import Icon from "./PhosphorIcon.vue"
 import { computed } from "vue"
 
 const bulan = defineModel<number>("bulan", { default: () => new Date().getMonth() + 1 })
@@ -38,8 +39,8 @@ const tahunOptions = computed(() => {
 
 <template>
   <div class="period-picker">
-    <Select v-model="bulan" :options="BULAN" option-label="label" option-value="value" placeholder="Bulan" />
-    <Select v-model="tahun" :options="tahunOptions" option-label="label" option-value="value" placeholder="Tahun" />
+    <Select v-model="bulan" :options="BULAN" option-label="label" option-value="value" placeholder="Bulan" aria-label="Bulan"><template #dropdownicon><Icon name="caret-down" /></template></Select>
+    <Select v-model="tahun" :options="tahunOptions" option-label="label" option-value="value" placeholder="Tahun" aria-label="Tahun"><template #dropdownicon><Icon name="caret-down" /></template></Select>
   </div>
 </template>
 

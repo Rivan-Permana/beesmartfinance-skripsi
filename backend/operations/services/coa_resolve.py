@@ -16,13 +16,16 @@ SYSTEM_ACCOUNTS: dict[str, dict] = {
     },
     "PIUTANG_KARYAWAN": {
         "label": "Piutang Karyawan (kasbon)",
-        "candidates": ["114", "1103"],
         "ensure_code": "114",
         "ensure_nama": "Piutang Karyawan (Kasbon)",
     },
     "UTANG_ASURANSI": {
         "label": "Utang potongan gaji / BPJS",
         "candidates": ["211", "212", "2101"],
+    },
+    "LABA_DITAHAN": {
+        "label": "Laba Ditahan (tutup buku)",
+        "candidates": ["312", "3102"],
     },
 }
 
@@ -76,11 +79,18 @@ def _pick_active(candidates: list[str]) -> str | None:
 
 def ensure_piutang_karyawan() -> str:
     """Pastikan akun piutang kasbon ada (114 di bawah aset lancar)."""
-    existing = _pick_active(SYSTEM_ACCOUNTS["PIUTANG_KARYAWAN"]["candidates"])
+    meta = SYSTEM_ACCOUNTS["PIUTANG_KARYAWAN"]
+    existing = _pick_active([meta["ensure_code"]])
     if existing:
         return existing
 
-    meta = SYSTEM_ACCOUNTS["PIUTANG_KARYAWAN"]
+    # Kode legacy 1103 juga dipakai untuk perlengkapan; cek nama sebelum memakainya.
+    legacy = MsCoa.objects.filter(
+        kode_akun="1103", is_active=True, nama_akun__icontains="piutang",
+    ).first()
+    if legacy:
+        return legacy.kode_akun
+
     kode = meta["ensure_code"]
     sub = (
         MsSubGolongan.objects.filter(kode_sub="11").first()
@@ -108,8 +118,10 @@ def resolve_system_account(key: str, *, legacy_default: str | None = None) -> st
     from operations.models import MsPostingRule
 
     rule = MsPostingRule.objects.filter(komponen=key, aktif=True).first()
-    if rule and MsCoa.objects.filter(kode_akun=rule.akun_kredit_id, is_active=True).exists():
-        return rule.akun_kredit_id
+    if rule:
+        account = MsCoa.objects.filter(kode_akun=rule.akun_kredit_id, is_active=True).first()
+        if account and (key != "PIUTANG_KARYAWAN" or "PIUTANG" in account.nama_akun.upper()):
+            return account.kode_akun
 
     meta = SYSTEM_ACCOUNTS.get(key)
     if meta:

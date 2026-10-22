@@ -1,32 +1,15 @@
 import type { ChartOptions } from "chart.js"
+import { tokens } from "@/core/designTokens"
 
 /** Brand palette — selaras --bee-* */
 export const CHART = {
-  navy: "#2e2a6e",
-  magenta: "#e5197f",
-  orange: "#f5a623",
-  blue: "#4fb0db",
-  green: "#2e9e5b",
-  cream: "#f5edd6",
-  muted: "#9ca3af",
-  grid: "rgba(46, 42, 110, 0.07)",
-  tooltipBg: "#1f2430",
+  navy: tokens.color['chart-ink'], magenta: tokens.color['chart-rose'], orange: tokens.color.warning,
+  blue: tokens.color['chart-teal'], green: tokens.color.positive, cream: tokens.color['surface-subtle'],
+  muted: tokens.color.muted, grid: tokens.color.border, tooltipBg: tokens.color.ink,
 } as const
+export const CHART_PALETTE = [CHART.navy, CHART.magenta, CHART.blue, tokens.color['chart-gold']]
 
-export const CHART_PALETTE = [
-  CHART.magenta,
-  CHART.navy,
-  CHART.orange,
-  CHART.blue,
-  CHART.green,
-  "#9c0d55",
-  "#ec3f8f",
-  "#7a0b43",
-  "#3a3690",
-  "#6dd4a8",
-]
-
-const FONT = "'Nunito Sans', system-ui, sans-serif"
+const FONT = tokens.font.body
 
 function basePlugins(showLegend = true) {
   return {
@@ -40,7 +23,7 @@ function basePlugins(showLegend = true) {
         boxWidth: 8,
         boxHeight: 8,
         color: CHART.navy,
-        font: { family: FONT, size: 12, weight: 600 as const },
+        font: { family: FONT, size: 13, weight: 600 as const },
       },
     },
     tooltip: {
@@ -48,7 +31,7 @@ function basePlugins(showLegend = true) {
       titleColor: "#fff",
       bodyColor: "rgba(255,255,255,0.92)",
       titleFont: { family: FONT, size: 13, weight: 700 as const },
-      bodyFont: { family: FONT, size: 12 },
+      bodyFont: { family: FONT, size: 13 },
       padding: 12,
       cornerRadius: 10,
       displayColors: true,
@@ -60,7 +43,7 @@ function basePlugins(showLegend = true) {
 function axisTicks(isPercent = false) {
   return {
     color: CHART.muted,
-    font: { family: FONT, size: 11 },
+    font: { family: FONT, size: 13 },
     padding: 6,
     callback: isPercent
       ? (v: string | number) => `${v}%`
@@ -78,11 +61,12 @@ function cartesianScales(yPercent = false) {
     x: {
       grid: { display: false },
       border: { display: false },
-      ticks: axisTicks(false),
+      ticks: { color: CHART.muted, font: { family: FONT, size: 13 } },
     },
     y: {
       grid: { color: CHART.grid, drawTicks: false },
       border: { display: false },
+      beginAtZero: true,
       ticks: axisTicks(yPercent),
     },
   }
@@ -93,7 +77,7 @@ export function lineChartOptions(rpTooltip = false): ChartOptions<"line"> {
     responsive: true,
     maintainAspectRatio: false,
     interaction: { mode: "index", intersect: false },
-    animation: { duration: 700, easing: "easeOutQuart" },
+    animation: false,
     plugins: {
       ...basePlugins(true),
       tooltip: {
@@ -125,7 +109,7 @@ export function lineChartOptions(rpTooltip = false): ChartOptions<"line"> {
       },
     },
     elements: {
-      line: { tension: 0.42, borderWidth: 2.5 },
+      line: { tension: 0, borderWidth: 2.5 },
       point: { radius: 0, hoverRadius: 5, hitRadius: 12, borderWidth: 2 },
     },
   }
@@ -141,19 +125,20 @@ export function barChartOptions(opts?: { horizontal?: boolean; percent?: boolean
       responsive: true,
       maintainAspectRatio: false,
       indexAxis: "y",
-      animation: { duration: 600, easing: "easeOutQuart" },
-      plugins: { ...basePlugins(percent), legend: { display: false } },
+      animation: false,
+      plugins: { ...basePlugins(true), legend: { ...basePlugins(true).legend, display: true } },
       scales: {
         y: {
           grid: { display: false },
           border: { display: false },
           stacked,
-          ticks: { color: CHART.muted, font: { family: FONT, size: 11 }, maxTicksLimit: 8 },
+          ticks: { color: CHART.muted, font: { family: FONT, size: 13 }, maxTicksLimit: 8 },
         },
         x: {
           stacked,
           grid: { color: CHART.grid, drawTicks: false },
           border: { display: false },
+          beginAtZero: true,
           max: percent ? 110 : undefined,
           ticks: axisTicks(percent),
         },
@@ -164,19 +149,20 @@ export function barChartOptions(opts?: { horizontal?: boolean; percent?: boolean
   return {
     responsive: true,
     maintainAspectRatio: false,
-    animation: { duration: 600, easing: "easeOutQuart" },
+    animation: false,
     plugins: { ...basePlugins(!percent), legend: { display: percent ? false : true } },
     scales: {
       x: {
         grid: { display: false },
         border: { display: false },
         stacked,
-        ticks: { color: CHART.muted, font: { family: FONT, size: 11 }, maxTicksLimit: 12 },
+        ticks: { color: CHART.muted, font: { family: FONT, size: 13 }, maxTicksLimit: 12 },
       },
       y: {
         stacked,
         grid: { color: CHART.grid, drawTicks: false },
         border: { display: false },
+        beginAtZero: true,
         max: percent ? 110 : undefined,
         ticks: axisTicks(percent),
       },
@@ -190,7 +176,7 @@ export function doughnutChartOptions(): ChartOptions<"doughnut"> {
     maintainAspectRatio: false,
     cutout: "68%",
     spacing: 3,
-    animation: { animateRotate: true, animateScale: true, duration: 800 },
+    animation: false,
     plugins: {
       ...basePlugins(true),
       legend: {
@@ -214,7 +200,7 @@ export function sparkBarOptions(): ChartOptions<"bar"> {
       x: { display: false },
       y: { display: false, beginAtZero: true },
     },
-    animation: { duration: 500 },
+    animation: false,
   }
 }
 

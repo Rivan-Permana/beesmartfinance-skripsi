@@ -6,7 +6,7 @@ async function fetchAll<T>(path: string): Promise<T[]> {
   let page = 1
   let hasNext = true
   while (hasNext) {
-    const { data } = await api.get<Paginated<T>>(path, { params: { page } })
+    const { data } = await api.get<Paginated<T>>(path, { params: { page_size: 200, page } })
     out.push(...data.results)
     hasNext = !!data.next
     page += 1

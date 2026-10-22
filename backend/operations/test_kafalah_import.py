@@ -81,7 +81,40 @@ class PotongPinjamanTests(TestCase):
             tanggal_pinjaman="2025-04-01",
             jumlah_pinjaman=Decimal("500000"),
             angsuran_per_bulan=Decimal("100000"),
+            is_legacy=True,
         )
+
+    def _gaji(self, bulan=4):
+        return GajiPegawai.objects.create(
+            pegawai=self.pegawai, periode_bulan=bulan, periode_tahun=2025,
+            gaji_pokok=Decimal("2000000"),
+        )
+
+    def test_kasbon_belum_dicairkan_tidak_dipotong(self):
+        PinjamanPegawai.objects.create(
+            pegawai=self.pegawai, tanggal_pinjaman="2025-04-02",
+            jumlah_pinjaman=Decimal("300000"), angsuran_per_bulan=Decimal("300000"),
+        )
+        self.assertEqual(apply_potongan_pinjaman(self._gaji()), Decimal("100000"))
+
+    def test_kasbon_dipotong_setelah_pencairan_posted(self):
+        from accounting.models import TrJurnal
+        from operations.services.payroll import post_pencairan_kasbon
+
+        baru = PinjamanPegawai.objects.create(
+            pegawai=self.pegawai, tanggal_pinjaman="2025-04-02",
+            jumlah_pinjaman=Decimal("300000"), angsuran_per_bulan=Decimal("300000"),
+        )
+        jurnal = post_pencairan_kasbon(baru, akun_piutang="1103", akun_kas="1101")
+        self.assertEqual(apply_potongan_pinjaman(self._gaji()), Decimal("100000"))
+        TrJurnal.objects.filter(pk=jurnal.pk).update(status="POSTED")
+        self.assertEqual(apply_potongan_pinjaman(self._gaji(bulan=5)), Decimal("400000"))
+
+    def test_kasbon_legacy_tidak_bisa_dicairkan(self):
+        from operations.services.payroll import post_pencairan_kasbon
+
+        with self.assertRaises(ValueError):
+            post_pencairan_kasbon(self.pegawai.pinjaman.get(), akun_piutang="1103", akun_kas="1101")
 
     def test_apply_dan_settle_pinjaman(self):
         gaji = GajiPegawai.objects.create(
@@ -90,9 +123,90 @@ class PotongPinjamanTests(TestCase):
         )
         apply_potongan_pinjaman(gaji, save=True)
         self.assertEqual(gaji.potongan_pinjaman, Decimal("100000"))
-        post_gaji(gaji)
+        jurnal = post_gaji(gaji)
         pinj = self.pegawai.pinjaman.first()
+        self.assertEqual(pinj.sudah_terbayar, Decimal("0"))
+        self._setujui(jurnal)
+        pinj.refresh_from_db()
         self.assertEqual(pinj.sudah_terbayar, Decimal("100000"))
+
+    def _setujui(self, jurnal):
+        from django.contrib.auth import get_user_model
+
+        from accounting.models import TrJurnal
+        from accounting.services import post_jurnal
+
+        kepsek, _ = get_user_model().objects.get_or_create(username="kepsek-uji")
+        TrJurnal.objects.filter(pk=jurnal.pk).update(status="PENDING")
+        return post_jurnal(jurnal, kepsek, approve=True)
+
+    def test_void_jurnal_gaji_mengembalikan_saldo_kasbon(self):
+        from accounting.services import post_reversal
+
+        gaji = self._gaji()
+        apply_potongan_pinjaman(gaji, save=True)
+        jurnal = self._setujui(post_gaji(gaji))
+        post_reversal(jurnal)
+        pinj = self.pegawai.pinjaman.first()
+        self.assertEqual(pinj.sudah_terbayar, Decimal("0"))
+        gaji.refresh_from_db()
+        self.assertFalse(gaji.kasbon_diselesaikan)
+        self.assertFalse(gaji.potongan_kasbon.exists())
+        self.assertIsNone(gaji.jurnal_id)
+        ulang = post_gaji(gaji)
+        self.assertTrue(ulang.no_bukti.endswith("-R1"))
+        self.assertNotEqual(ulang.pk, jurnal.pk)
+
+    def test_slip_lama_tanpa_alokasi_tidak_dipotong_dua_kali(self):
+        from accounting.services import post_reversal
+
+        gaji = self._gaji()
+        apply_potongan_pinjaman(gaji, save=True)
+        jurnal = post_gaji(gaji)
+        # slip lama: saldo sudah dikurangi aturan lama, tanpa catatan alokasi
+        PinjamanPegawai.objects.filter(pegawai=self.pegawai).update(sudah_terbayar=Decimal("100000"))
+        GajiPegawai.objects.filter(pk=gaji.pk).update(kasbon_diselesaikan=True)
+        post_reversal(self._setujui(jurnal))
+        gaji.refresh_from_db()
+        self.assertIsNone(gaji.jurnal_id)
+        self.assertTrue(gaji.kasbon_diselesaikan)
+        self._setujui(post_gaji(gaji))
+        self.assertEqual(self.pegawai.pinjaman.first().sudah_terbayar, Decimal("100000"))
+
+    def test_batalkan_draf_gaji_dan_kasbon_membuka_sumber(self):
+        from operations.services.payroll import batalkan_draf_kepegawaian, post_pencairan_kasbon
+
+        gaji = self._gaji()
+        jurnal = post_gaji(gaji)
+        self.assertEqual(batalkan_draf_kepegawaian(jurnal, None, "Salah hari hadir").status, "VOID")
+        gaji.refresh_from_db()
+        self.assertIsNone(gaji.jurnal_id)
+        self.assertTrue(post_gaji(gaji).no_bukti.endswith("-R1"))
+
+        baru = PinjamanPegawai.objects.create(
+            pegawai=self.pegawai, tanggal_pinjaman="2025-04-02",
+            jumlah_pinjaman=Decimal("300000"), angsuran_per_bulan=Decimal("300000"),
+        )
+        kb = post_pencairan_kasbon(baru, akun_piutang="1103", akun_kas="1101")
+        batalkan_draf_kepegawaian(kb, None, "Nominal salah")
+        baru.refresh_from_db()
+        self.assertIsNone(baru.jurnal_id)
+        self.assertEqual(post_pencairan_kasbon(baru, akun_piutang="1103", akun_kas="1101").no_bukti, f"KB-{baru.pk}-R1")
+        with self.assertRaises(ValueError):
+            batalkan_draf_kepegawaian(kb, None, "lagi")
+
+    def test_persetujuan_ditolak_bila_saldo_kasbon_kurang(self):
+        pertama, kedua = self._gaji(), self._gaji(bulan=5)
+        PinjamanPegawai.objects.filter(pegawai=self.pegawai).update(jumlah_pinjaman=Decimal("100000"))
+        for gaji in (pertama, kedua):
+            apply_potongan_pinjaman(gaji, save=True)
+        jurnal_pertama, jurnal_kedua = post_gaji(pertama), post_gaji(kedua)
+        self._setujui(jurnal_pertama)
+        with self.assertRaisesMessage(ValueError, "tidak lagi mencukupi"):
+            self._setujui(jurnal_kedua)
+        jurnal_kedua.refresh_from_db()
+        self.assertEqual(jurnal_kedua.status, "PENDING")
+        self.assertEqual(self.pegawai.pinjaman.first().sudah_terbayar, Decimal("100000"))
 
 
 class AnggaranParserTests(TestCase):

@@ -4,6 +4,7 @@ import ConfirmationService from "primevue/confirmationservice"
 import ToastService from "primevue/toastservice"
 import { describe, expect, it, vi } from "vitest"
 
+vi.mock('vue-router',()=>({onBeforeRouteLeave:vi.fn(),RouterLink:{props:['to'],template:'<a :href="to"><slot /></a>'}}))
 vi.mock("@/core/api", () => ({
   api: {
     get: vi.fn(async () => ({ data: { results: [], next: null, tarif_harian: "22000", tarif_jumat: "10000", is_default: true } })),
@@ -26,12 +27,12 @@ describe("menu katering", () => {
     })
     try {
       await flushPromises()
-      await wrapper.findAll('[role="tab"]').find((tab) => tab.text().includes("Menu"))!.trigger("click")
+      await wrapper.findAll("button").find((button) => button.text() === "Menu mingguan")!.trigger("click")
       await flushPromises()
-      await wrapper.findAll("button").find((button) => button.text() === "Isi")!.trigger("click")
+      await wrapper.findAll("button").find((button) => button.text() === "Isi menu")!.trigger("click")
       await flushPromises()
       const buttons = () => Array.from(document.querySelectorAll("button"))
-      const save = () => buttons().find((button) => button.textContent?.trim() === "Simpan" && button.closest('[role="dialog"]'))!
+      const save = () => buttons().find((button) => button.textContent?.trim() === "Simpan menu" && button.closest('[role="dialog"]'))!
       expect(save().disabled).toBe(false)
       save().click()
       await flushPromises()

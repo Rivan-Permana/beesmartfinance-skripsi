@@ -23,7 +23,7 @@ const tone = computed(() => {
 </script>
 
 <template>
-  <div class="ring-gauge" :style="{ width: `${size}px`, height: `${size}px` }">
+  <div class="ring-gauge" role="img" :aria-label="`${label ?? 'Utilisasi'}: ${value}%`" :style="{ width: `${size}px`, height: `${size}px` }">
     <svg :width="size" :height="size" :viewBox="`0 0 ${size} ${size}`">
       <circle
         class="ring-gauge__track"
@@ -66,8 +66,8 @@ const tone = computed(() => {
   transition: stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .ring-gauge__fill.ok { stroke: var(--bee-navy); }
-.ring-gauge__fill.warn { stroke: var(--bee-orange); }
-.ring-gauge__fill.danger { stroke: var(--bee-magenta); }
+.ring-gauge__fill.warn { stroke: var(--bee-warning); }
+.ring-gauge__fill.danger { stroke: var(--bee-danger); }
 
 .ring-gauge__center {
   position: absolute;
@@ -79,19 +79,17 @@ const tone = computed(() => {
   gap: 0.1rem;
 }
 .ring-gauge__value {
-  font-family: "Baloo 2", sans-serif;
+  font-family: var(--bee-font-body);
   font-size: 2rem;
-  font-weight: 800;
+  font-weight: 500;
   line-height: 1;
   color: var(--bee-navy);
 }
-.ring-gauge__value.warn { color: var(--bee-orange); }
-.ring-gauge__value.danger { color: var(--bee-magenta); }
+.ring-gauge__value.warn { color: var(--bee-warning); }
+.ring-gauge__value.danger { color: var(--bee-danger); }
 .ring-gauge__label {
-  font-size: 0.72rem;
+  font-size: var(--bee-type-caption);
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
   color: var(--app-text-muted);
 }
 </style>

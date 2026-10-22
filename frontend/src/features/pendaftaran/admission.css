@@ -1,0 +1,309 @@
+.admission-page .admission-panel {
+  min-width: 0;
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  border-radius: var(--bee-radius-panel);
+  margin-bottom: var(--bee-space-5)
+}
+
+.admission-page .admission-heading {
+  padding: var(--bee-space-5)
+}
+
+.admission-page .admission-heading h2 {
+  font-size: var(--bee-type-section);
+  font-weight: 600;
+  margin: 0
+}
+
+.admission-page .admission-heading p {
+  color: var(--app-text-muted);
+  font-size: var(--bee-type-ui);
+  max-width: 82ch;
+  margin: var(--bee-space-2) 0 0
+}
+
+.admission-page .admission-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--bee-space-4);
+  padding: 0 var(--bee-space-5) var(--bee-space-5)
+}
+
+.admission-page .admission-controls .admission-field:first-child {
+  flex: 1 1 360px;
+  max-width: 600px
+}
+
+.admission-page .admission-controls .admission-field {
+  flex: 0 1 220px
+}
+
+.admission-page .admission-empty {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  padding: var(--bee-space-7) var(--bee-space-5);
+  gap: var(--bee-space-3)
+}
+
+.admission-page .admission-empty .bee-icon {
+  width: 32px;
+  height: 32px;
+  color: var(--app-text-muted)
+}
+
+.admission-page .admission-empty h3 {
+  font-size: var(--bee-type-section);
+  font-weight: 500;
+  margin: 0
+}
+
+.admission-page .admission-empty p {
+  color: var(--app-text-muted);
+  max-width: 60ch;
+  margin: 0
+}
+
+.admission-page .admission-notice {
+  padding: 0 var(--bee-space-5) var(--bee-space-4)
+}
+
+.admission-page .admission-guide {
+  padding: var(--bee-space-4) var(--bee-space-5);
+  border-bottom: 1px solid var(--app-border);
+  color: var(--app-text-muted);
+  font-size: var(--bee-type-ui)
+}
+
+/* Phosphor caret instead of the browser's ▶ marker, matching the rest of the icon set. */
+.admission-page .admission-guide summary {
+  display: flex;
+  align-items: center;
+  gap: var(--bee-space-2);
+  min-height: 44px;
+  cursor: pointer;
+  font-weight: 500;
+  color: var(--app-text);
+  list-style: none
+}
+
+.admission-page .admission-guide summary::-webkit-details-marker {
+  display: none
+}
+
+.admission-page .admission-guide-caret {
+  width: 16px;
+  height: 16px;
+  transition: transform var(--bee-motion-control) var(--bee-motion-ease-out)
+}
+
+.admission-page .admission-guide[open] .admission-guide-caret {
+  transform: rotate(90deg)
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admission-page .admission-guide-caret {
+    transition: none
+  }
+}
+
+.admission-page .admission-guide ol {
+  padding-left: var(--bee-space-5);
+  max-width: 82ch;
+  line-height: 1.65
+}
+
+.admission-dialog {
+  width: min(38rem, calc(100vw - 32px)) !important
+}
+
+.admission-dialog form {
+  display: grid;
+  gap: var(--bee-space-5)
+}
+
+.admission-dialog .admission-form {
+  display: grid;
+  gap: var(--bee-space-5);
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0
+}
+
+:is(.admission-page, .admission-dialog) .admission-field {
+  display: grid;
+  gap: var(--bee-space-2);
+  min-width: 0
+}
+
+:is(.admission-page, .admission-dialog) .admission-field>label {
+  font-size: var(--bee-type-caption);
+  font-weight: 500
+}
+
+.admission-dialog small,
+.admission-dialog .admission-help {
+  font-size: var(--bee-type-caption);
+  color: var(--app-text-muted)
+}
+
+.admission-dialog .admission-help {
+  margin: 0;
+  max-width: 75ch
+}
+
+.admission-dialog .admission-field-error {
+  color: var(--bee-color-critical)
+}
+
+.admission-dialog .admission-total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--bee-space-3);
+  padding: var(--bee-space-4);
+  background: var(--bee-color-surface-subtle);
+  border-block: 1px solid var(--app-border);
+  font-size: var(--bee-type-ui)
+}
+
+.admission-dialog .admission-total strong {
+  font-weight: 500;
+  font-variant-numeric: tabular-nums
+}
+
+.admission-dialog .admission-person {
+  font-weight: 500;
+  margin: 0;
+  overflow-wrap: anywhere
+}
+
+.admission-dialog .admission-fee-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--bee-space-4)
+}
+
+.admission-dialog .p-dialog-footer {
+  border-top: 1px solid var(--app-border);
+  padding-top: var(--bee-space-4)
+}
+
+.admission-dialog .admission-notice {
+  display: grid;
+  justify-items: start;
+  gap: var(--bee-space-3)
+}
+
+.admission-dialog .admission-payment-components {
+  display: grid;
+  gap: var(--bee-space-3)
+}
+
+.admission-dialog .admission-payment-components label {
+  display: flex;
+  align-items: center;
+  gap: var(--bee-space-3);
+  min-height: 44px;
+  padding: var(--bee-space-3);
+  border: 1px solid var(--app-border);
+  border-radius: var(--bee-radius-control);
+  cursor: pointer
+}
+
+.admission-dialog .admission-payment-components input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--bee-color-brand);
+  margin: 0;
+  flex-shrink: 0
+}
+
+.admission-dialog .admission-payment-components strong {
+  display: block;
+  font-size: var(--bee-type-ui);
+  font-weight: 500
+}
+
+.admission-dialog .admission-detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--bee-space-3)
+}
+
+.admission-dialog .admission-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--bee-space-3);
+  margin: 0
+}
+
+.admission-dialog dl dt {
+  font-size: var(--bee-type-caption);
+  color: var(--app-text-muted)
+}
+
+.admission-dialog dl dd {
+  margin: var(--bee-space-2) 0 0;
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+  font-weight: 500
+}
+
+.admission-dialog h3 {
+  font-size: var(--bee-type-section);
+  font-weight: 500;
+  margin: 0
+}
+
+.admission-dialog .admission-receipts {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: var(--bee-space-4)
+}
+
+.admission-dialog .admission-receipts li {
+  padding: var(--bee-space-4);
+  border: 1px solid var(--app-border);
+  border-radius: var(--bee-radius-control);
+  overflow-wrap: anywhere
+}
+
+.admission-dialog .admission-receipts strong {
+  font-size: var(--bee-type-ui);
+  font-weight: 500
+}
+
+.admission-dialog .admission-receipts p {
+  font-size: var(--bee-type-ui);
+  margin: var(--bee-space-2) 0
+}
+
+@media(max-width:600px) {
+  .admission-page .admission-controls {
+    padding-inline: var(--bee-space-4)
+  }
+
+  .admission-page .admission-controls .admission-field {
+    flex: 1 1 100%
+  }
+
+  .admission-page .admission-heading {
+    padding: var(--bee-space-4)
+  }
+
+  .admission-dialog .admission-fee-fields,
+  .admission-dialog .admission-detail-grid {
+    grid-template-columns: minmax(0, 1fr)
+  }
+
+  .admission-dialog .admission-detail-actions>.p-button {
+    flex: 1 1 100%
+  }
+}

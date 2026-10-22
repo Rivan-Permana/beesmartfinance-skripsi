@@ -1,567 +1,122 @@
 <script setup lang="ts">
-import Button from "primevue/button"
-import Column from "primevue/column"
-import DataTable from "primevue/datatable"
-import DatePicker from "primevue/datepicker"
-import Dialog from "primevue/dialog"
-import InputNumber from "primevue/inputnumber"
-import InputText from "primevue/inputtext"
-import Message from "primevue/message"
-import Select from "primevue/select"
-import Tag from "primevue/tag"
-import { useConfirm } from "primevue/useconfirm"
-import { useToast } from "primevue/usetoast"
-import { computed, onMounted, reactive, ref, watch } from "vue"
+import { computed, onMounted, ref, watch } from "vue"
 import { useRoute } from "vue-router"
-
-import { coaApi, jurnalApi } from "./api"
-import { notifyError, notifySuccess, jurnalActionSuccessMessage } from "@/core/errors"
-import { formatRp } from "@/core/format"
+import Button from "primevue/button"
+import Message from "primevue/message"
+import { useToast } from "primevue/usetoast"
+import { friendlyError, jurnalActionSuccessMessage, notifySuccess } from "@/core/errors"
+import Icon from "@/shared/components/PhosphorIcon.vue"
 import PageLayout from "@/shared/components/PageLayout.vue"
 import { useAuthStore } from "@/stores/auth"
-import type { Coa, Jurnal, JurnalStatus } from "@/types/api"
+import type { Coa, Jurnal, JurnalInput, JurnalStatus } from "@/types/api"
+import { coaApi, jurnalApi } from "./api"
+import JurnalDirectory from "./JurnalDirectory.vue"
+import JurnalFormDialog from "./JurnalFormDialog.vue"
+import JurnalDetailDialog from "./JurnalDetailDialog.vue"
+import JurnalActionDialog from "./JurnalActionDialog.vue"
+import { journalActions, type JournalAction } from "./presentation"
 
-const route = useRoute()
-
-const auth = useAuthStore()
-const toast = useToast()
-const confirm = useConfirm()
-
-const rows = ref<Jurnal[]>([])
-const coaList = ref<Coa[]>([])
-const loadingCoa = ref(false)
-const coaError = ref(false)
-const loading = ref(false)
-const statusFilter = ref<JurnalStatus | null>(null)
-const page = ref(1)
-const pageSize = 10
-const total = ref(0)
-let loadSequence = 0
-
-const STATUS_OPTS: { label: string; value: JurnalStatus }[] = [
-  { label: "Draft", value: "DRAFT" },
-  { label: "Pending", value: "PENDING" },
-  { label: "Posted", value: "POSTED" },
-  { label: "Void", value: "VOID" },
-]
-const statusSeverity: Record<JurnalStatus, string> = {
-  DRAFT: "secondary",
-  PENDING: "warn",
-  POSTED: "success",
-  VOID: "danger",
+const route=useRoute(), auth=useAuthStore(), toast=useToast()
+const rows=ref<Jurnal[]>([]), accounts=ref<Coa[]>([])
+const loading=ref(false), loadingAccounts=ref(false), accountsError=ref(false)
+const error=ref(""), page=ref(1), total=ref(0)
+const filters=ref<{search:string;status:JurnalStatus|null}>({search:"",status:null})
+let loadSequence=0
+const access=computed(()=>({finance:auth.hasRole(["Finance"]),principal:auth.hasRole(["SchoolPrincipal"]),userId:auth.user?.id}))
+const kind=computed(()=>route.query.jenis==='masuk'||route.query.jenis==='keluar'?route.query.jenis:null)
+const title=computed(()=>kind.value==='masuk'?'Pemasukan':kind.value==='keluar'?'Pengeluaran':'Jurnal')
+const subtitle=computed(()=>kind.value==='masuk'?'Jurnal dengan akun pendapatan. Periksa bukti sebelum mencatat.':kind.value==='keluar'?'Jurnal dengan akun beban. Periksa bukti sebelum mencatat.':'Bukti transaksi, rincian akun, dan pencatatan ke buku besar.')
+function errorText(value:unknown,fallback:string){const result=friendlyError(value,fallback);return [result.summary,result.detail].filter(Boolean).join(". ")}
+async function loadAccounts(){
+  if(loadingAccounts.value)return
+  loadingAccounts.value=true;accountsError.value=false
+  try{accounts.value=await coaApi.list()}catch{accountsError.value=true}finally{loadingAccounts.value=false}
 }
-
-const canCreate = computed(() => auth.hasRole(["Finance"]))
-const canApprove = computed(() => auth.hasRole(["SchoolPrincipal"]))
-
-const jenisFilter = computed(() => {
-  const j = route.query.jenis
-  return j === "masuk" || j === "keluar" ? j : null
-})
-
-const pageTitle = computed(() => {
-  if (jenisFilter.value === "masuk") return "Pemasukan"
-  if (jenisFilter.value === "keluar") return "Pengeluaran"
-  return "Jurnal"
-})
-
-const pageSubtitle = computed(() => {
-  if (jenisFilter.value === "masuk") return "Transaksi pendapatan (akun 4.x)"
-  if (jenisFilter.value === "keluar") return "Transaksi beban (akun 5.x)"
-  return "Catat transaksi ke buku besar sesuai kewenangan"
-})
-
-const coaOptionsForForm = computed(() =>
-  coaList.value.filter((c) =>
-    c.is_active || form.detail.some((d) => d.kode_akun === c.kode_akun),
-  ),
-)
-
-async function loadCoa() {
-  loadingCoa.value = true
-  coaError.value = false
-  try {
-    coaList.value = await coaApi.list()
-  } catch (e) {
-    coaError.value = true
-    notifyError(toast, e, "Gagal memuat daftar akun.")
-  } finally {
-    loadingCoa.value = false
-  }
+async function load(){
+  const sequence=++loadSequence
+  loading.value=true;error.value=""
+  try{
+    const data=await jurnalApi.list({page:page.value,page_size:10,...(kind.value?{jenis:kind.value}:{}),...(filters.value.status?{status:filters.value.status}:{}),...(filters.value.search?{search:filters.value.search}:{})})
+    if(sequence!==loadSequence)return
+    rows.value=data.results;total.value=data.count
+  }catch(e){
+    if(sequence!==loadSequence)return
+    if((e as {response?:{status?:number}}).response?.status===404&&page.value>1){page.value=1;await load();return}
+    rows.value=[];total.value=0;error.value=errorText(e,"Gagal memuat jurnal")
+  }finally{if(sequence===loadSequence)loading.value=false}
 }
+function apply(value:{search:string;status:JurnalStatus|null}){filters.value=value;page.value=1;void load()}
+function changePage(value:number){page.value=value;void load()}
+watch(kind,()=>{page.value=1;void load()})
 
-async function load() {
-  const sequence = ++loadSequence
-  loading.value = true
-  try {
-    const data = await jurnalApi.list({
-      page: page.value, page_size: pageSize,
-      ...(statusFilter.value ? { status: statusFilter.value } : {}),
-      ...(jenisFilter.value ? { jenis: jenisFilter.value } : {}),
-    })
-    if (sequence !== loadSequence) return
-    rows.value = data.results
-    total.value = data.count
-  } catch (e) {
-    if (sequence !== loadSequence) return
-    if ((e as { response?: { status?: number } }).response?.status === 404 && page.value > 1) {
-      page.value = 1
-      await load()
-      return
-    }
-    notifyError(toast, e, "Gagal memuat jurnal.")
-  } finally {
-    if (sequence === loadSequence) loading.value = false
-  }
+const detail=ref<Jurnal|null>(null), editing=ref<Jurnal|null>(null)
+const formVisible=ref(false), saving=ref(false), formError=ref("")
+const actionTarget=ref<Jurnal|null>(null), action=ref<Exclude<JournalAction,"edit">|null>(null)
+const pending=ref(false), actionError=ref("")
+function create(){
+  if(!access.value.finance||saving.value||loadingAccounts.value||accountsError.value||!accounts.value.some(account=>account.is_active))return
+  editing.value=null;formError.value="";formVisible.value=true
 }
-
-function onPage(event: { page: number }) {
-  page.value = event.page + 1
-  void load()
+function choose(value:JournalAction,row:Jurnal){
+  if(pending.value||saving.value||!journalActions(row,access.value).includes(value))return
+  if(value==='edit'){editing.value=row;formError.value="";formVisible.value=true;return}
+  actionTarget.value=row;action.value=value;actionError.value=""
 }
-
-watch([statusFilter, jenisFilter], () => {
-  page.value = 1
-  void load()
-})
-
-// --- form ---
-const dialog = ref(false)
-const editingId = ref<string | null>(null)
-const saving = ref(false)
-const form = reactive<{
-  no_bukti: string
-  tanggal: Date
-  keterangan: string
-  detail: { kode_akun: string | null; debit: number; kredit: number }[]
-}>({ no_bukti: "", tanggal: new Date(), keterangan: "", detail: [] })
-
-function openCreate() {
-  editingId.value = null
-  form.no_bukti = ""
-  form.tanggal = new Date()
-  form.keterangan = ""
-  const prefix = jenisFilter.value === "masuk" ? "4" : jenisFilter.value === "keluar" ? "5" : ""
-  const preset = coaList.value.find((c) =>
-    c.is_active && c.kode_akun.startsWith(prefix),
-  )?.kode_akun ?? null
-  form.detail = [
-    { kode_akun: preset, debit: 0, kredit: 0 },
-    { kode_akun: null, debit: 0, kredit: 0 },
-  ]
-  dialog.value = true
-}
-
-function openEdit(j: Jurnal) {
-  editingId.value = j.id
-  form.no_bukti = j.no_bukti
-  form.tanggal = new Date(j.tanggal)
-  form.keterangan = j.keterangan ?? ""
-  form.detail = (j.detail ?? []).map((d) => ({
-    kode_akun: d.kode_akun,
-    debit: Number(d.debit) || 0,
-    kredit: Number(d.kredit) || 0,
-  }))
-  if (form.detail.length < 2) {
-    form.detail.push({ kode_akun: null, debit: 0, kredit: 0 })
-  }
-  dialog.value = true
-}
-
-const dialogTitle = computed(() =>
-  editingId.value ? "Ubah Jurnal Draft" : "Buat Jurnal",
-)
-
-function addLine() {
-  form.detail.push({ kode_akun: null, debit: 0, kredit: 0 })
-}
-function removeLine(i: number) {
-  form.detail.splice(i, 1)
-}
-
-const totalDebit = computed(() =>
-  form.detail.reduce((s, d) => s + (Number(d.debit) || 0), 0),
-)
-const totalKredit = computed(() =>
-  form.detail.reduce((s, d) => s + (Number(d.kredit) || 0), 0),
-)
-const balanced = computed(
-  () => totalDebit.value === totalKredit.value && totalDebit.value > 0,
-)
-const formValid = computed(
-  () =>
-    form.no_bukti.trim() !== "" &&
-    balanced.value &&
-    form.detail.every((d) =>
-      coaList.value.some((c) => c.is_active && c.kode_akun === d.kode_akun),
-    ),
-)
-
-function fmt(n: number) {
-  return formatRp(n)
-}
-
-async function save() {
-  saving.value = true
-  try {
-    const payload = {
-      no_bukti: form.no_bukti,
-      tanggal: form.tanggal.toISOString().slice(0, 10),
-      keterangan: form.keterangan,
-      detail: form.detail.map((d) => ({
-        kode_akun: d.kode_akun as string,
-        debit: String(d.debit || 0),
-        kredit: String(d.kredit || 0),
-      })),
-    }
-    if (editingId.value) {
-      await jurnalApi.update(editingId.value, payload)
-      notifySuccess(toast, "Jurnal draft diperbarui")
-    } else {
-      await jurnalApi.create(payload)
-      notifySuccess(toast, "Jurnal dibuat sebagai DRAFT")
-    }
-    dialog.value = false
+async function save(payload:JurnalInput){
+  if(saving.value||!access.value.finance)return
+  if(editing.value&&!journalActions(editing.value,access.value).includes('edit')){formError.value="Jurnal ini tidak lagi dapat diubah sebagai draf.";return}
+  saving.value=true;formError.value=""
+  try{
+    const result=editing.value?await jurnalApi.update(editing.value.id,payload):await jurnalApi.create(payload)
+    notifySuccess(toast,editing.value?"Draf jurnal diperbarui":"Draf jurnal dibuat",{detail:"Belum masuk buku besar."})
+    if(detail.value?.id===result.id)detail.value=result
+    formVisible.value=false
     await load()
-  } catch (e) {
-    notifyError(toast, e, editingId.value ? "Gagal menyimpan perubahan." : "Gagal membuat jurnal.")
-  } finally {
-    saving.value = false
-  }
+  }catch(e){formError.value=errorText(e,"Draf jurnal belum berhasil disimpan")}finally{saving.value=false}
 }
-
-function removeDraft(j: Jurnal) {
-  confirm.require({
-    message: `Hapus jurnal draft ${j.no_bukti}?`,
-    header: "Konfirmasi Hapus",
-    icon: "pi pi-exclamation-triangle",
-    rejectLabel: "Batal",
-    acceptLabel: "Hapus",
-    acceptClass: "p-button-danger",
-    accept: async () => {
-      try {
-        await jurnalApi.remove(j.id)
-        notifySuccess(toast, "Jurnal draft dihapus")
-        await load()
-      } catch (e) {
-        notifyError(toast, e, "Gagal menghapus jurnal.")
-      }
-    },
-  })
-}
-
-async function doAction(
-  fn: () => Promise<unknown>,
-  action?: "submit" | "approve" | "void" | "catat",
-) {
-  try {
-    const res = await fn()
-    if (action) {
-      const msg = jurnalActionSuccessMessage(action, res)
-      notifySuccess(toast, msg.summary, { detail: msg.detail })
-    } else {
-      notifySuccess(toast, "Berhasil")
-    }
+function closeAction(){if(!pending.value){actionTarget.value=null;action.value=null;actionError.value=""}}
+async function confirmAction(reason:string){
+  const current=actionTarget.value, currentAction=action.value
+  if(!current||!currentAction||pending.value)return
+  if(!journalActions(current,access.value).includes(currentAction)){actionError.value="Status atau kewenangan tidak lagi sesuai. Periksa ulang daftar.";return}
+  if((currentAction==='cancel'||currentAction==='cancelDraft'||currentAction==='reject')&&!reason.trim())return
+  pending.value=true;actionError.value=""
+  try{
+    const result=await (currentAction==='remove'?jurnalApi.remove(current.id):currentAction==='cancel'||currentAction==='cancelDraft'?jurnalApi.batalPenerimaan(current.id,reason):currentAction==='reject'?jurnalApi.tolak(current.id,reason):jurnalApi[currentAction](current.id))
+    if(currentAction==='remove'||currentAction==='cancel')notifySuccess(toast,currentAction==='remove'?"Draf jurnal dihapus":"Penerimaan dibatalkan")
+    else if(currentAction==='cancelDraft')notifySuccess(toast,"Draf jurnal dibatalkan",{detail:`${current.no_bukti} batal; slip gaji atau kasbon sumbernya dapat diperbaiki dan diposting ulang.`})
+    else if(currentAction==='reject')notifySuccess(toast,"Pengajuan ditolak",{detail:`${current.no_bukti} dikembalikan ke Draf untuk diperbaiki Staff Keuangan.`})
+    else{const message=jurnalActionSuccessMessage(currentAction,result);notifySuccess(toast,message.summary,{detail:message.detail})}
+    detail.value=null;actionTarget.value=null;action.value=null
     await load()
-    return true
-  } catch (e) {
-    notifyError(toast, e, "Tindakan gagal diproses.")
-    return false
-  }
+  }catch(e){actionError.value=errorText(e,"Tindakan belum berhasil diproses")}finally{pending.value=false}
 }
-
-function submit(j: Jurnal) {
-  doAction(() => jurnalApi.submit(j.id), "submit")
+async function refreshAction(){
+  if(!actionTarget.value||pending.value)return
+  pending.value=true
+  try{
+    const current=await jurnalApi.get(actionTarget.value.id)
+    actionTarget.value=current
+    if(detail.value?.id===current.id)detail.value=current
+    if(action.value&&!journalActions(current,access.value).includes(action.value)){
+      actionTarget.value=null;action.value=null;actionError.value=""
+      notifySuccess(toast,"Status jurnal diperbarui",{detail:"Periksa rincian untuk tindakan yang masih tersedia."})
+    }else{actionError.value="";notifySuccess(toast,"Status jurnal diperbarui",{detail:"Periksa rincian sebelum mencoba tindakan kembali."})}
+    await load()
+  }catch(e){actionError.value=errorText(e,"Status jurnal belum berhasil diperiksa")}finally{pending.value=false}
 }
-function catat(j: Jurnal) {
-  doAction(() => jurnalApi.catat(j.id), "catat")
-}
-
-const batalTarget = ref<Jurnal | null>(null)
-const alasanBatal = ref("")
-async function batalPenerimaan() {
-  if (!batalTarget.value || !alasanBatal.value.trim()) return
-  if (await doAction(() => jurnalApi.batalPenerimaan(batalTarget.value!.id, alasanBatal.value.trim()))) {
-    batalTarget.value = null
-  }
-}
-
-function approve(j: Jurnal) {
-  doAction(() => jurnalApi.approve(j.id), "approve")
-}
-function voidJurnal(j: Jurnal) {
-  confirm.require({
-    message: `Batalkan jurnal ${j.no_bukti} via jurnal pembalik?`,
-    header: "Konfirmasi Void",
-    icon: "pi pi-exclamation-triangle",
-    rejectLabel: "Batal",
-    acceptLabel: "Void",
-    acceptClass: "p-button-danger",
-    accept: () => doAction(() => jurnalApi.void(j.id), "void"),
-  })
-}
-
-onMounted(async () => {
-  await Promise.all([load(), loadCoa()])
-})
+onMounted(()=>{void load();void loadAccounts()})
 </script>
-
 <template>
-  <PageLayout :title="pageTitle" :subtitle="pageSubtitle">
-    <template #actions>
-      <Button
-        v-if="canCreate"
-        label="Buat Jurnal"
-        icon="pi pi-plus"
-        :disabled="loadingCoa || coaError || !coaList.some((c) => c.is_active)"
-        @click="openCreate"
-      />
-    </template>
-
-    <Message v-if="coaError" severity="error" :closable="false" class="jurnal-hint">
-      Daftar akun belum berhasil dimuat.
-      <Button label="Coba lagi" text size="small" :loading="loadingCoa" @click="loadCoa" />
-    </Message>
-
-    <template #filters>
-      <Select
-        v-model="statusFilter"
-        :options="STATUS_OPTS"
-        option-label="label"
-        option-value="value"
-        placeholder="Semua status"
-        show-clear
-      />
-    </template>
-
-    <Message severity="info" :closable="false" class="jurnal-hint">
-      <template v-if="jenisFilter === 'masuk'">
-        Catat <strong>pemasukan</strong> (akun pendapatan 4.x). Draft manual dapat diedit. Finance mencatat pemasukan/pengeluaran harian ke buku besar tanpa approval Kepsek.
-      </template>
-      <template v-else-if="jenisFilter === 'keluar'">
-        Catat <strong>pengeluaran</strong> (akun beban 5.x). Draft manual dapat diedit. Finance mencatat pemasukan/pengeluaran harian ke buku besar tanpa approval Kepsek.
-      </template>
-      <template v-else>
-        Finance mencatat jurnal harian ke buku besar. Payroll, kegiatan, dan jurnal khusus tetap mengikuti persetujuan yang berlaku.
-      </template>
-    </Message>
-
-    <DataTable :value="rows" :loading="loading" lazy paginator :rows="pageSize" :total-records="total" :first="(page - 1) * pageSize" data-key="id" striped-rows @page="onPage">
-      <template #empty>Belum ada jurnal.</template>
-      <Column field="no_bukti" header="No. Bukti" />
-      <Column field="tanggal" header="Tanggal" />
-      <Column field="keterangan" header="Keterangan" />
-      <Column header="Sumber">
-        <template #body="{ data }">
-          <span class="muted">{{ data.tipe_sumber }}</span>
-        </template>
-      </Column>
-      <Column header="Status">
-        <template #body="{ data }">
-          <Tag :value="data.perlu_rekonsiliasi ? 'Perlu rekonsiliasi' : data.status" :severity="data.perlu_rekonsiliasi ? 'warn' : statusSeverity[data.status as JurnalStatus]" />
-        </template>
-      </Column>
-      <Column header="Aksi" headerClass="bee-col-actions--xl" bodyClass="bee-col-actions--xl">
-        <template #body="{ data }">
-          <div class="bee-actions">
-            <Button
-              v-if="data.status === 'DRAFT' && data.tipe_sumber === 'MANUAL' && canCreate"
-              label="Edit"
-              size="small"
-              text
-              :disabled="loadingCoa || coaError"
-              @click="openEdit(data)"
-            />
-            <Button
-              v-if="data.status === 'DRAFT' && !data.can_finance_post && !data.perlu_rekonsiliasi && canCreate"
-              label="Ajukan"
-              size="small"
-              text
-              @click="submit(data)"
-            />
-            <Button
-              v-if="data.status === 'DRAFT' && data.tipe_sumber === 'MANUAL' && canCreate"
-              icon="pi pi-trash"
-              size="small"
-              severity="danger"
-              text
-              rounded
-              aria-label="Hapus draft"
-              @click="removeDraft(data)"
-            />
-            <Button
-              v-if="data.status === 'PENDING' && !data.can_finance_post && !data.perlu_rekonsiliasi && canApprove"
-              label="Approve"
-              size="small"
-              severity="success"
-              text
-              @click="approve(data)"
-            />
-            <Button
-              v-if="['DRAFT', 'PENDING'].includes(data.status) && data.can_finance_post && !data.perlu_rekonsiliasi && canCreate"
-              label="Catat ke Buku Besar" text size="small" @click="catat(data)"
-            />
-            <Button
-              v-if="['DRAFT', 'PENDING'].includes(data.status) && ['AUTO_BILLING', 'AUTO_PENDAFTARAN', 'AUTO_SITIN'].includes(data.tipe_sumber) && !data.perlu_rekonsiliasi && canCreate"
-              label="Batalkan penerimaan" text size="small" severity="danger"
-              @click="batalTarget = data; alasanBatal = ''"
-            />
-            <Button
-              v-if="data.status === 'POSTED' && canApprove"
-              label="Void"
-              size="small"
-              severity="danger"
-              text
-              @click="voidJurnal(data)"
-            />
-          </div>
-        </template>
-      </Column>
-    </DataTable>
-
-    <Dialog :visible="!!batalTarget" header="Batalkan penerimaan" modal :style="{ width: '28rem' }" @update:visible="batalTarget = null">
-      <label for="alasan-batal-penerimaan">Alasan pembatalan</label>
-      <InputText id="alasan-batal-penerimaan" v-model="alasanBatal" fluid />
-      <template #footer>
-        <Button label="Tutup" text @click="batalTarget = null" />
-        <Button label="Batalkan penerimaan" severity="danger" :disabled="!alasanBatal.trim()" @click="batalPenerimaan" />
-      </template>
-    </Dialog>
-
-    <Dialog
-      v-model:visible="dialog"
-      :header="dialogTitle"
-      modal
-      :style="{ width: '56rem' }"
-    >
-      <div class="head-form">
-        <div class="field">
-          <label>No. Bukti *</label>
-          <InputText v-model="form.no_bukti" fluid />
-        </div>
-        <div class="field">
-          <label>Tanggal *</label>
-          <DatePicker v-model="form.tanggal" date-format="yy-mm-dd" fluid />
-        </div>
-        <div class="field grow">
-          <label>Keterangan</label>
-          <InputText v-model="form.keterangan" fluid />
-        </div>
-      </div>
-
-      <table class="lines">
-        <thead>
-          <tr>
-            <th style="width: 45%">Akun</th>
-            <th>Debit</th>
-            <th>Kredit</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="(d, i) in form.detail" :key="i">
-            <td>
-              <Select
-                v-model="d.kode_akun"
-                :options="coaOptionsForForm"
-                option-label="nama_akun"
-                option-value="kode_akun"
-                :option-disabled="(c: Coa) => !c.is_active"
-                filter
-                :filter-fields="['kode_akun', 'nama_akun']"
-                placeholder="Pilih akun"
-                fluid
-              >
-                <template #option="{ option }">
-                  <span>{{ option.kode_akun }} — {{ option.nama_akun }}{{ option.is_active ? '' : ' (nonaktif)' }}</span>
-                </template>
-              </Select>
-            </td>
-            <td><InputNumber v-model="d.debit" :min="0" fluid /></td>
-            <td><InputNumber v-model="d.kredit" :min="0" fluid /></td>
-            <td>
-              <Button
-                icon="pi pi-times"
-                text
-                rounded
-                severity="danger"
-                :disabled="form.detail.length <= 2"
-                @click="removeLine(i)"
-              />
-            </td>
-          </tr>
-        </tbody>
-        <tfoot>
-          <tr>
-            <td><Button label="Tambah Baris" icon="pi pi-plus" text size="small" @click="addLine" /></td>
-            <td :class="{ bad: !balanced }">{{ fmt(totalDebit) }}</td>
-            <td :class="{ bad: !balanced }">{{ fmt(totalKredit) }}</td>
-            <td></td>
-          </tr>
-        </tfoot>
-      </table>
-      <p v-if="!balanced" class="warn">Debit dan kredit harus seimbang dan &gt; 0.</p>
-      <p v-else class="ok-hint">
-        <i class="pi pi-check-circle" /> Jurnal seimbang — simpan draft, lalu Finance mencatat jurnal harian ke buku besar.
-      </p>
-
-      <template #footer>
-        <Button label="Batal" severity="secondary" text @click="dialog = false" />
-        <Button label="Simpan (DRAFT)" :disabled="!formValid" :loading="saving" @click="save" />
-      </template>
-    </Dialog>
+  <PageLayout :title="title" :subtitle="subtitle" :surface="false"><template #actions><Button v-if="access.finance" label="Buat jurnal" :disabled="loadingAccounts||accountsError||!accounts.some(account=>account.is_active)" @click="create"><template #icon><Icon name="plus" /></template></Button></template>
+    <div v-if="accountsError||(!loadingAccounts&&!accounts.some(account=>account.is_active))" class="journal-account-notice"><Message severity="warn" :closable="false">{{ accountsError?'Daftar akun belum berhasil dimuat.':'Belum ada akun aktif untuk membuat jurnal.' }} Daftar jurnal tetap dapat dibaca.</Message><Button label="Muat ulang akun" severity="secondary" :loading="loadingAccounts" @click="loadAccounts" /></div>
+    <p class="journal-role-note"><Icon name="info" /><span>{{ access.finance?'Finance mencatat jurnal harian yang memenuhi syarat. Penggajian, kegiatan, dan jurnal khusus diajukan sesuai alur persetujuan.':'Periksa jurnal yang menunggu persetujuan. Jurnal buatan sendiri dan penerimaan yang perlu dicocokkan tidak dapat disetujui di sini.' }}</span></p>
+    <JurnalDirectory :rows="rows" :total="total" :page="page" :loading="loading" :error="error" :search="filters.search" :status="filters.status" @filter="apply" @page="changePage" @retry="load" @inspect="detail=$event" />
+    <JurnalDetailDialog v-model:target="detail" :accounts="accounts" :access="access" :accounts-loading="loadingAccounts" :accounts-error="accountsError" @action="choose" @reload-accounts="loadAccounts" />
+    <JurnalFormDialog v-model="formVisible" :journal="editing" :accounts="accounts" :saving="saving" :error="formError" :accounts-loading="loadingAccounts" :accounts-error="accountsError" @save="save" @reload-accounts="loadAccounts" />
+    <JurnalActionDialog :target="actionTarget" :action="action" :pending="pending" :error="actionError" @close="closeAction" @confirm="confirmAction" @refresh="refreshAction" />
   </PageLayout>
 </template>
-
 <style scoped>
-.jurnal-hint {
-  margin-bottom: 1rem;
-}
-.muted {
-  color: var(--app-text-muted);
-  font-size: 0.85rem;
-}
-.head-form {
-  display: flex;
-  gap: 0.75rem;
-  margin-bottom: 1rem;
-}
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-}
-.field.grow {
-  flex: 1;
-}
-.field label {
-  font-weight: 600;
-  font-size: 0.85rem;
-}
-.lines {
-  width: 100%;
-  border-collapse: collapse;
-}
-.lines th,
-.lines td {
-  padding: 0.35rem 0.4rem;
-  text-align: left;
-}
-.lines tfoot td {
-  font-weight: 800;
-  border-top: 2px solid var(--app-border);
-}
-.lines .bad {
-  color: var(--bee-magenta);
-}
-.warn {
-  color: var(--bee-magenta);
-  font-size: 0.85rem;
-  margin-top: 0.5rem;
-}
-.ok-hint {
-  color: #2e9e5b;
-  font-size: 0.85rem;
-  margin-top: 0.5rem;
-}
+.journal-role-note{display:flex;align-items:start;gap:var(--bee-space-2);margin:0 0 var(--bee-space-5);color:var(--app-text-muted);font-size:var(--bee-type-ui);max-width:90ch}.journal-role-note .bee-icon{margin-top:2px;flex-shrink:0}.journal-account-notice{display:grid;justify-items:start;gap:var(--bee-space-3);margin-bottom:var(--bee-space-5)}
 </style>

@@ -10,7 +10,7 @@ export const menuKateringApi = {
     let page = 1
     let hasNext = true
     while (hasNext) {
-      const data = await menuKateringApi.list({ ...params, page })
+      const data = await menuKateringApi.list({ page_size: 200, ...params, page })
       out.push(...data.results)
       hasNext = !!data.next
       page += 1
@@ -113,7 +113,7 @@ export function buildKateringRekapFromRecords(
   return [...agg.values()]
     .map((r) => ({
       ...r,
-      total: r.hariSenKam * tarifSenKam + r.hariJumat * tarifJumat,
+      total: (r.hariSenKam * Math.round(tarifSenKam * 100) + r.hariJumat * Math.round(tarifJumat * 100)) / 100,
     }))
     .filter((r) => r.hariKatering > 0)
     .sort((a, b) => a.nama.localeCompare(b.nama))

@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.db import transaction
-from .services import can_finance_post
+from .services import can_finance_post, periode_tertutup
 
 from .models import (
     MsCoa,
@@ -60,6 +60,21 @@ class MsPeriodeAkuntansiSerializer(serializers.ModelSerializer):
         model = MsPeriodeAkuntansi
         fields = ["id", "kode", "tgl_mulai", "tgl_selesai", "status"]
         read_only_fields = ["status"]
+
+    def validate(self, attrs):
+        if self.instance and self.instance.status == "CLOSED":
+            raise serializers.ValidationError("Periode yang sudah ditutup tidak dapat diubah.")
+        mulai = attrs.get("tgl_mulai", getattr(self.instance, "tgl_mulai", None))
+        selesai = attrs.get("tgl_selesai", getattr(self.instance, "tgl_selesai", None))
+        if mulai and selesai:
+            if mulai > selesai:
+                raise serializers.ValidationError("Tanggal selesai harus sama atau setelah tanggal mulai.")
+            bentrok = MsPeriodeAkuntansi.objects.filter(tgl_mulai__lte=selesai, tgl_selesai__gte=mulai)
+            if self.instance:
+                bentrok = bentrok.exclude(pk=self.instance.pk)
+            if (lain := bentrok.first()):
+                raise serializers.ValidationError(f"Rentang tanggal bertumpang tindih dengan periode {lain.kode}.")
+        return attrs
 
 
 class TrAnggaranSerializer(serializers.ModelSerializer):
@@ -123,6 +138,11 @@ class TrJurnalSerializer(serializers.ModelSerializer):
             )
         if total_debit == 0:
             raise serializers.ValidationError("Jurnal kosong.")
+        tanggal = attrs.get("tanggal", getattr(self.instance, "tanggal", None))
+        if tanggal and (periode := periode_tertutup(tanggal)):
+            raise serializers.ValidationError(
+                f"Periode {periode.kode} sudah ditutup. Gunakan tanggal pada periode yang masih terbuka."
+            )
         return attrs
 
     @transaction.atomic

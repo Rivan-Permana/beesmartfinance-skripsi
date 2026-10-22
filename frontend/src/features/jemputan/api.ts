@@ -7,7 +7,17 @@ import type {
   PendaftaranJemputanInput,
 } from "@/types/api"
 
+async function allPages<T>(path: string, params?: Record<string, unknown>): Promise<T[]> {
+  const rows: T[] = []
+  for (let page = 1; ; page++) {
+    const { data } = await api.get<Paginated<T>>(path, { params: { page_size: 200, ...params, page } })
+    rows.push(...data.results)
+    if (!data.next) return rows
+  }
+}
+
 export const armadaApi = {
+  listAll: () => allPages<ArmadaJemputan>("/armada-jemputan/"),
   list: () =>
     api.get<Paginated<ArmadaJemputan>>("/armada-jemputan/").then((r) => r.data.results),
   create: (payload: ArmadaJemputanInput) =>
@@ -18,6 +28,7 @@ export const armadaApi = {
 }
 
 export const pendaftaranJemputanApi = {
+  listAll: (params?: Record<string, unknown>) => allPages<PendaftaranJemputan>("/pendaftaran-jemputan/", params),
   list: (params?: Record<string, unknown>) =>
     api
       .get<Paginated<PendaftaranJemputan>>("/pendaftaran-jemputan/", { params })
@@ -50,35 +61,22 @@ export function buildJemputanRekap(
   absensiBySiswa: Map<number, { datang: number; pulang: number }>,
 ): JemputanRekapRow[] {
   const bySiswa = new Map<number, JemputanRekapRow>()
-
-  for (const p of pendaftaran) {
+  // Billing selects the latest registration by ID, including its zero price.
+  const latest = new Map<number, PendaftaranJemputan>()
+  for (const row of pendaftaran) {
+    if (!latest.has(row.siswa) || row.id > latest.get(row.siswa)!.id) latest.set(row.siswa, row)
+  }
+  for (const p of latest.values()) {
     const s = siswaMap.get(p.siswa)
     if (!s) continue
-    const harga = Number(p.harga) || 0
-    const armadaLabel = p.armada ? armadaMap.get(p.armada) ?? `#${p.armada}` : "-"
+    const harga = Number(p.harga)
     const abs = absensiBySiswa.get(p.siswa) ?? { datang: 0, pulang: 0 }
-    const trips = abs.datang + abs.pulang
-
-    const existing = bySiswa.get(p.siswa)
-    if (existing) {
-      existing.tarifPerTrip = Math.max(existing.tarifPerTrip, harga)
-      existing.armada = existing.armada.includes(armadaLabel)
-        ? existing.armada
-        : `${existing.armada}, ${armadaLabel}`
-      existing.totalNominal = existing.tarifPerTrip * trips
-    } else {
-      bySiswa.set(p.siswa, {
-        siswaId: p.siswa,
-        nis: s.nis,
-        nama: s.nama,
-        alamat: s.alamat ?? "-",
-        armada: armadaLabel,
-        tarifPerTrip: harga,
-        jemputDatang: abs.datang,
-        jemputPulang: abs.pulang,
-        totalNominal: harga * trips,
-      })
-    }
+    bySiswa.set(p.siswa, {
+      siswaId: p.siswa, nis: s.nis, nama: s.nama, alamat: s.alamat ?? "-",
+      armada: p.armada ? armadaMap.get(p.armada) ?? `#${p.armada}` : "Belum ditentukan",
+      tarifPerTrip: harga, jemputDatang: abs.datang, jemputPulang: abs.pulang,
+      totalNominal: Math.round(harga * 100) * (abs.datang + abs.pulang) / 100,
+    })
   }
 
   return [...bySiswa.values()].sort((a, b) => a.nama.localeCompare(b.nama))

@@ -1,0 +1,126 @@
+{
+  "color": {
+    "canvas": "#F4F5F8",
+    "surface": "#FFFFFF",
+    "surface-subtle": "#F8F9FB",
+    "ink": "#20243D",
+    "muted": "#59647A",
+    "border": "#DFE3EB",
+    "control-border": "#8390A4",
+    "nav": "#242147",
+    "nav-text": "#F5F3FC",
+    "nav-muted": "#C2BED9",
+    "brand": "#B01862",
+    "brand-hover": "#90104F",
+    "brand-tint": "#FAEDF3",
+    "honey": "#E5AF48",
+    "positive": "#216A50",
+    "positive-tint": "#EBF5EF",
+    "warning": "#875B16",
+    "warning-tint": "#FFF5E2",
+    "critical": "#B13447",
+    "critical-tint": "#FCEEF0",
+    "info": "#2E5AA7",
+    "info-tint": "#EEF3FC",
+    "chart-ink": "#34305F",
+    "chart-rose": "#B01862",
+    "chart-teal": "#247E80",
+    "chart-gold": "#A7791C",
+    "focus": "#B01862",
+    "neutral-tint": "#EEF0F5",
+    "disabled-bg": "#E8EBF1",
+    "disabled-text": "#687286",
+    "nav-border": "#5B567D",
+    "selection": "#F4CBDF",
+    "overlay": "#20243D70",
+    "brand-active": "#740B40"
+  },
+  "font": {
+    "body": "'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif"
+  },
+  "type": {
+    "caption": "13px",
+    "ui": "14px",
+    "body": "16px",
+    "section": "20px",
+    "title": "32px",
+    "display": "48px",
+    "number": "44px",
+    "number-secondary": "28px",
+    "title-mobile": "26px",
+    "display-mobile": "36px",
+    "number-mobile": "32px",
+    "subheading": "24px"
+  },
+  "weight": {
+    "regular": "400",
+    "medium": "500",
+    "strong": "600",
+    "bold": "700"
+  },
+  "leading": {
+    "body": "1.55",
+    "heading": "1.15",
+    "control": "1.3"
+  },
+  "space": {
+    "1": "4px",
+    "2": "8px",
+    "3": "12px",
+    "4": "16px",
+    "5": "24px",
+    "6": "32px",
+    "7": "48px",
+    "8": "64px"
+  },
+  "radius": {
+    "control": "6px",
+    "panel": "10px",
+    "overlay": "14px",
+    "status": "4px"
+  },
+  "size": {
+    "control": "44px",
+    "control-compact": "36px",
+    "row": "60px",
+    "row-compact": "48px",
+    "icon": "20px",
+    "icon-small": "16px",
+    "icon-large": "24px",
+    "row-multiline": "72px",
+    "row-compact-multiline": "60px"
+  },
+  "layout": {
+    "sidebar": "232px",
+    "content-max": "1440px",
+    "page-gutter": "32px",
+    "page-gutter-mobile": "16px",
+    "section-gap": "48px",
+    "panel-padding": "24px"
+  },
+  "shadow": {
+    "overlay": "0 24px 80px #20243D26",
+    "raised": "0 2px 8px #20243D0A"
+  },
+  "motion": {
+    "control": "120ms",
+    "overlay": "180ms",
+    "press": "80ms",
+    "exit": "140ms",
+    "ease-out": "cubic-bezier(0.23, 1, 0.32, 1)",
+    "ease-drawer": "cubic-bezier(0.32, 0.72, 0, 1)"
+  },
+  "primary": {
+    "50": "#FAEDF3",
+    "100": "#F4CBDF",
+    "200": "#E99DC2",
+    "300": "#DA6BA2",
+    "400": "#CA3C83",
+    "500": "#B01862",
+    "600": "#90104F",
+    "700": "#740B40",
+    "800": "#5D0A34",
+    "900": "#490B2A",
+    "950": "#2D091C"
+  }
+}

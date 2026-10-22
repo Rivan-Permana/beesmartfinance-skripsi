@@ -21,6 +21,8 @@ class PinjamanPegawai(SoftDeleteModel, TimeStampedModel):
         "accounting.TrJurnal", on_delete=models.SET_NULL, db_constraint=False,
         blank=True, null=True, related_name="pinjaman",
     )
+    # Saldo kasbon dari impor KAFALAH: sudah dicairkan di luar sistem, tanpa jurnal pencairan.
+    is_legacy = models.BooleanField(default=False)
 
     history = HistoricalRecords()
 
@@ -53,6 +55,8 @@ class GajiPegawai(SoftDeleteModel, TimeStampedModel):
         "accounting.TrJurnal", on_delete=models.SET_NULL, db_constraint=False,
         blank=True, null=True, related_name="gaji",
     )
+    # True setelah potongan kasbon slip ini mengurangi saldo pinjaman (saat jurnal gaji POSTED).
+    kasbon_diselesaikan = models.BooleanField(default=False)
 
     history = HistoricalRecords()
 
@@ -74,3 +78,11 @@ class GajiPegawai(SoftDeleteModel, TimeStampedModel):
     @property
     def total_netto(self) -> Decimal:
         return self.total_bruto - self.total_potongan
+
+
+class PotonganKasbonGaji(TimeStampedModel):
+    """Bagian potongan slip gaji yang melunasi satu kasbon; dasar pengembalian saat jurnal gaji di-void."""
+
+    gaji = models.ForeignKey(GajiPegawai, on_delete=models.PROTECT, related_name="potongan_kasbon")
+    pinjaman = models.ForeignKey(PinjamanPegawai, on_delete=models.PROTECT, related_name="potongan_gaji")
+    nominal = models.DecimalField(max_digits=18, decimal_places=2)

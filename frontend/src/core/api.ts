@@ -9,8 +9,17 @@ const BASE_URL =
 
 const ACCESS_KEY = "bee_access"
 const REFRESH_KEY = "bee_refresh"
+let sessionVersion = 0
+if (typeof window !== "undefined") {
+  window.addEventListener("storage", (event) => {
+    if (event.key === ACCESS_KEY || event.key === REFRESH_KEY || event.key === null) sessionVersion += 1
+  })
+}
 
 export const tokenStore = {
+  get version() {
+    return sessionVersion
+  },
   get access() {
     return localStorage.getItem(ACCESS_KEY)
   },
@@ -19,9 +28,13 @@ export const tokenStore = {
   },
   set({ access, refresh }: { access: string; refresh?: string }) {
     localStorage.setItem(ACCESS_KEY, access)
-    if (refresh) localStorage.setItem(REFRESH_KEY, refresh)
+    if (refresh) {
+      sessionVersion += 1
+      localStorage.setItem(REFRESH_KEY, refresh)
+    }
   },
   clear() {
+    sessionVersion += 1
     localStorage.removeItem(ACCESS_KEY)
     localStorage.removeItem(REFRESH_KEY)
   },
@@ -31,6 +44,7 @@ export const api: AxiosInstance = axios.create({ baseURL: BASE_URL })
 
 // Inject access token
 api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
+  (config as InternalAxiosRequestConfig & { _sessionVersion?: number })._sessionVersion ??= tokenStore.version
   const token = tokenStore.access
   if (token) config.headers.Authorization = `Bearer ${token}`
   return config
@@ -38,13 +52,17 @@ api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 
 // Auto-refresh saat 401 (sekali), lalu retry; gagal -> logout
 let refreshing: Promise<string> | null = null
+let refreshingFor: string | null = null
 
-async function doRefresh(): Promise<string> {
+async function doRefresh(expectedAccess: string, expectedVersion: number): Promise<string> {
   const refresh = tokenStore.refresh
   if (!refresh) throw new Error("no refresh token")
   const { data } = await axios.post(`${BASE_URL}/auth/token/refresh/`, {
     refresh,
   })
+  if (tokenStore.version !== expectedVersion || tokenStore.access !== expectedAccess || tokenStore.refresh !== refresh) {
+    throw new Error("session changed during refresh")
+  }
   tokenStore.set({ access: data.access })
   return data.access
 }
@@ -54,20 +72,37 @@ api.interceptors.response.use(
   async (error) => {
     const original = error.config
     const status = error.response?.status
-    const isAuthCall = original?.url?.includes("/auth/")
+    const isLoginCall = original?.url === "/auth/token/"
 
-    if (status === 401 && !original._retry && !isAuthCall) {
+    if (status === 401 && original && !original._retry && !isLoginCall) {
+      const sentAccess = String(original.headers?.Authorization ?? "").replace(/^Bearer /, "")
+      if (!sentAccess || original._sessionVersion !== tokenStore.version) return Promise.reject(error)
       original._retry = true
+      if (tokenStore.access !== sentAccess) {
+        if (!tokenStore.access) return Promise.reject(error)
+        original.headers.Authorization = `Bearer ${tokenStore.access}`
+        return api(original)
+      }
+      if (!refreshing || refreshingFor !== sentAccess) {
+        refreshingFor = sentAccess
+        refreshing = doRefresh(sentAccess, original._sessionVersion)
+      }
+      const pendingRefresh = refreshing
       try {
-        refreshing = refreshing ?? doRefresh()
-        const access = await refreshing
-        refreshing = null
+        const access = await pendingRefresh
+        if (tokenStore.access !== access) return Promise.reject(error)
         original.headers.Authorization = `Bearer ${access}`
         return api(original)
       } catch {
-        refreshing = null
-        tokenStore.clear()
-        window.location.assign("/login")
+        if (tokenStore.version === original._sessionVersion && tokenStore.access === sentAccess) {
+          tokenStore.clear()
+          window.location.assign("/login")
+        }
+      } finally {
+        if (refreshing === pendingRefresh) {
+          refreshing = null
+          refreshingFor = null
+        }
       }
     }
     return Promise.reject(error)

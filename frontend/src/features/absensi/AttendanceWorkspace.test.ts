@@ -1,0 +1,67 @@
+import { flushPromises, mount } from '@vue/test-utils';
+import PrimeVue from 'primevue/config';
+import Select from 'primevue/select';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { nextTick } from 'vue';
+import { primevueLocale } from '@/core/primevueLocale';
+import type { KehadiranSiswa, Siswa } from '@/types/api';
+const state = vi.hoisted(() => ({ role: 'Administration', confirm: vi.fn(), success: vi.fn() }));
+vi.mock('vue-router', () => ({ onBeforeRouteLeave: vi.fn(), RouterLink: { props: ['to'], template: '<a :href="to"><slot /></a>' } }));
+vi.mock('primevue/useconfirm', () => ({ useConfirm: () => ({ require: state.confirm }) }));
+vi.mock('primevue/usetoast', () => ({ useToast: () => ({ add: state.success }) }));
+vi.mock('@/stores/auth', () => ({ useAuthStore: () => ({ hasRole: (roles: string[]) => roles.includes(state.role) }) }));
+vi.mock('@/features/siswa/api', () => ({ siswaApi: { listAll: vi.fn() } }));
+vi.mock('./api', async (original) => ({ ...await original<typeof import('./api')>(), jenjangApi: { listAll: vi.fn() }, kelompokApi: { listAll: vi.fn() }, kehadiranApi: { listAll: vi.fn(), create: vi.fn(), update: vi.fn(), remove: vi.fn() }, downloadCsv: vi.fn() }));
+import { siswaApi } from '@/features/siswa/api';
+import { downloadCsv, jenjangApi, kelompokApi, kehadiranApi } from './api';
+import AttendanceGrid from './AttendanceGrid.vue';
+import AbsensiSiswaView from './AbsensiSiswaView.vue';
+import RekapSiswaView from './RekapSiswaView.vue';
+import { attendanceFromRecord } from './presentation';
+const global = { plugins: [[PrimeVue, { unstyled: true, locale: primevueLocale }]] };
+const students: Siswa[] = Array.from({ length: 3 }, (_, i) => ({ id: i + 1, nama: ['Alya', 'Bima', 'Citra'][i]!, nis: `LM-0${i + 1}`, kelompok: 1, status: 'aktif', spp_nominal: '0', nama_ayah: '', kontak_ayah: '', nama_ibu: '', kontak_ibu: '', alamat: '', tanggal_lahir: null, periode: 1 }));
+const record: KehadiranSiswa = { id: 71, siswa: 1, tanggal: '2026-10-15', status: 'hadir', ikut_katering: false, jemput_datang: false, jemput_pulang: false };
+const button = (view: ReturnType<typeof mount>, label: string) => view.findAll('button').find(item => item.text().trim() === label)!;
+const select = (view: ReturnType<typeof mount>, id: string) => view.findAllComponents(Select).find(item => item.props('inputId') === id)!;
+beforeEach(() => { vi.clearAllMocks(); state.role = 'Administration'; vi.mocked(jenjangApi.listAll).mockResolvedValue([{ id: 1, kode: 'TK', nama: 'Taman kanak-kanak' }]); vi.mocked(kelompokApi.listAll).mockResolvedValue([{ id: 1, nama: 'Melati', jenjang: 1 }]); vi.mocked(siswaApi.listAll).mockResolvedValue(students); vi.mocked(kehadiranApi.listAll).mockResolvedValue([record]); });
+async function daily() { const view = mount(AbsensiSiswaView, { global, attachTo: document.body }); await flushPromises(); select(view, 'attendance-level').vm.$emit('update:modelValue', 1); await flushPromises(); select(view, 'attendance-group').vm.$emit('update:modelValue', 1); await nextTick(); await view.get('form').trigger('submit'); await flushPromises(); return view; }
+describe('attendance controls', () => {
+    it('exposes a pressed status and clears all services when a student is marked absent', async () => { const entry = attendanceFromRecord({ ...record, ikut_katering: true, jemput_datang: true, jemput_pulang: true }); const view = mount(AttendanceGrid, { global, props: { students: [students[0]!], modelValue: { 1: entry }, baseline: { 1: entry } } }); expect(view.get('[aria-label="Hadir untuk Alya"]').attributes('aria-pressed')).toBe('true'); await view.get('[aria-label="Izin untuk Alya"]').trigger('click'); expect(view.emitted('update:modelValue')?.[0]?.[0]).toMatchObject({ 1: { status: 'izin', ikut_katering: false, jemput_datang: false, jemput_pulang: false } }); await view.setProps({ readonly: true }); expect(view.get('[aria-label="Hadir untuk Alya"]').attributes('disabled')).toBeDefined(); expect(view.get('[aria-label="Katering untuk Alya"]').attributes('disabled')).toBeDefined(); view.unmount(); });
+    it('waits for every result and retries ambiguous creates by their recovered ID while preserving an explicit reversal', async () => {
+        const records = [{ ...record }];
+        let rejectLast!: (reason: Error) => void;
+        vi.mocked(kehadiranApi.listAll).mockImplementation(async () => records.map(row => ({ ...row })));
+        vi.mocked(kehadiranApi.update).mockImplementation(async (id, payload) => { const row = records.find(item => item.id === id)!; Object.assign(row, payload); return { ...row }; });
+        vi.mocked(kehadiranApi.create).mockImplementationOnce(async (payload) => { records.push({ id: 72, ...payload }); throw new Error('Response interrupted'); }).mockImplementationOnce(() => new Promise((_resolve, reject) => { rejectLast = reject; })).mockImplementation(async (payload) => ({ id: 73, ...payload }));
+        const view = await daily();
+        await view.get('[aria-label="Izin untuk Alya"]').trigger('click');
+        await view.get('[aria-label="Sakit untuk Bima"]').trigger('click');
+        await view.get('#attendance-date').trigger('focus');
+        expect(document.querySelector('[data-pc-section="panel"]')).not.toBeNull();
+        await button(view, 'Simpan absensi').trigger('click');
+        await flushPromises();
+        expect(document.querySelector('[data-pc-section="panel"]')).toBeNull();
+        expect(view.get('#attendance-date').attributes('disabled')).toBeDefined();
+        expect(view.get('[aria-label="Hadir untuk Alya"]').attributes('disabled')).toBeDefined();
+        rejectLast(new Error('Not committed'));
+        await flushPromises();
+        expect(view.text()).toContain('1 catatan berhasil disimpan; 2 belum terkonfirmasi');
+        expect(view.get('[aria-label="Sakit untuk Bima"]').attributes('aria-pressed')).toBe('true');
+        await view.get('[aria-label="Hadir untuk Bima"]').trigger('click');
+        await button(view, 'Simpan absensi').trigger('click');
+        await flushPromises();
+        expect(kehadiranApi.create).toHaveBeenCalledTimes(3);
+        expect(kehadiranApi.update).toHaveBeenCalledTimes(2);
+        expect(kehadiranApi.update).toHaveBeenLastCalledWith(72, expect.objectContaining({ siswa: 2, status: 'hadir' }));
+        expect(view.text()).toContain('0 catatan belum tersimpan');
+        view.unmount();
+    });
+    it('keeps another student draft after deleting one saved record', async () => { vi.mocked(kehadiranApi.remove).mockResolvedValue({} as never); const view = await daily(); await view.get('[aria-label="Izin untuk Bima"]').trigger('click'); await view.get('[aria-label="Hapus absensi Alya"]').trigger('click'); await state.confirm.mock.calls.at(-1)![0].accept(); await flushPromises(); expect(kehadiranApi.remove).toHaveBeenCalledWith(71); expect(view.get('[aria-label="Izin untuk Bima"]').attributes('aria-pressed')).toBe('true'); expect(view.text()).toContain('Pilihan Hadir pada form belum disimpan kembali'); view.unmount(); });
+});
+describe('recap result and role boundaries', () => {
+    it('gives Guru a read-only recap and keeps export on the applied period', async () => { state.role = 'TeacherInCharge'; const view = mount(RekapSiswaView, { global }); await flushPromises(); expect(view.text()).toContain('Baca saja. Hubungi Admin TU'); expect(view.find('a[href="/absensi-siswa"]').exists()).toBe(false); const initial = select(view, 'recap-period').props('modelValue'); const other = select(view, 'recap-period').props('options').find((item: {
+        value: string;
+    }) => item.value !== initial).value; select(view, 'recap-period').vm.$emit('update:modelValue', other); await nextTick(); await button(view, 'Unduh CSV').trigger('click'); expect(downloadCsv).toHaveBeenLastCalledWith(`rekap-absensi-${initial}.csv`, expect.any(String)); await view.get('form').trigger('submit'); await flushPromises(); await button(view, 'Unduh CSV').trigger('click'); expect(downloadCsv).toHaveBeenLastCalledWith(`rekap-absensi-${other}.csv`, expect.any(String)); view.unmount(); });
+    it('distinguishes unloaded group names from missing attendance and recovers independently', async () => { vi.mocked(kelompokApi.listAll).mockRejectedValueOnce(new Error('Groups unavailable')); const view = mount(RekapSiswaView, { global }); await flushPromises(); expect(view.text()).toContain('Nama kelompok belum dimuat'); expect(view.find('.recap-desktop').exists()).toBe(true); await button(view, 'Muat ulang kelompok').trigger('click'); await flushPromises(); expect(view.text()).not.toContain('Nama kelompok belum dimuat'); expect(view.text()).toContain('Melati'); view.unmount(); });
+    it('clears stale counts and disables CSV on a failed refresh, then recovers', async () => { const view = mount(RekapSiswaView, { global }); await flushPromises(); expect(view.find('.recap-desktop').exists()).toBe(true); vi.mocked(kehadiranApi.listAll).mockRejectedValueOnce(new Error('Unavailable')); await button(view, 'Muat ulang rekap').trigger('click'); await flushPromises(); expect(view.find('.recap-desktop').exists()).toBe(false); expect(button(view, 'Unduh CSV').attributes('disabled')).toBeDefined(); expect(view.text()).toContain('Rekap belum berhasil dimuat'); await button(view, 'Muat ulang rekap').trigger('click'); await flushPromises(); expect(view.find('.recap-desktop').exists()).toBe(true); view.unmount(); });
+});
