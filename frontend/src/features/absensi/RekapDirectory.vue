@@ -145,11 +145,12 @@ watch(() => props.rows, () => { first.value = 0; });
     border-bottom: 1px solid var(--app-border)
   }
 
+  /* Compact cards: four statuses and three services each fit on one row. */
   .recap-status-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--bee-space-4);
-    margin: var(--bee-space-5) 0
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: var(--bee-space-2);
+    margin: var(--bee-space-3) 0
   }
 
   .recap-status-grid dt,
@@ -172,14 +173,11 @@ watch(() => props.rows, () => { first.value = 0; });
 
   .recap-service-list {
     display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: var(--bee-space-2);
-    margin: 0
-  }
-
-  .recap-service-list>div {
-    display: flex;
-    justify-content: space-between;
-    gap: var(--bee-space-3)
+    margin: 0;
+    padding-top: var(--bee-space-3);
+    border-top: 1px dashed var(--app-border)
   }
 
   .recap-service-list dd {

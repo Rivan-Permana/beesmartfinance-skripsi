@@ -10,7 +10,7 @@ import type {
 async function allPages<T>(path: string, params?: Record<string, unknown>): Promise<T[]> {
   const rows: T[] = []
   for (let page = 1; ; page += 1) {
-    const { data } = await api.get<Paginated<T>>(path, { params: { ...params, page } })
+    const { data } = await api.get<Paginated<T>>(path, { params: { page_size: 200, ...params, page } })
     rows.push(...data.results)
     if (!data.next) return rows
   }
@@ -53,7 +53,8 @@ export const kehadiranApi = {
     let page = 1
     let hasNext = true
     while (hasNext) {
-      const data = await kehadiranApi.list({ ...params, page })
+      // Monthly recaps read thousands of records; take the server maximum per request.
+      const data = await kehadiranApi.list({ page_size: 500, ...params, page })
       out.push(...data.results)
       hasNext = !!data.next
       page += 1

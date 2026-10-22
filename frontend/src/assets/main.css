@@ -145,6 +145,20 @@ a {
   flex-wrap: wrap;
 }
 
+/* Phones: header actions stay on one swipeable row so the data starts higher.
+   Padding keeps focus rings visible inside the scroll area. */
+@media (max-width: 767px) {
+  .bee-page__actions {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    max-width: 100%;
+    padding: 6px;
+    margin: -6px;
+    scrollbar-width: none;
+  }
+  .bee-page__actions > * { flex: none; }
+}
+
 .bee-page__filters {
   display: flex;
   gap: 0.5rem;

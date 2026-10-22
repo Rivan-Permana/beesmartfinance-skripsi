@@ -19,7 +19,17 @@ const emit = defineEmits<{
 const toast = useToast(), confirm = useConfirm();
 const anchor = ref(new Date()), records = ref<MenuKatering[]>([]), loading = ref(false), error = ref(''), actionError = ref('');
 const dates = computed(() => weekdaysOfWeek(anchor.value));
-const weekLabel = computed(() => `${formatTanggalId(dates.value[0]!)} – ${formatTanggalId(dates.value[4]!)}`);
+const BULAN_PENDEK = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+// Compact range ("19–23 Okt 2026"); the heading already says Senin–Jumat.
+const weekLabel = computed(() => {
+    const [from, to] = [new Date(dates.value[0]! + 'T00:00:00'), new Date(dates.value[4]! + 'T00:00:00')];
+    const day = (d: Date) => d.getDate(), month = (d: Date) => BULAN_PENDEK[d.getMonth()]!;
+    if (from.getFullYear() !== to.getFullYear())
+        return `${day(from)} ${month(from)} ${from.getFullYear()} – ${day(to)} ${month(to)} ${to.getFullYear()}`;
+    if (from.getMonth() !== to.getMonth())
+        return `${day(from)} ${month(from)} – ${day(to)} ${month(to)} ${to.getFullYear()}`;
+    return `${day(from)}–${day(to)} ${month(to)} ${to.getFullYear()}`;
+});
 const rows = computed(() => dates.value.map(date => ({ date, menu: records.value.find(row => row.tanggal === date) })));
 const visible = ref(false), saving = ref(false), editing = ref<number | null>(null), formError = ref(''), uncertain = ref(false);
 const form = reactive({ tanggal: '', keterangan: '' }), file = ref<File | null>(null), preview = ref<string | null>(null);
@@ -251,7 +261,7 @@ onBeforeUnmount(() => {
 .menu-week-controls strong {
   font-size: var(--bee-type-ui);
   font-weight: 500;
-  max-width: 28ch;
+  white-space: nowrap;
   text-align: center
 }
 

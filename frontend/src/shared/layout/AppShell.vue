@@ -102,6 +102,8 @@ watch(
     </aside>
     <Drawer id="app-mobile-navigation" v-model:visible="drawerOpen" @after-hide="restoreMenuFocus" header="Lebah Madu" :close-button-props="{ 'aria-label': 'Tutup menu navigasi' }" :pt="{ root: { class: 'shell-mobile-drawer' } }">
       <template #closeicon><Icon name="x" /></template>
+      <!-- The topbar hides the account on phones, so the drawer says who is signed in. -->
+      <div class="drawer-user"><span class="user-name">{{ auth.user?.nama }}</span><span class="user-role">{{ roleDisplay }}</span></div>
       <AppNavigation @navigate="drawerOpen = false" />
     </Drawer>
 
@@ -170,4 +172,5 @@ watch(
 .p-drawer.shell-mobile-drawer { width: min(320px, 100vw); --p-drawer-background: var(--bee-color-nav); --p-drawer-color: var(--bee-color-nav-text); background: var(--bee-color-nav); color: var(--bee-color-nav-text); }
 .shell-mobile-drawer .p-drawer-content { padding: 0 0 env(safe-area-inset-bottom); }.p-drawer.shell-mobile-drawer .p-drawer-close-button { color: var(--bee-color-nav-text); }.p-drawer.shell-mobile-drawer .p-drawer-close-button:hover { background: var(--bee-color-nav-border); }.p-drawer.shell-mobile-drawer .p-drawer-close-button:focus-visible { outline-color: var(--bee-color-nav-text); }
 @media(min-width:768px) { .shell-mobile-drawer { display: none; } }
+.drawer-user { display: grid; gap: 2px; margin: 0 var(--bee-space-3) var(--bee-space-2); padding: var(--bee-space-3); border-radius: var(--bee-radius-control); background: var(--bee-color-nav-border); font-size: var(--bee-type-ui); }.drawer-user .user-name { font-weight: 500; }.drawer-user .user-role { color: var(--bee-color-nav-muted); font-size: var(--bee-type-caption); }
 </style>

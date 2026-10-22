@@ -77,12 +77,36 @@
   font-size: var(--bee-type-ui)
 }
 
+/* Phosphor caret instead of the browser's ▶ marker, matching the rest of the icon set. */
 .admission-page .admission-guide summary {
+  display: flex;
+  align-items: center;
+  gap: var(--bee-space-2);
   min-height: 44px;
   cursor: pointer;
-  align-content: center;
   font-weight: 500;
-  color: var(--app-text)
+  color: var(--app-text);
+  list-style: none
+}
+
+.admission-page .admission-guide summary::-webkit-details-marker {
+  display: none
+}
+
+.admission-page .admission-guide-caret {
+  width: 16px;
+  height: 16px;
+  transition: transform var(--bee-motion-control) var(--bee-motion-ease-out)
+}
+
+.admission-page .admission-guide[open] .admission-guide-caret {
+  transform: rotate(90deg)
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admission-page .admission-guide-caret {
+    transition: none
+  }
 }
 
 .admission-page .admission-guide ol {

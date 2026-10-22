@@ -291,7 +291,7 @@ onBeforeUnmount(() => {
       </template></Button></template>
   <section class="admission-panel">
     <details class="admission-guide">
-      <summary>Alur calon, penerimaan, dan finalisasi</summary>
+      <summary><Icon name="caret-right" class="admission-guide-caret" />Alur calon, penerimaan, dan finalisasi</summary>
       <ol>
         <li>Daftarkan calon dengan biaya formulir serta sit-in/observasi sesuai kesepakatan.</li>
         <li>Catat penerimaan hanya untuk komponen yang benar-benar dibayar. Jurnalnya menunggu pencatatan

@@ -65,8 +65,12 @@ async function loadGroups() {
     groupsLoading.value = true;
     try {
         const data = await kelompokApi.listAll({ jenjang: id });
-        if (request === groupSequence)
+        if (request === groupSequence) {
             groups.value = data;
+            // A level with a single group has nothing to choose; select it.
+            if (data.length === 1)
+                group.value = data[0]!.id;
+        }
     }
     catch (e) {
         if (request === groupSequence)
