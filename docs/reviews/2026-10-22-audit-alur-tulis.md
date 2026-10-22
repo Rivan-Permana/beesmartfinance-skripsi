@@ -35,7 +35,7 @@ Pendukung UAT: `frontend/vite.config.ts` membaca `API_PROXY_TARGET` (default tet
 
 1. ~~Potongan kasbon menghitung kasbon yang belum dicairkan.~~ Selesai: lihat bagian "Keputusan 1" di bawah.
 2. ~~Saldo kasbon berkurang saat jurnal gaji dibuat; void tidak mengembalikannya.~~ Selesai: lihat bagian "Keputusan 2". Slip yang jurnalnya di-void tetap terkunci dan belum bisa diposting ulang (butuh nomor bukti baru).
-3. Kepala Sekolah tidak punya tindakan "tolak" untuk jurnal PENDING; jurnal hanya bisa disetujui.
+3. ~~Kepala Sekolah tidak punya tindakan "tolak".~~ Selesai: lihat bagian "Keputusan 3".
 4. Tidak ada kwitansi per pembayaran; yang bisa dicetak hanya faktur tagihan.
 
 ## Hasil verifikasi
@@ -61,3 +61,10 @@ Data uji di UAT: periode `UAT-C86B14-2026-09` (CLOSED), periode `UAT-FE6AF6-2026
 - Posting gaji hanya membuat jurnal DRAFT. Saat jurnal gaji POSTED (approve Kepala Sekolah), saldo kasbon dikurangi dan alokasinya dicatat dalam transaksi yang sama. Bila saldo tidak lagi cukup menutup potongan slip, persetujuan ditolak dan jurnal tetap PENDING.
 - Void jurnal gaji mengembalikan saldo sesuai alokasi. Slip dari sebelum migrasi tidak punya alokasi, jadi saldonya tidak dikembalikan otomatis.
 - Verifikasi: backend 123 OK (tes approve, void, dan saldo kurang), frontend 131/131, build bersih. Migrasi diuji turun-naik (`0014` ↔ `0015`) di UAT. Di UAT dengan slip #6: saldo tetap saat DRAFT, berkurang 200.000 setelah approve, kembali setelah void `REV-GJ-6-202611`.
+
+## Keputusan 3 — Kepala Sekolah bisa menolak jurnal PENDING
+
+- `POST /jurnal/{id}/tolak/` (khusus Kepala Sekolah, alasan wajib maksimal 500 karakter): status PENDING kembali ke DRAFT, dan alasannya ditambahkan ke keterangan sebagai `Ditolak Kepala Sekolah: …`. Pembuat jurnal tidak boleh menolak jurnalnya sendiri. Jurnal yang bukan PENDING ditolak 400. Tidak ada perubahan skema.
+- UI: "Tolak pengajuan" tampil di samping "Setujui dan catat" dengan kolom alasan wajib. Toast "Pengajuan ditolak" muncul dan baris kembali berstatus Draf.
+- Batasan: jurnal otomatis gaji dan kasbon yang ditolak hanya bisa diajukan ulang tanpa perubahan, karena slip sumbernya terkunci (lihat keputusan 5).
+- Verifikasi: backend 124 OK (peran salah 403, alasan kosong 400, tolak ulang 400, ajukan ulang → PENDING), frontend 131/131, build bersih. Di UAT sebagai kepsek, jurnal `UAT-TOLAK-UI` ditolak lewat UI: alasan kosong memunculkan "Isi alasan penolakan.", lalu jurnal kembali Draf dengan alasan tercatat.

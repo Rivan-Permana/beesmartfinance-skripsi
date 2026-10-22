@@ -27,7 +27,7 @@ describe('journal workflow contracts',()=>{
     expect(journalActions(journalSamples[4]!,finance)).toEqual([])
   })
   it('blocks own approval, reconciliation and direct-post journals for the principal',()=>{
-    expect(journalActions(journalSamples[2]!,principal)).toEqual(['approve'])
+    expect(journalActions(journalSamples[2]!,principal)).toEqual(['approve','reject'])
     expect(journalActions(journalSamples[5]!,principal)).toEqual([])
     expect(journalActions({...journalSamples[2]!,perlu_rekonsiliasi:true},principal)).toEqual([])
     expect(journalActions({...journalSamples[2]!,can_finance_post:true},principal)).toEqual([])

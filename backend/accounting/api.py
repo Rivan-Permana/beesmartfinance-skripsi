@@ -111,6 +111,10 @@ class BatalPenerimaanInputSerializer(serializers.Serializer):
     alasan = serializers.CharField(max_length=500)
 
 
+class TolakJurnalInputSerializer(serializers.Serializer):
+    alasan = serializers.CharField(max_length=500)
+
+
 @extend_schema_view(list=extend_schema(parameters=[OpenApiParameter("jenis", str, enum=["masuk", "keluar"])]))
 class TrJurnalViewSet(viewsets.ModelViewSet):
     serializer_class = TrJurnalSerializer
@@ -137,7 +141,7 @@ class TrJurnalViewSet(viewsets.ModelViewSet):
         # Finance: buat/ubah draft, submit, hapus draft. Principal: approve, void.
         if self.action in ("create", "update", "partial_update", "submit", "destroy", "catat", "batal_penerimaan"):
             return [IsFinance()]
-        if self.action in ("approve", "void"):
+        if self.action in ("approve", "void", "tolak"):
             return [IsPrincipal()]
         return [IsAuthenticated()]
 
@@ -192,6 +196,23 @@ class TrJurnalViewSet(viewsets.ModelViewSet):
             msg = str(exc).strip().splitlines()[0] if str(exc).strip() else ""
             raise ValidationError(humanize_db_error(msg))
         return Response(self.get_serializer(jurnal).data, status=status.HTTP_200_OK)
+
+    @extend_schema(request=TolakJurnalInputSerializer)
+    @action(detail=True, methods=["post"])
+    def tolak(self, request, pk=None):
+        """PENDING -> DRAFT (checker mengembalikan ke pembuat dengan alasan)."""
+        payload = TolakJurnalInputSerializer(data=request.data)
+        payload.is_valid(raise_exception=True)
+        with transaction.atomic(), audit_user(request.user):
+            jurnal = TrJurnal.objects.select_for_update().get(pk=self.get_object().pk)
+            if jurnal.status != "PENDING":
+                raise ValidationError("Hanya jurnal PENDING yang bisa ditolak.")
+            if jurnal.created_by_id == request.user.id:
+                raise PermissionDenied("Penolak tidak boleh sama dengan pembuat (SoD).")
+            jurnal.status = "DRAFT"
+            jurnal.keterangan = f"{jurnal.keterangan or ''}\nDitolak Kepala Sekolah: {payload.validated_data['alasan']}".strip()
+            jurnal.save(update_fields=["status", "keterangan"])
+        return Response(self.get_serializer(self.get_object()).data)
 
     @extend_schema(request=None)
     @action(detail=True, methods=["post"])

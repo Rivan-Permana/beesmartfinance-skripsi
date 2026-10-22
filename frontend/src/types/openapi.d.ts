@@ -627,6 +627,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/jurnal/{id}/tolak/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description PENDING -> DRAFT (checker mengembalikan ke pembuat dengan alasan). */
+        post: operations["v1_jurnal_tolak_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/jurnal/{id}/void/": {
         parameters: {
             query?: never;
@@ -2440,6 +2457,9 @@ export interface components {
         TokenRefresh: {
             readonly access: string;
             refresh: string;
+        };
+        TolakJurnalInput: {
+            alasan: string;
         };
         TrAnggaran: {
             readonly id: number;
@@ -4336,6 +4356,34 @@ export interface operations {
                 "application/json": components["schemas"]["TrJurnal"];
                 "application/x-www-form-urlencoded": components["schemas"]["TrJurnal"];
                 "multipart/form-data": components["schemas"]["TrJurnal"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrJurnal"];
+                };
+            };
+        };
+    };
+    v1_jurnal_tolak_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A UUID string identifying this tr jurnal. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TolakJurnalInput"];
+                "application/x-www-form-urlencoded": components["schemas"]["TolakJurnalInput"];
+                "multipart/form-data": components["schemas"]["TolakJurnalInput"];
             };
         };
         responses: {

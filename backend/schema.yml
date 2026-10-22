@@ -2010,6 +2010,41 @@ paths:
               schema:
                 $ref: '#/components/schemas/TrJurnal'
           description: ''
+  /api/v1/jurnal/{id}/tolak/:
+    post:
+      operationId: v1_jurnal_tolak_create
+      description: PENDING -> DRAFT (checker mengembalikan ke pembuat dengan alasan).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this tr jurnal.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TolakJurnalInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TolakJurnalInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TolakJurnalInput'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrJurnal'
+          description: ''
   /api/v1/jurnal/{id}/void/:
     post:
       operationId: v1_jurnal_void_create
@@ -7079,6 +7114,14 @@ components:
       required:
       - access
       - refresh
+    TolakJurnalInput:
+      type: object
+      properties:
+        alasan:
+          type: string
+          maxLength: 500
+      required:
+      - alasan
     TrAnggaran:
       type: object
       properties:

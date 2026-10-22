@@ -12,7 +12,7 @@ const props=defineProps<{accounts:Coa[];access:JournalAccess;accountsLoading?:bo
 const target=defineModel<Jurnal|null>("target",{default:null})
 const emit=defineEmits<{action:[action:JournalAction,row:Jurnal];reloadAccounts:[]}>()
 const totals=computed(()=>target.value?journalTotals(target.value.detail):null)
-const actions=computed(()=>target.value?journalActions(target.value,props.access).sort((a,b)=>["catat","approve","submit","edit","cancel","void","remove"].indexOf(a)-["catat","approve","submit","edit","cancel","void","remove"].indexOf(b)):[])
+const actions=computed(()=>target.value?journalActions(target.value,props.access).sort((a,b)=>["catat","approve","reject","submit","edit","cancel","void","remove"].indexOf(a)-["catat","approve","reject","submit","edit","cancel","void","remove"].indexOf(b)):[])
 function accountName(code:string){return props.accounts.find(account=>account.kode_akun===code)?.nama_akun??"Nama akun belum dimuat"}
 </script>
 <template>

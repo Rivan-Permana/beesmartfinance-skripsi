@@ -105,6 +105,30 @@ class JurnalApiTests(APITestCase):
         resp = self.client.post("/api/v1/jurnal/", bad, format="json")
         self.assertEqual(resp.status_code, 400)  # ditangani exception handler, bukan 500
 
+    def _pending(self, no="JVT"):
+        self.client.force_authenticate(self.finance)
+        jid = self.client.post("/api/v1/jurnal/", {**self._payload(no), "detail": [
+            {"kode_akun": "1101", "debit": "1000", "kredit": "0"},
+            {"kode_akun": "1102", "debit": "0", "kredit": "1000"},
+        ]}, format="json").data["id"]
+        self.assertEqual(self.client.post(f"/api/v1/jurnal/{jid}/submit/").data["status"], "PENDING")
+        return jid
+
+    def test_tolak_mengembalikan_ke_draft_dengan_alasan(self):
+        _coa("1102", "BANK", "D")
+        jid = self._pending()
+        url = f"/api/v1/jurnal/{jid}/tolak/"
+        self.assertEqual(self.client.post(url, {"alasan": "x"}, format="json").status_code, 403)
+        self.client.force_authenticate(self.principal)
+        self.assertEqual(self.client.post(url, {}, format="json").status_code, 400)
+        r = self.client.post(url, {"alasan": "Bukti transfer belum dilampirkan"}, format="json")
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.data["status"], "DRAFT")
+        self.assertIn("Ditolak Kepala Sekolah: Bukti transfer belum dilampirkan", r.data["keterangan"])
+        self.assertEqual(self.client.post(url, {"alasan": "lagi"}, format="json").status_code, 400)
+        self.client.force_authenticate(self.finance)
+        self.assertEqual(self.client.post(f"/api/v1/jurnal/{jid}/submit/").data["status"], "PENDING")
+
     def test_void_hanya_principal(self):
         # Administration tidak boleh void
         self.client.force_authenticate(self.finance)
