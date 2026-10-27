@@ -29,7 +29,9 @@ import './employee-finance.css'
 import './staff.css'
 const auth=useAuthStore(), confirm=useConfirm(), toast=useToast()
 const canWrite=computed(()=>auth.hasRole(['Administration','Finance']))
-const tab=ref('harian'), date=ref<Date|null>(new Date()), badDate=ref(false), attempted=ref(false)
+// Kepala Sekolah hanya melihat rekap bulanan.
+const recapOnly=computed(()=>!canWrite.value)
+const tab=ref(recapOnly.value?'rekap':'harian'), date=ref<Date|null>(new Date()), badDate=ref(false), attempted=ref(false)
 const scope=ref(''), staff=ref<Pegawai[]>([]), roster=ref<Pegawai[]>([])
 const attendance=ref<Record<number,StaffAttendanceRow>>({}), baseline=ref<Record<number,StaffAttendanceRow>>({})
 const loading=ref(false), saving=ref(false), verifying=ref(false), choosing=ref(false), loadError=ref(''), saveError=ref(''), message=ref(''), needsVerify=ref(false)
@@ -48,9 +50,9 @@ async function loadDay(target:string) {
     const [people,records]=await Promise.all([pegawaiApi.listAll(),absenPegawaiApi.listAll({tanggal:target})])
     staff.value=people
     const byId=new Map(records.map(record=>[record.pegawai,record]))
-    roster.value=people.filter(person=>person.status_aktif||byId.has(person.id))
+    roster.value=people.filter(person=>person.status==='aktif'||byId.has(person.id))
     // Keep recorded people even when their soft-deleted master profile is no longer returned.
-    for (const record of records) if(!roster.value.some(person=>person.id===record.pegawai)) roster.value.push({id:record.pegawai,nama:`Pegawai #${record.pegawai}`,nip:null,jabatan:'Profil tidak tersedia',nomor_hp:null,alamat:null,status_aktif:false,tanggal_mulai_kerja:null,tanggal_selesai_kerja:null,user:null})
+    for (const record of records) if(!roster.value.some(person=>person.id===record.pegawai)) roster.value.push({id:record.pegawai,nama:`Pegawai #${record.pegawai}`,nip:null,jabatan:'Profil tidak tersedia',nomor_hp:null,alamat:null,status:'nonaktif',status_aktif:false,tanggal_mulai_kerja:null,tanggal_selesai_kerja:null,user:null})
     roster.value.sort(byName)
     const values:Record<number,StaffAttendanceRow>={}
     for(const person of roster.value) values[person.id]=staffAttendance(person.id,byId.get(person.id))
@@ -110,12 +112,12 @@ function exportRecap(){
 }
 function beforeUnload(event:BeforeUnloadEvent){if(saving.value||needsVerify.value||changed.value){event.preventDefault();event.returnValue=''}}
 onBeforeRouteLeave(async()=>{if(saving.value||verifying.value)return false;return !(changed.value||needsVerify.value)||await ask('Pilihan absensi belum tersimpan atau hasilnya belum terkonfirmasi. Tinggalkan halaman?')})
-onMounted(()=>{void loadDay(dateString.value);window.addEventListener('beforeunload',beforeUnload)})
+onMounted(()=>{if(recapOnly.value)void loadRecap();else void loadDay(dateString.value);window.addEventListener('beforeunload',beforeUnload)})
 onBeforeUnmount(()=>window.removeEventListener('beforeunload',beforeUnload))
 </script>
 <template>
-  <PageLayout title="Absensi pegawai" subtitle="Catat kehadiran per tanggal dan periksa rekap bulanan pegawai." :surface="false"><template #actions><RouterLink class="staff-nav-link" to="/pegawai"><Icon name="users" />Data pegawai</RouterLink></template>
-    <Tabs v-model:value="tab" class="staff-tabs"><TabList><Tab value="harian">Absensi harian</Tab><Tab value="rekap">Rekap bulanan</Tab></TabList><TabPanels><TabPanel value="harian">
+  <PageLayout title="Absensi pegawai" :subtitle="recapOnly?'Rekap kehadiran bulanan pegawai, urut abjad.':'Catat kehadiran per tanggal dan periksa rekap bulanan pegawai.'" :surface="false"><template #actions><RouterLink class="staff-nav-link" to="/pegawai"><Icon name="users" />Data pegawai</RouterLink></template>
+    <Tabs v-model:value="tab" class="staff-tabs"><TabList><Tab v-if="!recapOnly" value="harian">Absensi harian</Tab><Tab value="rekap">Rekap bulanan</Tab></TabList><TabPanels><TabPanel v-if="!recapOnly" value="harian">
       <section class="employee-panel staff-day-controls"><header class="employee-heading"><div><h2>Tanggal absensi</h2><p>Tampilkan tanggal yang ingin dicatat. Daftar mencakup pegawai aktif dan pegawai lain yang sudah memiliki catatan pada tanggal tersebut.</p></div></header><form class="employee-toolbar" @submit.prevent="apply"><div class="employee-field"><label for="staff-attendance-date">Tanggal</label><DatePicker :key="locked?'locked':'editable'" input-id="staff-attendance-date" v-model="date" date-format="dd/mm/yy" :disabled="locked" :invalid="attempted&&(!dateString||badDate)" :input-props="{'aria-invalid':attempted&&(!dateString||badDate)}" @input="badDate=!calendarTextMatches(($event.target as HTMLInputElement).value,date)" @update:model-value="badDate=false" fluid><template #previcon><Icon name="caret-left" /></template><template #nexticon><Icon name="caret-right" /></template></DatePicker><small v-if="attempted&&(!dateString||badDate)" class="employee-field-error">Pilih tanggal yang valid.</small></div><Button label="Tampilkan absensi" severity="secondary" type="submit" :disabled="loading||locked||choosing" /></form><p v-if="dateString!==scope||badDate" class="employee-footnote" role="status">Pilihan tanggal belum diterapkan. Simpan tetap mengikuti tanggal daftar di bawah.</p></section>
       <section class="employee-panel staff-roster" :aria-busy="loading||saving"><header class="employee-heading"><div><h2>{{ scope?dateLabel(scope):'Daftar kehadiran' }}</h2><p v-if="!loading&&!loadError">{{ roster.length }} pegawai · {{ Object.values(baseline).filter(row=>row.stored).length }} memiliki catatan tersimpan · {{ needsVerify?'Hasil simpan perlu diperiksa':`${pendingRows.length} belum disimpan` }}</p></div></header>
         <div v-if="loading" class="employee-empty" role="status"><Icon name="arrows-clockwise" class="bee-spin" /><p>Memuat pegawai dan seluruh catatan pada tanggal ini…</p></div>

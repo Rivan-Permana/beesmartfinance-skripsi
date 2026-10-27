@@ -24,7 +24,9 @@ import EmployeeActionDialog from './EmployeeActionDialog.vue'
 import './employee-finance.css'
 
 const auth=useAuthStore(), toast=useToast()
-const canWrite=computed(()=>auth.hasRole(['Finance']))
+// Slip dibuat Kepala Sekolah atau Keuangan; jurnal gaji hanya dibuat Keuangan.
+const canWrite=computed(()=>auth.hasRole(['Finance','SchoolPrincipal']))
+const canPost=computed(()=>auth.hasRole(['Finance']))
 const rows=ref<Gaji[]>([]), staff=ref<Pegawai[]>([]), loans=ref<Pinjaman[]>([])
 const loading=ref(false), error=ref(''), optionsLoading=ref(false), optionsError=ref('')
 const names=computed(()=>new Map(staff.value.map(row=>[row.id,row.nama])))
@@ -59,7 +61,7 @@ const menu=ref<InstanceType<typeof Menu>|null>(null), menuTarget=ref<Gaji|null>(
 const items=computed(()=>{
   const row=menuTarget.value
   if(!row||!canWrite.value||row.jurnal)return []
-  return [{label:'Ubah slip',icon:'pencil-simple',command:()=>edit(row)},{label:'Posting ke jurnal',icon:'file-arrow-up',command:()=>startAction('post',row)},{separator:true},{label:'Hapus slip',icon:'trash',class:'employee-action-danger',command:()=>startAction('delete',row)}]
+  return [{label:'Ubah slip',icon:'pencil-simple',command:()=>edit(row)},...(canPost.value?[{label:'Posting ke jurnal',icon:'file-arrow-up',command:()=>startAction('post',row)}]:[]),{separator:true},{label:'Hapus slip',icon:'trash',class:'employee-action-danger',command:()=>startAction('delete',row)}]
 })
 function openMenu(event:Event,row:Gaji){menuTarget.value=row;menu.value?.toggle(event)}
 function create(){if(!canWrite.value||busy.value)return;editing.value=null;formError.value='';uncertainSave.value=false;formOpen.value=true}
@@ -83,7 +85,7 @@ async function save(payload:Partial<Gaji>){
 async function reviewSave(){formOpen.value=false;await Promise.all([load(),loadOptions()])}
 async function showSlip(row:Gaji){if(busy.value)return;opening.value=true;slipError.value='';try{slip.value=await gajiApi.get(row.id)}catch(e){slipError.value=errorText(e,'Rincian slip belum berhasil dimuat. Coba buka kembali.')}finally{opening.value=false}}
 function closeAction(){if(!pending.value&&!checking.value){target.value=null;action.value=null}}
-async function startAction(value:'post'|'delete',row:Gaji){if(!canWrite.value||busy.value||row.jurnal)return;target.value=row;action.value=value;actionReady.value=false;uncertainAction.value=false;await refreshAction()}
+async function startAction(value:'post'|'delete',row:Gaji){if(!(value==='post'?canPost.value:canWrite.value)||busy.value||row.jurnal)return;target.value=row;action.value=value;actionReady.value=false;uncertainAction.value=false;await refreshAction()}
 async function refreshAction(){
   if(!target.value||pending.value||checking.value)return
   checking.value=true;actionError.value='';actionReady.value=false
@@ -98,7 +100,7 @@ async function refreshAction(){
   }finally{checking.value=false}
 }
 async function confirmAction(){
-  if(!target.value||!action.value||!canWrite.value||busy.value||!actionReady.value||uncertainAction.value||target.value.jurnal)return
+  if(!target.value||!action.value||!(action.value==='post'?canPost.value:canWrite.value)||busy.value||!actionReady.value||uncertainAction.value||target.value.jurnal)return
   const row=target.value, value=action.value
   pending.value=true;actionError.value=''
   try{

@@ -1539,6 +1539,7 @@ export interface components {
             /** Format: decimal */
             pagu?: string;
             penanggung_jawab?: number | null;
+            readonly penanggung_jawab_nama: string;
             /** Format: date */
             tanggal_mulai?: string | null;
             /** Format: date */
@@ -2049,6 +2050,7 @@ export interface components {
             /** Format: decimal */
             pagu?: string;
             penanggung_jawab?: number | null;
+            readonly penanggung_jawab_nama?: string;
             /** Format: date */
             tanggal_mulai?: string | null;
             /** Format: date */
@@ -2129,7 +2131,8 @@ export interface components {
             jabatan?: string | null;
             nomor_hp?: string | null;
             alamat?: string | null;
-            status_aktif?: boolean;
+            status?: components["schemas"]["PegawaiStatusEnum"];
+            readonly status_aktif?: boolean;
             /** Format: date */
             tanggal_mulai_kerja?: string | null;
             /** Format: date */
@@ -2265,13 +2268,21 @@ export interface components {
             jabatan?: string | null;
             nomor_hp?: string | null;
             alamat?: string | null;
-            status_aktif?: boolean;
+            status?: components["schemas"]["PegawaiStatusEnum"];
+            readonly status_aktif: boolean;
             /** Format: date */
             tanggal_mulai_kerja?: string | null;
             /** Format: date */
             tanggal_selesai_kerja?: string | null;
             user?: number | null;
         };
+        /**
+         * @description * `aktif` - Aktif
+         *     * `cuti` - Cuti
+         *     * `nonaktif` - Non-aktif
+         * @enum {string}
+         */
+        PegawaiStatusEnum: "aktif" | "cuti" | "nonaktif";
         PembayaranTagihan: {
             readonly id: number;
             /** Format: date */

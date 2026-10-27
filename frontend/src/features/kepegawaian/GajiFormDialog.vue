@@ -8,6 +8,7 @@ import Message from 'primevue/message'
 import Icon from '@/shared/components/PhosphorIcon.vue'
 import type { Gaji, Pegawai, Pinjaman } from '@/types/api'
 import { cents, earnings, loanDeduction, money, months, sumMoney, type EarningKey } from './payroll'
+import { payrollEligible } from './staff'
 
 const props = defineProps<{row:Gaji|null;staff:Pegawai[];loans:Pinjaman[];optionsLoading:boolean;optionsError:string;saving:boolean;uncertain:boolean;error:string}>()
 const visible = defineModel<boolean>({default:false})
@@ -16,7 +17,7 @@ const initial = Object.fromEntries(earnings.map(field=>[field.key,0])) as Record
 const form = reactive({...initial,pegawai:null as number|null,periode_bulan:1,periode_tahun:2026,hari_hadir:0 as number|null,potongan_asuransi:0 as number|null})
 const attempted = ref(false), element = ref<HTMLFormElement|null>(null), errorElement = ref<HTMLElement|null>(null)
 const locked = computed(()=>props.saving||props.uncertain)
-const employees = computed(()=>props.staff.filter(row=>row.status_aktif||row.id===props.row?.pegawai))
+const employees = computed(()=>props.staff.filter(row=>payrollEligible(row)||row.id===props.row?.pegawai))
 const position = computed(()=>props.staff.find(row=>row.id===form.pegawai)?.jabatan?.trim()||'')
 const deduction = computed(()=>props.optionsLoading||props.optionsError?null:loanDeduction(props.loans,form.pegawai))
 const gross = computed(()=>sumMoney(earnings.map(field=>form[field.key])))

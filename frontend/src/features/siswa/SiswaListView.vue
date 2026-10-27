@@ -2,7 +2,7 @@
 import Button from "primevue/button"
 import { useConfirm } from "primevue/useconfirm"
 import { useToast } from "primevue/usetoast"
-import { onMounted, ref } from "vue"
+import { computed, onMounted, ref } from "vue"
 import { useRouter } from "vue-router"
 import { kelompokApi } from "@/features/absensi/api"
 import { siswaApi } from "./api"
@@ -12,6 +12,7 @@ import PageLayout from "@/shared/components/PageLayout.vue"
 import SiswaDirectory from "./SiswaDirectory.vue"
 import SiswaFormDialog from "./SiswaFormDialog.vue"
 import type { Kelompok, Siswa, SiswaInput } from "@/types/api"
+import { useAuthStore } from '@/stores/auth'
 
 const toast = useToast()
 const confirm = useConfirm()
@@ -79,12 +80,13 @@ function confirmDelete(row: Siswa) {
   })
 }
 onMounted(load)
+const canWrite = computed(() => useAuthStore().hasRole(['Administration']))
 </script>
 
 <template>
-  <PageLayout title="Data siswa" subtitle="Kelola profil dan administrasi siswa PG/TK." :surface="false">
-    <template #actions><Button label="Tambah siswa" @click="openCreate"><template #icon><Icon name="plus" /></template></Button></template>
-    <SiswaDirectory :rows="rows" :kelompok="kelompokList" :loading="loading" :error="loadError" :group-error="groupError" @create="openCreate" @edit="openEdit" @remove="confirmDelete" @retry="load" @manage-groups="router.push('/kelompok')" />
+  <PageLayout title="Data siswa" :subtitle="canWrite?'Kelola profil dan administrasi siswa PG/TK.':'Lihat profil dan tarif siswa PG/TK. Perubahan data dilakukan Staf TU.'" :surface="false">
+    <template v-if="canWrite" #actions><Button label="Tambah siswa" @click="openCreate"><template #icon><Icon name="plus" /></template></Button></template>
+    <SiswaDirectory :rows="rows" :kelompok="kelompokList" :loading="loading" :error="loadError" :group-error="groupError" :readonly="!canWrite" @create="openCreate" @edit="openEdit" @remove="confirmDelete" @retry="load" @manage-groups="router.push('/kelompok')" />
     <SiswaFormDialog v-model="dialog" :student="editing" :kelompok="kelompokList" :saving="saving" :error="saveError" :group-error="groupError" @save="save" />
   </PageLayout>
 </template>

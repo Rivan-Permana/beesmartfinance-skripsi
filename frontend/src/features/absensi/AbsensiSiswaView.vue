@@ -25,7 +25,7 @@ interface Scope {
     kelompok: Kelompok;
 }
 const auth = useAuthStore(), toast = useToast(), confirm = useConfirm();
-const canEdit = computed(() => auth.hasRole(['Administration']));
+const canEdit = computed(() => auth.hasRole(['Administration', 'TeacherInCharge']));
 const levels = ref<Jenjang[]>([]), groups = ref<Kelompok[]>([]);
 const level = ref<number | null>(null), group = ref<number | null>(null), date = ref<Date | null>(new Date());
 const levelsLoading = ref(false), groupsLoading = ref(false), levelsError = ref(''), groupsError = ref('');

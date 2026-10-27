@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 
-import { navForRoles, roleHome } from "./navigation"
+import { navForRoles, navItemActive, roleHome } from "./navigation"
 
 describe("roleHome", () => {
   it("returns dashboard for Finance", () => {
@@ -43,14 +43,31 @@ describe("navForRoles", () => {
     expect(paths).not.toContain("/pegawai")
   })
 
-  it("kepsek tidak melihat menu pegawai operasional", () => {
-    const paths = navForRoles(["SchoolPrincipal"]).map((n) => n.to)
-    expect(paths).toContain("/dashboard")
-    expect(paths).toContain("/kegiatan")
-    expect(paths).not.toContain("/pegawai")
-    expect(paths).not.toContain("/gaji")
-    expect(paths).not.toContain("/pinjaman")
+  it("kepsek melihat menu pegawai dan anggaran kegiatan sesuai revisi", () => {
+    const items = navForRoles(["SchoolPrincipal"])
+    const paths = items.map((n) => n.to)
+    expect(paths).toEqual(expect.arrayContaining(["/dashboard", "/kegiatan", "/pegawai", "/absensi-pegawai", "/gaji", "/pinjaman"]))
+    expect(items.find((n) => n.to === "/kegiatan")?.label).toBe("Anggaran Kegiatan")
+    expect(paths).not.toContain("/anggaran")
     expect(paths).not.toContain("/aset")
+  })
+
+  it("menambah menu sesuai revisi untuk Keuangan, Guru, dan Staf TU", () => {
+    const finance = navForRoles(["Finance"]).map((n) => n.to + (n.query?.jenis ?? ""))
+    expect(finance).toEqual(expect.arrayContaining(["/siswa", "/pendaftaran", "/jurnal", "/jurnalmasuk", "/gaji", "/pinjaman"]))
+    expect(navForRoles(["TeacherInCharge"]).map((n) => n.to)).toEqual(expect.arrayContaining(["/absensi-siswa", "/rekap-siswa", "/kegiatan"]))
+    const admin = navForRoles(["Administration"]).map((n) => n.to + (n.query?.jenis ?? ""))
+    expect(admin).toEqual(expect.arrayContaining(["/jurnalmasuk", "/jurnalkeluar", "/absensi-siswa"]))
+    expect(admin).not.toContain("/jurnal")
+  })
+
+  it("menandai Anggaran Kegiatan aktif di halaman anggaran per akun", () => {
+    const item = navForRoles(["Finance"]).find((n) => n.label === "Anggaran Kegiatan")!
+    expect(navItemActive(item, "/anggaran", undefined)).toBe(true)
+    expect(navItemActive(item, "/kegiatan", undefined)).toBe(true)
+    const jurnal = navForRoles(["Finance"]).find((n) => n.label === "Jurnal")!
+    expect(navItemActive(jurnal, "/jurnal", "masuk")).toBe(false)
+    expect(navItemActive(jurnal, "/jurnal", undefined)).toBe(true)
   })
 
   it("includes pegawai routes for Administration", () => {

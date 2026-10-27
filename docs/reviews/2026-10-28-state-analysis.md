@@ -34,7 +34,7 @@ Menggantikan [state analysis 21 Oktober](./2026-10-21-state-analysis.md). Ini sn
 
 ## Revisi dari spreadsheet pengguna (28/10, setelah rilis)
 
-Pengguna mengirim 37 baris revisi per role. Batch 1 (Beranda filter Hari/Bulan/Periode + tampilan berwarna, Absensi Pegawai urut abjad + unduh Excel, Katering menu bulanan, aksi Ubah/Hapus Pendaftaran, jabatan otomatis di slip gaji) selesai di branch kerja, belum di produksi. Batch 2 (akses role, kasbon, pengeluaran tanpa approval, status Cuti) dan Batch 3 (diskon dan komponen biaya siswa) menunggu keputusan. Rincian: [revisi spreadsheet](./2026-10-28-revisi-spreadsheet.md). Proyek tidak lagi terikat skripsi.
+Pengguna mengirim 37 baris revisi per role. Batch 1 (Beranda filter Hari/Bulan/Periode + tampilan berwarna, Absensi Pegawai urut abjad + unduh Excel, Katering menu bulanan, aksi Ubah/Hapus Pendaftaran, jabatan otomatis di slip gaji) selesai di branch kerja, belum di produksi. Batch 2 (akses role per spreadsheet, kasbon diajukan Kepsek, Anggaran Kegiatan dikelola Keuangan, draf jurnal Staf TU, status Cuti dengan migrasi `operations.0016`) juga selesai di branch kerja. Batch 3 (diskon dan komponen biaya siswa) menunggu desain. `db_lebah_madu` lokal belum di `0016`. Rincian: [revisi spreadsheet](./2026-10-28-revisi-spreadsheet.md). Proyek tidak lagi terikat skripsi.
 
 ## Belum dibuktikan atau masih terbuka
 

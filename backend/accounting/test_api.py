@@ -43,12 +43,15 @@ class JurnalApiTests(APITestCase):
         resp = self.client.post("/api/v1/jurnal/", self._payload(), format="json")
         self.assertEqual(resp.status_code, 401)
 
-    def test_hanya_finance_boleh_buat(self):
-        self.client.force_authenticate(self.admin)
-        self.assertEqual(
-            self.client.post("/api/v1/jurnal/", self._payload(), format="json").status_code,
-            403,
-        )
+    def test_hanya_finance_dan_staf_tu_boleh_buat(self):
+        teacher = User.objects.create_user("teacher1", password="x")
+        teacher.groups.add(Group.objects.get(name="TeacherInCharge"))
+        for user in (self.principal, teacher):
+            self.client.force_authenticate(user)
+            self.assertEqual(
+                self.client.post("/api/v1/jurnal/", self._payload(), format="json").status_code,
+                403,
+            )
         self.client.force_authenticate(self.finance)
         resp = self.client.post("/api/v1/jurnal/", self._payload(), format="json")
         self.assertEqual(resp.status_code, 201)
@@ -139,7 +142,7 @@ class JurnalApiTests(APITestCase):
         self.client.force_authenticate(self.admin)
         self.assertEqual(self.client.post(f"/api/v1/jurnal/{jid}/void/").status_code, 403)
 
-    def test_delete_jurnal_hanya_finance(self):
+    def test_staf_tu_tidak_boleh_hapus_draf_finance(self):
         self.client.force_authenticate(self.finance)
         jid = self.client.post("/api/v1/jurnal/", self._payload("JVD"), format="json").data["id"]
         self.client.force_authenticate(self.admin)  # bukan Finance

@@ -49,8 +49,9 @@ class PegawaiSerializer(serializers.ModelSerializer):
         model = Pegawai
         fields = [
             "id", "nip", "nama", "jabatan", "nomor_hp", "alamat",
-            "status_aktif", "tanggal_mulai_kerja", "tanggal_selesai_kerja", "user",
+            "status", "status_aktif", "tanggal_mulai_kerja", "tanggal_selesai_kerja", "user",
         ]
+        read_only_fields = ["status_aktif"]
 
 
 class KehadiranSiswaSerializer(serializers.ModelSerializer):
@@ -153,11 +154,12 @@ class KegiatanSerializer(serializers.ModelSerializer):
     sisa_pagu = serializers.ReadOnlyField()
     rasio_utilisasi = serializers.ReadOnlyField()
     periode_kode = serializers.CharField(source="periode.kode", read_only=True, default=None)
+    penanggung_jawab_nama = serializers.CharField(source="penanggung_jawab.nama", read_only=True, default=None)
 
     class Meta:
         model = Kegiatan
         fields = [
-            "id", "nama", "akun_beban", "pagu", "penanggung_jawab",
+            "id", "nama", "akun_beban", "pagu", "penanggung_jawab", "penanggung_jawab_nama",
             "tanggal_mulai", "tanggal_selesai", "status", "periode", "periode_kode",
             "realisasi", "sisa_pagu", "rasio_utilisasi",
         ]

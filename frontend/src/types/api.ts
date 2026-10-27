@@ -302,12 +302,15 @@ export interface Pegawai {
   jabatan: string | null
   nomor_hp: string | null
   alamat: string | null
+  status: PegawaiStatus
+  /** Turunan server: status === "aktif" */
   status_aktif: boolean
   tanggal_mulai_kerja: string | null
   tanggal_selesai_kerja: string | null
   user: number | null
 }
-export type PegawaiInput = Omit<Pegawai, "id">
+export type PegawaiStatus = "aktif" | "cuti" | "nonaktif"
+export type PegawaiInput = Omit<Pegawai, "id" | "status_aktif">
 
 export type AbsenPegawaiStatus = "hadir" | "izin" | "sakit" | "terlambat" | "none"
 
@@ -391,6 +394,7 @@ export interface Kegiatan {
   akun_beban: string
   pagu: string
   penanggung_jawab: number | null
+  penanggung_jawab_nama?: string | null
   tanggal_mulai: string | null
   tanggal_selesai: string | null
   status: KegiatanStatus

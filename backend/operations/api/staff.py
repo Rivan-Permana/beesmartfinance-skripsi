@@ -5,7 +5,7 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
-from accounts.permissions import IsAdministrationOrFinance, IsAdministrationOrFinanceOrPrincipalRead
+from accounts.permissions import ADMINISTRATION, FINANCE, PRINCIPAL, IsAdministrationOrFinanceOrPrincipalRead, role_permission
 
 from operations.models import AbsenPegawai, Pegawai
 from operations.serializers import AbsenPegawaiSerializer, PegawaiSerializer
@@ -20,7 +20,8 @@ class PegawaiViewSet(viewsets.ModelViewSet):
 class AbsenPegawaiViewSet(viewsets.ModelViewSet):
     queryset = AbsenPegawai.objects.select_related("pegawai").order_by("-tanggal")
     serializer_class = AbsenPegawaiSerializer
-    permission_classes = [IsAdministrationOrFinance]
+    # Kepala Sekolah melihat rekap; pencatatan oleh Staf TU/Keuangan.
+    permission_classes = [role_permission(read=(ADMINISTRATION, FINANCE, PRINCIPAL), write=(ADMINISTRATION, FINANCE))]
     filterset_fields = ["pegawai", "tanggal"]
 
     @action(detail=False, methods=["post"], url_path="bulk-save")

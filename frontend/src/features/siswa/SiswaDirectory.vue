@@ -21,6 +21,8 @@ const props = defineProps<{
   loading?: boolean
   error?: string
   groupError?: boolean
+  /** Keuangan melihat data siswa tanpa mengubahnya. */
+  readonly?: boolean
 }>()
 const emit = defineEmits<{ create: []; edit: [row: Siswa]; remove: [row: Siswa]; retry: []; manageGroups: [] }>()
 const status = ref<SiswaStatus | null>(null)
@@ -51,7 +53,7 @@ function reset() { query.value = ""; status.value = null; group.value = null }
   <section class="siswa-directory" aria-label="Direktori siswa" :aria-busy="loading">
     <div class="directory-heading">
       <div><h2>Daftar siswa <span v-if="!loading && !error">{{ rows.length }}</span></h2><p>Profil, kelompok belajar, dan SPP bulanan.</p></div>
-      <Button label="Kelola kelompok" severity="secondary" text @click="emit('manageGroups')"><template #icon><Icon name="squares-four" /></template></Button>
+      <Button v-if="!readonly" label="Kelola kelompok" severity="secondary" text @click="emit('manageGroups')"><template #icon><Icon name="squares-four" /></template></Button>
     </div>
     <div class="directory-toolbar">
       <div class="directory-field directory-search"><label for="siswa-search">Cari siswa</label><SearchField input-id="siswa-search" v-model="query" placeholder="Nama, NIS, atau kelompok" hint="Cari nama, NIS, kelompok, status, atau nominal SPP" /></div>
@@ -69,21 +71,21 @@ function reset() { query.value = ""; status.value = null; group.value = null }
       <Icon :name="hasFilter ? 'magnifying-glass' : 'student'" />
       <h3>{{ hasFilter ? 'Tidak ada siswa yang cocok' : 'Mulai dari data siswa' }}</h3>
       <p>{{ hasFilter ? 'Coba kata kunci lain atau hapus filter yang dipilih.' : 'Tambahkan siswa untuk mulai mengelola profil, kelompok, dan administrasinya.' }}</p>
-      <Button :label="hasFilter ? 'Hapus filter' : 'Tambah siswa'" severity="secondary" @click="hasFilter ? reset() : emit('create')" />
+      <Button v-if="hasFilter || !readonly" :label="hasFilter ? 'Hapus filter' : 'Tambah siswa'" severity="secondary" @click="hasFilter ? reset() : emit('create')" />
     </div>
     <template v-else-if="!error">
       <DataTable class="directory-desktop" :value="pageRows" data-key="id" :table-style="{ minWidth: '720px' }" :pt="{ tableContainer: { tabindex: 0, role: 'region', 'aria-label': 'Tabel data siswa' } }">
-        <Column header="Siswa"><template #body="{ data }"><button class="directory-name" :aria-label="`Ubah data ${data.nama}`" @click="emit('edit', data)">{{ data.nama }}</button><small class="directory-secondary">{{ data.nis ? `NIS ${data.nis}` : 'NIS belum diisi' }}</small></template></Column>
+        <Column header="Siswa"><template #body="{ data }"><strong v-if="readonly" class="directory-name">{{ data.nama }}</strong><button v-else class="directory-name" :aria-label="`Ubah data ${data.nama}`" @click="emit('edit', data)">{{ data.nama }}</button><small class="directory-secondary">{{ data.nis ? `NIS ${data.nis}` : 'NIS belum diisi' }}</small></template></Column>
         <Column header="Kelompok"><template #body="{ data }"><span :class="{ 'directory-muted': data.kelompok == null }">{{ groupName(data) }}</span></template></Column>
         <Column header="Status"><template #body="{ data }"><Tag :value="SISWA_STATUS[data.status as SiswaStatus].label" :severity="SISWA_STATUS[data.status as SiswaStatus].severity" /></template></Column>
         <Column header="SPP per bulan" header-class="bee-numeric" body-class="bee-numeric"><template #body="{ data }">{{ formatRp(data.spp_nominal) }}</template></Column>
-        <Column header="Tindakan" header-class="directory-actions-column" body-class="directory-actions-column"><template #body="{ data }"><div class="bee-actions"><Button severity="secondary" text :aria-label="`Ubah ${data.nama}`" @click="emit('edit', data)"><template #icon><Icon name="pencil-simple" /></template></Button><Button severity="secondary" text :aria-label="`Hapus ${data.nama}`" @click="emit('remove', data)"><template #icon><Icon name="trash" /></template></Button></div></template></Column>
+        <Column v-if="!readonly" header="Tindakan" header-class="directory-actions-column" body-class="directory-actions-column"><template #body="{ data }"><div class="bee-actions"><Button severity="secondary" text :aria-label="`Ubah ${data.nama}`" @click="emit('edit', data)"><template #icon><Icon name="pencil-simple" /></template></Button><Button severity="secondary" text :aria-label="`Hapus ${data.nama}`" @click="emit('remove', data)"><template #icon><Icon name="trash" /></template></Button></div></template></Column>
       </DataTable>
       <ul class="directory-mobile" aria-label="Data siswa">
         <li v-for="row in pageRows" :key="row.id">
-          <div class="mobile-record-heading"><div><button class="directory-name" :aria-label="`Ubah data ${row.nama}`" @click="emit('edit', row)">{{ row.nama }}</button><small class="directory-secondary">{{ row.nis ? `NIS ${row.nis}` : 'NIS belum diisi' }}</small></div><Tag :value="SISWA_STATUS[row.status].label" :severity="SISWA_STATUS[row.status].severity" /></div>
+          <div class="mobile-record-heading"><div><strong v-if="readonly" class="directory-name">{{ row.nama }}</strong><button v-else class="directory-name" :aria-label="`Ubah data ${row.nama}`" @click="emit('edit', row)">{{ row.nama }}</button><small class="directory-secondary">{{ row.nis ? `NIS ${row.nis}` : 'NIS belum diisi' }}</small></div><Tag :value="SISWA_STATUS[row.status].label" :severity="SISWA_STATUS[row.status].severity" /></div>
           <dl><div><dt>Kelompok</dt><dd>{{ groupName(row) }}</dd></div><div><dt>SPP per bulan</dt><dd class="tabular-nums">{{ formatRp(row.spp_nominal) }}</dd></div></dl>
-          <div class="mobile-record-actions"><Button label="Ubah data" severity="secondary" text :aria-label="`Ubah ${row.nama}`" @click="emit('edit', row)"><template #icon><Icon name="pencil-simple" /></template></Button><Button severity="secondary" text :aria-label="`Hapus ${row.nama}`" @click="emit('remove', row)"><template #icon><Icon name="trash" /></template></Button></div>
+          <div v-if="!readonly" class="mobile-record-actions"><Button label="Ubah data" severity="secondary" text :aria-label="`Ubah ${row.nama}`" @click="emit('edit', row)"><template #icon><Icon name="pencil-simple" /></template></Button><Button severity="secondary" text :aria-label="`Hapus ${row.nama}`" @click="emit('remove', row)"><template #icon><Icon name="trash" /></template></Button></div>
         </li>
       </ul>
       <BeePaginator v-if="filtered.length > 10" v-model:first="first" :rows="10" :total-records="filtered.length" />

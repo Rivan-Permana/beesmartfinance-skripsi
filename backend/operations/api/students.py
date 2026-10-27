@@ -6,7 +6,7 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
-from accounts.permissions import IsAdministrationOrTeacherReadOnly
+from accounts.permissions import ADMINISTRATION, FINANCE, TEACHER, role_permission
 
 from operations.models import Jenjang, KehadiranSiswa, Kelompok, Siswa
 from operations.serializers import (
@@ -30,7 +30,7 @@ class KehadiranSiswaFilter(django_filters.FilterSet):
 class JenjangViewSet(viewsets.ModelViewSet):
     queryset = Jenjang.objects.all().order_by("kode")
     serializer_class = JenjangSerializer
-    permission_classes = [IsAdministrationOrTeacherReadOnly]
+    permission_classes = [role_permission(read=(ADMINISTRATION, TEACHER, FINANCE), write=(ADMINISTRATION,))]
 
     def perform_destroy(self, instance):
         if instance.kelompok.exists():
@@ -43,7 +43,7 @@ class JenjangViewSet(viewsets.ModelViewSet):
 class KelompokViewSet(viewsets.ModelViewSet):
     queryset = Kelompok.objects.select_related("jenjang").order_by("jenjang__kode", "nama")
     serializer_class = KelompokSerializer
-    permission_classes = [IsAdministrationOrTeacherReadOnly]
+    permission_classes = [role_permission(read=(ADMINISTRATION, TEACHER, FINANCE), write=(ADMINISTRATION,))]
     filterset_fields = ["jenjang"]
 
     def perform_destroy(self, instance):
@@ -70,7 +70,7 @@ class KelompokViewSet(viewsets.ModelViewSet):
 class SiswaViewSet(viewsets.ModelViewSet):
     queryset = Siswa.objects.all().order_by("nama")
     serializer_class = SiswaSerializer
-    permission_classes = [IsAdministrationOrTeacherReadOnly]
+    permission_classes = [role_permission(read=(ADMINISTRATION, TEACHER, FINANCE), write=(ADMINISTRATION,))]
     filterset_fields = ["status", "kelompok"]
     search_fields = ["nis", "nama"]
 
@@ -78,5 +78,6 @@ class SiswaViewSet(viewsets.ModelViewSet):
 class KehadiranSiswaViewSet(viewsets.ModelViewSet):
     queryset = KehadiranSiswa.objects.select_related("siswa").order_by("-tanggal")
     serializer_class = KehadiranSiswaSerializer
-    permission_classes = [IsAdministrationOrTeacherReadOnly]
+    # Absensi siswa diisi Staf TU dan Guru.
+    permission_classes = [role_permission(read=(ADMINISTRATION, TEACHER), write=(ADMINISTRATION, TEACHER))]
     filterset_class = KehadiranSiswaFilter

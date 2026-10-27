@@ -1,4 +1,4 @@
-import type { AbsenPegawai, Pegawai } from '@/types/api'
+import type { AbsenPegawai, Pegawai, PegawaiStatus } from '@/types/api'
 
 export const staffStatuses = [
   { label: 'Hadir', value: 'hadir' }, { label: 'Izin', value: 'izin' },
@@ -30,3 +30,14 @@ export function staffPeriod(row: Pegawai) {
   if (!row.tanggal_mulai_kerja && !row.tanggal_selesai_kerja) return 'Belum dicatat'
   return `${row.tanggal_mulai_kerja ? label(row.tanggal_mulai_kerja) : 'Mulai belum dicatat'} – ${row.tanggal_selesai_kerja ? label(row.tanggal_selesai_kerja) : 'Sekarang'}`
 }
+
+export const employeeStatuses: { label: string; value: PegawaiStatus; severity: 'success' | 'warn' | 'secondary' }[] = [
+  { label: 'Aktif', value: 'aktif', severity: 'success' },
+  { label: 'Cuti', value: 'cuti', severity: 'warn' },
+  { label: 'Non-aktif', value: 'nonaktif', severity: 'secondary' },
+]
+export function employeeStatus(row: Pick<Pegawai, 'status'>) {
+  return employeeStatuses.find(item => item.value === row.status) ?? employeeStatuses[0]!
+}
+/** Pegawai Cuti tetap dapat dibuatkan gaji dan kasbon; Non-aktif tidak. */
+export function payrollEligible(row: Pick<Pegawai, 'status'>) { return row.status !== 'nonaktif' }

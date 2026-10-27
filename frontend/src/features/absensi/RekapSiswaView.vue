@@ -31,7 +31,7 @@ interface Snapshot {
     students: Pick<Siswa, 'id' | 'nama' | 'nis' | 'kelompok'>[];
     records: KehadiranSiswa[];
 }
-const auth = useAuthStore(), canFill = computed(() => auth.hasRole(['Administration']));
+const auth = useAuthStore(), canFill = computed(() => auth.hasRole(['Administration', 'TeacherInCharge']));
 const taList = listTahunPelajaran(), activeTa = currentTahunPelajaran(), initialMonth = defaultMonthForTa(activeTa);
 const ta = ref(activeTa.kode), period = ref(`${initialMonth.tahun}-${String(initialMonth.bulan).padStart(2, '0')}`), group = ref<number | null>(null);
 const taOptions = taList.map(item => ({ label: item.isActive ? `${item.kode} (aktif)` : item.kode, value: item.kode }));

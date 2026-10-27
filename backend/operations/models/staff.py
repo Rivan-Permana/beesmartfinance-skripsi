@@ -8,11 +8,15 @@ from .base import SoftDeleteModel, TimeStampedModel
 
 
 class Pegawai(SoftDeleteModel, TimeStampedModel):
+    STATUS = [("aktif", "Aktif"), ("cuti", "Cuti"), ("nonaktif", "Non-aktif")]
+
     nip = models.CharField(max_length=20, unique=True, blank=True, null=True)
     nama = models.CharField(max_length=100)
     jabatan = models.CharField(max_length=50, blank=True, null=True)
     nomor_hp = models.CharField(max_length=20, blank=True, null=True)
     alamat = models.TextField(blank=True, null=True)
+    status = models.CharField(max_length=10, choices=STATUS, default="aktif")
+    # Turunan dari `status`, dipertahankan untuk kode dan laporan lama.
     status_aktif = models.BooleanField(default=True)
     tanggal_mulai_kerja = models.DateField(blank=True, null=True)
     tanggal_selesai_kerja = models.DateField(blank=True, null=True)
@@ -30,6 +34,13 @@ class Pegawai(SoftDeleteModel, TimeStampedModel):
     )
 
     history = HistoricalRecords()
+
+    def save(self, *args, **kwargs):
+        self.status_aktif = self.status == "aktif"
+        update_fields = kwargs.get("update_fields")
+        if update_fields is not None and "status" in update_fields:
+            kwargs["update_fields"] = {*update_fields, "status_aktif"}
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.nip or '-'} - {self.nama}"

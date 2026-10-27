@@ -5,7 +5,7 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
-from accounts.permissions import IsFinanceWriteFinancePrincipalRead
+from accounts.permissions import FINANCE, PRINCIPAL, IsFinance, IsPrincipal, role_permission
 
 from operations.models import GajiPegawai, PinjamanPegawai
 from operations.serializers import GajiPegawaiSerializer, PinjamanPegawaiSerializer
@@ -34,7 +34,14 @@ class PinjamanPegawaiViewSet(_TerkunciSetelahJurnal, viewsets.ModelViewSet):
     pesan_terkunci = "Kasbon yang sudah dicairkan tidak dapat diubah atau dihapus."
     queryset = PinjamanPegawai.objects.select_related("pegawai", "jurnal").prefetch_related("jurnal__reversals").order_by("-tanggal_pinjaman")
     serializer_class = PinjamanPegawaiSerializer
-    permission_classes = [IsFinanceWriteFinancePrincipalRead]
+
+    def get_permissions(self):
+        # Kepala Sekolah mengajukan; Keuangan mengubah dan mencairkan, tidak mengajukan.
+        if self.action == "create":
+            return [IsPrincipal()]
+        if self.action == "cairkan":
+            return [IsFinance()]
+        return [role_permission(read=(FINANCE, PRINCIPAL), write=(FINANCE, PRINCIPAL))()]
 
     @action(detail=True, methods=["post"])
     def cairkan(self, request, pk=None):
@@ -53,7 +60,12 @@ class GajiPegawaiViewSet(_TerkunciSetelahJurnal, viewsets.ModelViewSet):
     pesan_terkunci = "Slip gaji yang sudah diposting tidak dapat diubah atau dihapus."
     queryset = GajiPegawai.objects.select_related("pegawai").order_by("-periode_tahun", "-periode_bulan")
     serializer_class = GajiPegawaiSerializer
-    permission_classes = [IsFinanceWriteFinancePrincipalRead]
+
+    def get_permissions(self):
+        # Slip dibuat Kepala Sekolah atau Keuangan; jurnal gaji tetap dibuat Keuangan.
+        if self.action == "posting":
+            return [IsFinance()]
+        return [role_permission(read=(FINANCE, PRINCIPAL), write=(FINANCE, PRINCIPAL))()]
 
     def perform_create(self, serializer):
         gaji = serializer.save()

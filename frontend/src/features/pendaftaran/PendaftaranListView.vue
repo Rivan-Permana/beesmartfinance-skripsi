@@ -22,8 +22,11 @@ import { cents, components, dateLabel, editable, finalizable, journalLabels, mon
 import PendaftaranDirectory from './PendaftaranDirectory.vue';
 import PendaftaranFormDialog from './PendaftaranFormDialog.vue';
 import PendaftaranPaymentDialog from './PendaftaranPaymentDialog.vue';
+import { useAuthStore } from '@/stores/auth';
 import './admission.css';
 const toast = useToast(), confirm = useConfirm();
+// Keuangan hanya melihat pendaftaran; pengelolaan oleh Staf TU.
+const canWrite = computed(() => useAuthStore().hasRole(['Administration']));
 const rows = ref<PendaftaranSiswa[]>([]), loading = ref(false), error = ref(''), actionError = ref('');
 const levels = ref<Jenjang[]>([]), levelsLoading = ref(false), levelsError = ref('');
 const names = computed(() => new Map(levels.value.map(row => [row.id, row.nama])));
@@ -284,8 +287,8 @@ onBeforeUnmount(() => {
 </script>
 <template>
 <PageLayout class="admission-page" title="Pendaftaran siswa"
-  subtitle="Kelola calon, periksa biaya, lalu catat penerimaan atau finalisasi sesuai kebutuhan."
-  :surface="false"><template #actions><Button label="Daftar calon baru" :disabled="busy||loading"
+  :subtitle="canWrite?'Kelola calon, periksa biaya, lalu catat penerimaan atau finalisasi sesuai kebutuhan.':'Lihat calon, rincian biaya, dan penerimaan pendaftaran. Pengelolaan dilakukan Staf TU.'"
+  :surface="false"><template v-if="canWrite" #actions><Button label="Daftar calon baru" :disabled="busy||loading"
       @click="openCreate"><template #icon>
         <Icon name="user-plus" />
       </template></Button></template>
@@ -328,7 +331,7 @@ onBeforeUnmount(() => {
       </Message>
     </div>
     <PendaftaranDirectory :rows="filtered" :names="names" :loading="loading" :error="error"
-      :filtered="!!query.trim()||!!status" @detail="detail" @edit="openEdit" @remove="remove" @retry="load" @clear="query='';status=null" />
+      :filtered="!!query.trim()||!!status" :readonly="!canWrite" @detail="detail" @edit="openEdit" @remove="remove" @retry="load" @clear="query='';status=null" />
   </section>
   <PendaftaranFormDialog v-model="formOpen" :row="editing" :levels="levels" :levels-loading="levelsLoading"
     :levels-error="levelsError" :saving="saving" :error="formError" @save="save"
@@ -398,15 +401,15 @@ onBeforeUnmount(() => {
       <Message v-if="actionError" severity="error" :closable="false">{{ actionError }}</Message>
     </div><template #footer>
       <div v-if="detailTarget" class="admission-detail-actions"><template
-          v-if="!detailLoading&&!detailError"><Button v-if="editable(detailTarget)" label="Ubah calon"
+          v-if="!detailLoading&&!detailError"><Button v-if="canWrite&&editable(detailTarget)" label="Ubah calon"
             severity="secondary" :disabled="busy" @click="openEdit(detailTarget)"><template #icon>
               <Icon name="pencil-simple" />
-            </template></Button><Button v-if="editable(detailTarget)" label="Hapus calon" severity="danger"
+            </template></Button><Button v-if="canWrite&&editable(detailTarget)" label="Hapus calon" severity="danger"
             text :disabled="busy" @click="remove(detailTarget)"><template #icon>
               <Icon name="trash" />
-            </template></Button><Button v-if="finalizable(detailTarget)" label="Finalisasi"
+            </template></Button><Button v-if="canWrite&&finalizable(detailTarget)" label="Finalisasi"
             severity="secondary" :disabled="busy" @click="openFinal(detailTarget)" /><Button
-            v-if="receivable(detailTarget)" label="Catat penerimaan" :disabled="busy"
+            v-if="canWrite&&receivable(detailTarget)" label="Catat penerimaan" :disabled="busy"
             @click="openPayment(detailTarget)"><template #icon>
               <Icon name="money" />
             </template></Button>

@@ -5130,6 +5130,9 @@ components:
         penanggung_jawab:
           type: integer
           nullable: true
+        penanggung_jawab_nama:
+          type: string
+          readOnly: true
         tanggal_mulai:
           type: string
           format: date
@@ -5162,6 +5165,7 @@ components:
       - akun_beban
       - id
       - nama
+      - penanggung_jawab_nama
       - periode_kode
       - rasio_utilisasi
       - realisasi
@@ -6062,6 +6066,9 @@ components:
         penanggung_jawab:
           type: integer
           nullable: true
+        penanggung_jawab_nama:
+          type: string
+          readOnly: true
         tanggal_mulai:
           type: string
           format: date
@@ -6244,8 +6251,11 @@ components:
         alamat:
           type: string
           nullable: true
+        status:
+          $ref: '#/components/schemas/PegawaiStatusEnum'
         status_aktif:
           type: boolean
+          readOnly: true
         tanggal_mulai_kerja:
           type: string
           format: date
@@ -6602,8 +6612,11 @@ components:
         alamat:
           type: string
           nullable: true
+        status:
+          $ref: '#/components/schemas/PegawaiStatusEnum'
         status_aktif:
           type: boolean
+          readOnly: true
         tanggal_mulai_kerja:
           type: string
           format: date
@@ -6618,6 +6631,17 @@ components:
       required:
       - id
       - nama
+      - status_aktif
+    PegawaiStatusEnum:
+      enum:
+      - aktif
+      - cuti
+      - nonaktif
+      type: string
+      description: |-
+        * `aktif` - Aktif
+        * `cuti` - Cuti
+        * `nonaktif` - Non-aktif
     PembayaranTagihan:
       type: object
       properties:

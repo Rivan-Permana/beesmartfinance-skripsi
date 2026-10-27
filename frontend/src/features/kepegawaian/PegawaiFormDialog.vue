@@ -5,17 +5,17 @@ import DatePicker from 'primevue/datepicker'
 import Dialog from 'primevue/dialog'
 import InputText from 'primevue/inputtext'
 import Textarea from 'primevue/textarea'
-import ToggleSwitch from 'primevue/toggleswitch'
 import Message from 'primevue/message'
 import { useConfirm } from 'primevue/useconfirm'
 import Icon from '@/shared/components/PhosphorIcon.vue'
 import { calendarTextMatches, formatLocalDate } from '@/core/format'
-import type { Pegawai, PegawaiInput } from '@/types/api'
+import type { Pegawai, PegawaiInput, PegawaiStatus } from '@/types/api'
+import { employeeStatuses } from './staff'
 const props = defineProps<{ row: Pegawai | null; saving: boolean; error: string; uncertain: boolean }>()
 const visible = defineModel<boolean>({ default: false })
 const emit = defineEmits<{ save: [payload: Partial<PegawaiInput>]; review: []; dirty: [value: boolean] }>()
 const confirm = useConfirm()
-const form = reactive({ nama: '', nip: '', jabatan: '', nomor_hp: '', alamat: '', status_aktif: true, mulai: null as Date | null, selesai: null as Date | null })
+const form = reactive({ nama: '', nip: '', jabatan: '', nomor_hp: '', alamat: '', status: 'aktif' as PegawaiStatus, mulai: null as Date | null, selesai: null as Date | null })
 const attempted = ref(false), badStart = ref(false), badEnd = ref(false), initial = ref(''), element = ref<HTMLFormElement | null>(null), errorElement = ref<HTMLElement | null>(null)
 const locked = computed(() => props.saving || props.uncertain)
 const invalidStart = computed(() => badStart.value || !!form.mulai && !Number.isFinite(form.mulai.getTime()))
@@ -26,7 +26,7 @@ watch(dirty, value => emit('dirty', value))
 watch(visible, open => {
   if (!open) return
   const row = props.row
-  Object.assign(form, { nama: row?.nama ?? '', nip: row?.nip ?? '', jabatan: row?.jabatan ?? '', nomor_hp: row?.nomor_hp ?? '', alamat: row?.alamat ?? '', status_aktif: row?.status_aktif ?? true, mulai: row?.tanggal_mulai_kerja ? new Date(row.tanggal_mulai_kerja+'T12:00:00') : null, selesai: row?.tanggal_selesai_kerja ? new Date(row.tanggal_selesai_kerja+'T12:00:00') : null })
+  Object.assign(form, { nama: row?.nama ?? '', nip: row?.nip ?? '', jabatan: row?.jabatan ?? '', nomor_hp: row?.nomor_hp ?? '', alamat: row?.alamat ?? '', status: row?.status ?? 'aktif', mulai: row?.tanggal_mulai_kerja ? new Date(row.tanggal_mulai_kerja+'T12:00:00') : null, selesai: row?.tanggal_selesai_kerja ? new Date(row.tanggal_selesai_kerja+'T12:00:00') : null })
   attempted.value = false; badStart.value = false; badEnd.value = false; initial.value = JSON.stringify(form)
 }, { immediate: true })
 watch(() => props.error, async error => { if (error) { await nextTick(); errorElement.value?.focus() } })
@@ -40,7 +40,7 @@ async function save() {
   if (locked.value) return
   attempted.value = true
   if (invalid.value) { await nextTick(); element.value?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus(); return }
-  emit('save', { nama: form.nama.trim(), nip: form.nip.trim() || null, jabatan: form.jabatan.trim() || null, nomor_hp: form.nomor_hp.trim() || null, alamat: form.alamat.trim() || null, status_aktif: form.status_aktif, tanggal_mulai_kerja: form.mulai ? formatLocalDate(form.mulai) : null, tanggal_selesai_kerja: form.selesai ? formatLocalDate(form.selesai) : null })
+  emit('save', { nama: form.nama.trim(), nip: form.nip.trim() || null, jabatan: form.jabatan.trim() || null, nomor_hp: form.nomor_hp.trim() || null, alamat: form.alamat.trim() || null, status: form.status, tanggal_mulai_kerja: form.mulai ? formatLocalDate(form.mulai) : null, tanggal_selesai_kerja: form.selesai ? formatLocalDate(form.selesai) : null })
 }
 </script>
 <template>
@@ -57,7 +57,7 @@ async function save() {
       <fieldset class="employee-form-section" :disabled="locked"><legend>Status dan masa kerja</legend><div class="employee-fields">
         <div class="employee-field"><label for="staff-start">Mulai kerja</label><DatePicker :key="locked?'locked':'editable'" input-id="staff-start" v-model="form.mulai" show-button-bar date-format="dd/mm/yy" :disabled="locked" :invalid="attempted&&invalidStart" :input-props="{'aria-invalid':attempted&&invalidStart}" @input="dateInput($event,'mulai')" @update:model-value="badStart=false" fluid><template #previcon><Icon name="caret-left" /></template><template #nexticon><Icon name="caret-right" /></template></DatePicker><small v-if="attempted&&invalidStart" class="employee-field-error">Pilih tanggal mulai yang valid.</small></div>
         <div class="employee-field"><label for="staff-end">Selesai kerja</label><DatePicker :key="locked?'locked':'editable'" input-id="staff-end" v-model="form.selesai" show-button-bar date-format="dd/mm/yy" :disabled="locked" :invalid="attempted&&invalidEnd" :input-props="{'aria-invalid':attempted&&invalidEnd,'aria-describedby':'staff-end-help'}" @input="dateInput($event,'selesai')" @update:model-value="badEnd=false" fluid><template #previcon><Icon name="caret-left" /></template><template #nexticon><Icon name="caret-right" /></template></DatePicker><small id="staff-end-help" :class="{'employee-field-error':attempted&&invalidEnd}">{{ attempted&&invalidEnd?'Tanggal selesai harus valid dan tidak mendahului tanggal mulai.':'Kosongkan jika belum ada tanggal selesai.' }}</small></div>
-        <div class="staff-active employee-full"><div><label for="staff-active">Pegawai aktif</label><p class="employee-small-note">Pegawai nonaktif tidak masuk daftar absensi baru. Riwayat yang sudah dicatat tetap tersedia.</p></div><ToggleSwitch input-id="staff-active" v-model="form.status_aktif" :disabled="locked" /></div>
+        <div class="employee-field employee-full"><label id="staff-status-label">Status pegawai</label><div class="staff-status-options" role="radiogroup" aria-labelledby="staff-status-label" aria-describedby="staff-status-help"><button v-for="item in employeeStatuses" :key="item.value" type="button" role="radio" :aria-checked="form.status===item.value" :disabled="locked" @click="form.status=item.value"><Icon name="check" :style="{visibility:form.status===item.value?'visible':'hidden'}" />{{ item.label }}</button></div><small id="staff-status-help">Cuti dan Non-aktif tidak masuk daftar absensi harian baru. Pegawai Cuti tetap dapat dibuatkan slip gaji dan kasbon. Riwayat yang sudah dicatat tetap tersedia.</small></div>
       </div></fieldset>
       <div class="staff-account"><Icon name="user" /><div><strong>Akun aplikasi</strong><p>{{ row?.user ? 'Akun aplikasi sudah terhubung.' : 'Belum terhubung ke akun aplikasi.' }} Pengaitan akun dikelola oleh administrator; perubahan profil ini tidak mengubah akses akun.</p></div></div>
       <Message v-if="attempted&&invalid" severity="error" :closable="false">Periksa nama dan tanggal kerja sebelum menyimpan.</Message>

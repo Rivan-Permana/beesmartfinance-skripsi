@@ -12,6 +12,7 @@ const props = defineProps<{
     loading: boolean;
     error: string;
     filtered: boolean;
+    readonly?: boolean;
 }>();
 const emit = defineEmits<{
     detail: [
@@ -85,7 +86,7 @@ function level(row: PendaftaranSiswa) {
           <td><div class="admission-row-actions"><Button label="Rincian" :aria-label="`Rincian ${row.nama_calon}`" severity="secondary"
               @click="emit('detail',row)"><template #icon>
                 <Icon name="eye" />
-              </template></Button><template v-if="editable(row)"><Button :aria-label="`Ubah ${row.nama_calon}`" title="Ubah calon"
+              </template></Button><template v-if="!readonly&&editable(row)"><Button :aria-label="`Ubah ${row.nama_calon}`" title="Ubah calon"
               severity="secondary" text @click="emit('edit',row)"><template #icon>
                 <Icon name="pencil-simple" />
               </template></Button><Button :aria-label="`Hapus ${row.nama_calon}`" title="Hapus calon" severity="danger"
@@ -117,7 +118,7 @@ function level(row: PendaftaranSiswa) {
         </dl><div class="admission-row-actions"><Button label="Rincian" :aria-label="`Rincian ${row.nama_calon}`" severity="secondary"
           @click="emit('detail',row)"><template #icon>
             <Icon name="eye" />
-          </template></Button><template v-if="editable(row)"><Button label="Ubah" :aria-label="`Ubah ${row.nama_calon}`"
+          </template></Button><template v-if="!readonly&&editable(row)"><Button label="Ubah" :aria-label="`Ubah ${row.nama_calon}`"
           severity="secondary" text @click="emit('edit',row)"><template #icon>
             <Icon name="pencil-simple" />
           </template></Button><Button label="Hapus" :aria-label="`Hapus ${row.nama_calon}`" severity="danger" text

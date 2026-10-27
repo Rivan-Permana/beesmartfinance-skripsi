@@ -2,7 +2,7 @@
 
 Sumber: spreadsheet revisi per role dari pengguna (Google Sheets, 1 tab, 37 baris). Proyek tidak lagi terikat skripsi, jadi keputusan desain cukup mengikuti kebutuhan sekolah.
 
-Status: **Batch 1 selesai** di branch `codex/auto-deploy-fe-be` (belum di `main`/produksi). Batch 2 dan 3 menunggu keputusan pengguna.
+Status: **Batch 1 dan 2 selesai** di branch `codex/auto-deploy-fe-be` (belum di `main`/produksi). Batch 3 menunggu desain.
 
 ## Batch 1 — selesai
 
@@ -17,13 +17,25 @@ Status: **Batch 1 selesai** di branch `codex/auto-deploy-fe-be` (belum di `main`
 | Guru · Absensi Siswa | "Ya, dijemput" → "Ya" | Teks tersebut tidak ada di kode versi revamp (label kini "Jemput datang/pulang" berupa centang). Kemungkinan dilihat dari versi lama sebelum rilis 28/10. Perlu konfirmasi layar yang dimaksud. |
 | Admin TU · Jemputan | Harga per bulan → per 1 kali jalan | Sudah begitu di versi revamp: "Tarif / perjalanan", tagihan = (datang + pulang) × tarif. Tidak ada perubahan. |
 
-## Batch 2 — akses role dan aturan (tier 3, belum dikerjakan)
+## Batch 2 — akses role dan aturan (tier 3) — selesai di branch kerja
 
-- Menu per role mengikuti spreadsheet: Guru → Absensi Siswa; Kepsek → Data/Absensi Pegawai hanya-lihat; Anggaran + Kegiatan digabung menjadi "Anggaran Kegiatan" (Kepsek hanya-lihat); Keuangan → Data Siswa, Pendaftaran, Jurnal; Admin TU → Pemasukan/Pengeluaran.
-- Kasbon: diajukan Kepsek, dicairkan Keuangan; Keuangan tidak bisa mengajukan.
-- Kepsek membuat slip gaji.
-- Pengeluaran tanpa approval Kepsek, dengan aksi edit/hapus (POSTED dikoreksi lewat reversal).
-- Status pegawai Aktif / Cuti / Non-aktif (migrasi `status_aktif` → `status`).
+Disetujui pengguna dengan semua rekomendasi (keputusan 1–9). Belum di produksi; rilis menjalankan migrasi `operations.0016`.
+
+| Role | Perubahan |
+|---|---|
+| Kepala Sekolah | Menu baru: Pegawai (lihat), Absensi Pegawai (hanya tab rekap), Gaji (buat/ubah slip, tanpa posting), Kasbon (mengajukan). "Anggaran" dan "Kegiatan" digabung menjadi **Anggaran Kegiatan** (hanya lihat; tab Per kegiatan / Per akun). Tetap menyetujui/menolak jurnal dari Beranda. |
+| Staf Keuangan | Menu baru: Data siswa dan Pendaftaran (hanya lihat), Jurnal (semua sumber). Anggaran Kegiatan: membuat/mengubah kegiatan + Guru PJ. Kasbon: mengubah dan mencairkan, tidak bisa mengajukan. Gaji: tetap satu-satunya yang membuat jurnal gaji. |
+| Guru PIC | Absensi Siswa (isi dan ubah). Realisasi kegiatan tetap oleh Guru; Kepala Sekolah tidak lagi mencatat realisasi. |
+| Staf TU | Pemasukan/Pengeluaran: membuat draf jurnal; hanya draf buatan sendiri yang bisa diubah/dihapus; pencatatan ke buku besar oleh Keuangan. |
+| Semua | Status pegawai Aktif / Cuti / Non-aktif (`Pegawai.status`, migrasi `0016`; `status_aktif` tetap ada sebagai turunan). Cuti tidak masuk absensi harian, tetap bisa gaji/kasbon. |
+
+Pengeluaran tanpa approval Kepsek sudah berlaku sebelumnya (Keuangan "Catat ke buku besar"); jurnal POSTED tetap dikoreksi lewat jurnal pembalik oleh Kepala Sekolah (keputusan 5).
+
+**Pengecualian pemisahan tugas yang disetujui:** Kepala Sekolah mengajukan kasbon dan membuat slip gaji, lalu juga menyetujui jurnal pencairan/gaji yang dibuat Keuangan.
+
+Verifikasi: tes matriks akses `operations/test_role_access.py`; 27 skenario API di DB UAT (kasbon, gaji, absensi Guru, kegiatan + PJ, draf jurnal TU, status Cuti, akses baca); migrasi `0016` diterapkan, dibalik, dan diterapkan ulang di UAT (backup `~/Backups/beesmartfinance/bee_uat_browser_20261020-20261028-052134-before-0016.dump`). Data uji UAT: kegiatan dan jurnal berawalan `UAT-B2`, plus satu kasbon (draf pencairan) dan satu slip gaji November 2026 untuk pegawai pertama.
+
+**Belum:** `db_lebah_madu` lokal masih di `0015`, sehingga server demo :8000 dengan kode branch ini gagal pada endpoint pegawai sampai migrasi `0016` dijalankan (perlu izin + backup).
 
 ## Batch 3 — Data Siswa (tier 3, perlu desain)
 
