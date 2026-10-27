@@ -10,7 +10,7 @@ import { useToast } from 'primevue/usetoast';
 import Icon from '@/shared/components/PhosphorIcon.vue';
 import { friendlyError, notifySuccess } from '@/core/errors';
 import type { MenuKatering } from '@/types/api';
-import { formatTanggalId, menuKateringApi, weekdaysOfWeek, weekRange } from './api';
+import { formatTanggalId, menuKateringApi, weekdaysOfMonth, weekRange } from './api';
 const emit = defineEmits<{
     busy: [
         value: boolean
@@ -18,19 +18,28 @@ const emit = defineEmits<{
 }>();
 const toast = useToast(), confirm = useConfirm();
 const anchor = ref(new Date()), records = ref<MenuKatering[]>([]), loading = ref(false), error = ref(''), actionError = ref('');
-const dates = computed(() => weekdaysOfWeek(anchor.value));
-const BULAN_PENDEK = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-// Compact range ("19–23 Okt 2026"); the heading already says Senin–Jumat.
-const weekLabel = computed(() => {
-    const [from, to] = [new Date(dates.value[0]! + 'T00:00:00'), new Date(dates.value[4]! + 'T00:00:00')];
-    const day = (d: Date) => d.getDate(), month = (d: Date) => BULAN_PENDEK[d.getMonth()]!;
-    if (from.getFullYear() !== to.getFullYear())
-        return `${day(from)} ${month(from)} ${from.getFullYear()} – ${day(to)} ${month(to)} ${to.getFullYear()}`;
-    if (from.getMonth() !== to.getMonth())
-        return `${day(from)} ${month(from)} – ${day(to)} ${month(to)} ${to.getFullYear()}`;
-    return `${day(from)}–${day(to)} ${month(to)} ${to.getFullYear()}`;
-});
+const dates = computed(() => weekdaysOfMonth(anchor.value));
+const BULAN = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+const monthLabel = computed(() => `${BULAN[anchor.value.getMonth()]} ${anchor.value.getFullYear()}`);
 const rows = computed(() => dates.value.map(date => ({ date, menu: records.value.find(row => row.tanggal === date) })));
+const filled = computed(() => rows.value.filter(row => row.menu).length);
+// Rows are grouped per school week so a month of ~22 days stays scannable.
+const weeks = computed(() => {
+    const groups: { label: string; rows: typeof rows.value }[] = [];
+    let lastDay = 0;
+    for (const row of rows.value) {
+        const day = Number(row.date.slice(8));
+        if (!groups.length || day - lastDay > 1)
+            groups.push({ label: '', rows: [] });
+        groups[groups.length - 1]!.rows.push(row);
+        lastDay = day;
+    }
+    for (const group of groups) {
+        const from = Number(group.rows[0]!.date.slice(8)), to = Number(group.rows[group.rows.length - 1]!.date.slice(8));
+        group.label = `${from === to ? from : `${from}–${to}`} ${BULAN[anchor.value.getMonth()]}`;
+    }
+    return groups;
+});
 const visible = ref(false), saving = ref(false), editing = ref<number | null>(null), formError = ref(''), uncertain = ref(false);
 const form = reactive({ tanggal: '', keterangan: '' }), file = ref<File | null>(null), preview = ref<string | null>(null);
 let sequence = 0;
@@ -152,9 +161,7 @@ function remove(row: MenuKatering) {
         } });
 }
 function shift(delta: number) {
-    const next = new Date(anchor.value);
-    next.setDate(next.getDate() + delta * 7);
-    anchor.value = next;
+    anchor.value = new Date(anchor.value.getFullYear(), anchor.value.getMonth() + delta, 1);
 }
 watch(anchor, load);
 onMounted(load);
@@ -168,18 +175,18 @@ onBeforeUnmount(() => {
 <template>
 <section class="service-panel">
   <header class="service-heading">
-    <h2>Menu mingguan</h2>
-    <p>Atur menu Senin–Jumat. Keterangan, foto, atau keduanya dapat digunakan.</p>
+    <h2>Menu bulanan</h2>
+    <p>Atur menu setiap hari sekolah (Senin–Jumat) dalam satu bulan. Keterangan, foto, atau keduanya dapat digunakan.</p>
   </header>
   <div class="service-toolbar">
-    <div class="menu-week-controls"><Button aria-label="Minggu sebelumnya" severity="secondary"
+    <div class="menu-week-controls"><Button aria-label="Bulan sebelumnya" severity="secondary"
         :disabled="saving" @click="shift(-1)"><template #icon>
           <Icon name="caret-left" />
-        </template></Button><strong>{{ weekLabel }}</strong><Button aria-label="Minggu berikutnya"
+        </template></Button><strong>{{ monthLabel }}</strong><Button aria-label="Bulan berikutnya"
         severity="secondary" :disabled="saving" @click="shift(1)"><template #icon>
           <Icon name="caret-right" />
         </template></Button></div>
-    <div class="menu-week-controls"><Button label="Minggu ini" severity="secondary" :disabled="saving"
+    <div class="menu-week-controls"><Button label="Bulan ini" severity="secondary" :disabled="saving"
         @click="anchor=new Date()" /><Button label="Muat ulang menu" severity="secondary" text
         :disabled="saving||loading" @click="load"><template #icon>
           <Icon name="arrows-clockwise" />
@@ -190,15 +197,19 @@ onBeforeUnmount(() => {
   </div>
   <div v-if="loading" class="service-empty" role="status">
     <Icon name="arrows-clockwise" />
-    <p>Memuat menu minggu ini…</p>
+    <p>Memuat menu bulan ini…</p>
   </div>
   <div v-else-if="error" class="service-empty">
     <Icon name="warning-circle" />
     <h3>Menu belum dapat ditampilkan</h3>
     <p role="alert">{{ error }}</p><Button label="Coba muat menu" severity="secondary" @click="load" />
   </div>
-  <ol v-else class="menu-days">
-    <li v-for="row in rows" :key="row.date">
+  <template v-else>
+  <p class="menu-month-summary" role="status">{{ filled }} dari {{ rows.length }} hari sekolah sudah berisi menu.</p>
+  <section v-for="week in weeks" :key="week.label" class="menu-week" :aria-label="`Minggu ${week.label}`">
+  <h3 class="menu-week-label">{{ week.label }}</h3>
+  <ol class="menu-days">
+    <li v-for="row in week.rows" :key="row.date">
       <div class="menu-day-content"><small>{{ row.menu ? 'Menu tersedia' : 'Belum diisi' }}</small>
         <h3>{{ formatTanggalId(row.date) }}</h3>
         <p>
@@ -217,6 +228,8 @@ onBeforeUnmount(() => {
         :alt="`Foto menu ${formatTanggalId(row.date)}`" loading="lazy" />
     </li>
   </ol>
+  </section>
+  </template>
 </section>
 <Dialog :visible="visible" @update:visible="value=>{if(!saving)visible=value}"
   :header="editing?'Ubah menu':'Isi menu'" class="service-dialog" modal :closable="!saving"
@@ -263,6 +276,26 @@ onBeforeUnmount(() => {
   font-weight: 500;
   white-space: nowrap;
   text-align: center
+}
+
+.menu-month-summary {
+  margin: 0;
+  padding: var(--bee-space-3) var(--bee-space-5);
+  border-top: 1px solid var(--app-border);
+  font-size: var(--bee-type-ui);
+  color: var(--app-text-muted)
+}
+
+.menu-week-label {
+  margin: 0;
+  padding: var(--bee-space-3) var(--bee-space-5);
+  border-top: 1px solid var(--app-border);
+  background: var(--bee-color-surface-subtle);
+  font-size: var(--bee-type-caption);
+  font-weight: 600;
+  letter-spacing: .02em;
+  text-transform: uppercase;
+  color: var(--app-text-muted)
 }
 
 .menu-days {

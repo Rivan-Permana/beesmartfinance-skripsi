@@ -32,6 +32,10 @@ Menggantikan [state analysis 21 Oktober](./2026-10-21-state-analysis.md). Ini sn
 | Rilis produksi | Selesai 28/10 | [Checklist rilis](./2026-10-22-release-checklist.md): cek read-only 22/10 dan 28/10, lalu verifikasi pasca-deploy (login 200, endpoint baru ada, container berjalan, data utuh: 18 jurnal, 2 kasbon, 1 slip) |
 | Tes terakhir | Backend 127 OK; frontend 32 berkas / 132 tes; `vue-tsc` + build bersih | Dijalankan 22/10 setelah commit terakhir yang mengubah kode |
 
+## Revisi dari spreadsheet pengguna (28/10, setelah rilis)
+
+Pengguna mengirim 37 baris revisi per role. Batch 1 (Beranda filter Hari/Bulan/Periode + tampilan berwarna, Absensi Pegawai urut abjad + unduh Excel, Katering menu bulanan, aksi Ubah/Hapus Pendaftaran, jabatan otomatis di slip gaji) selesai di branch kerja, belum di produksi. Batch 2 (akses role, kasbon, pengeluaran tanpa approval, status Cuti) dan Batch 3 (diskon dan komponen biaya siswa) menunggu keputusan. Rincian: [revisi spreadsheet](./2026-10-28-revisi-spreadsheet.md). Proyek tidak lagi terikat skripsi.
+
 ## Belum dibuktikan atau masih terbuka
 
 1. **Smoke test produksi dengan akun asli belum dilakukan.** Verifikasi pasca-deploy hanya lewat HTTP status, schema, dan DB. Alur nyata (login tiap role, approve/tolak, bayar dan cetak kwitansi, slip gaji) belum dicoba di web online. Password produksi hanya ada di VPS (`/root/beesmartfinance-demo-accounts.json`) dan tidak boleh lewat chat.

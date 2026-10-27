@@ -46,7 +46,12 @@ defineProps<{
 .chart-panel__head, .chart-panel__title-wrap { display: flex; align-items: flex-start; gap: var(--bee-space-3); }
 .chart-panel__head { justify-content: space-between; margin-bottom: var(--bee-space-5); flex-wrap: wrap; }
 .chart-panel__title-wrap { min-width: 0; }
-.chart-panel__icon { color: var(--bee-color-muted); padding-top: 2px; }
+.chart-panel { --panel-ink: var(--bee-color-chart-ink); --panel-tint: var(--bee-color-neutral-tint); }
+.chart-panel.magenta { --panel-ink: var(--bee-color-brand); --panel-tint: var(--bee-color-brand-tint); }
+.chart-panel.orange { --panel-ink: var(--bee-color-warning); --panel-tint: var(--bee-color-warning-tint); }
+.chart-panel.green { --panel-ink: var(--bee-color-positive); --panel-tint: var(--bee-color-positive-tint); }
+.chart-panel.blue { --panel-ink: var(--bee-color-info); --panel-tint: var(--bee-color-info-tint); }
+.chart-panel__icon { display: grid; place-items: center; flex: none; width: 32px; height: 32px; border-radius: 10px; background: var(--panel-tint); color: var(--panel-ink); }
 .chart-panel__title { margin: 0; font-size: var(--bee-type-section); font-weight: 500; line-height: 1.3; color: var(--app-text); }
 .chart-panel__sub { margin: var(--bee-space-2) 0 0; font-size: var(--bee-type-caption); color: var(--app-text-muted); }
 .chart-panel__action :deep(.link) { color: var(--bee-color-brand); font-size: var(--bee-type-ui); }

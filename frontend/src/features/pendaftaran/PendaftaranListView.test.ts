@@ -17,6 +17,7 @@ import { pendaftaranSiswaApi } from './api';
 import { jenjangApi } from '@/features/absensi/api';
 import { coaApi } from '@/features/jurnal/api';
 import PendaftaranListView from './PendaftaranListView.vue';
+import PendaftaranFormDialog from './PendaftaranFormDialog.vue';
 const row: PendaftaranSiswa = { id: 1, nama_calon: 'Calon Uji', jenjang: null, tanggal_daftar: '2026-10-01', status: 'TRIAL', biaya_sitin: '750000.25', biaya_formulir: '100000.10', biaya_pendaftaran: '0.00', total_biaya: '850000.35', total_terbayar: '750000.25', sisa_biaya: '100000.10', perlu_rekonsiliasi: false, sitin_terbayar: true, formulir_terbayar: false, jurnal_sitin: 'sitin-journal', jurnal_pendaftaran: null, pembayaran: [], siswa: null };
 const global = { plugins: [[PrimeVue, { unstyled: true, locale: primevueLocale }], ToastService, ConfirmationService] };
 beforeEach(() => {
@@ -146,6 +147,23 @@ describe('admission local workspace', () => {
         await button(view, 'Muat ulang pendaftaran').trigger('click');
         await flushPromises();
         expect(view.get('.admission-table').text()).toContain('Calon Uji');
+        view.unmount();
+    });
+});
+
+describe('row-level edit and delete actions', () => {
+    it('shows Ubah/Hapus on rows still editable and hides them once a receipt exists', async () => {
+        const fresh = { ...row, id: 2, nama_calon: 'Calon Baru', jurnal_sitin: null, sitin_terbayar: false, total_terbayar: '0.00' };
+        vi.mocked(pendaftaranSiswaApi.listAll).mockResolvedValue([{ ...row }, fresh]);
+        vi.mocked(pendaftaranSiswaApi.remove).mockResolvedValue(undefined as never);
+        const view = await render();
+        expect(view.findAll('[aria-label="Ubah Calon Baru"]').length).toBeGreaterThan(0);
+        expect(view.findAll('[aria-label="Ubah Calon Uji"]')).toHaveLength(0);
+        await view.get('[aria-label="Ubah Calon Baru"]').trigger('click');
+        await flushPromises();
+        const form = view.findComponent(PendaftaranFormDialog);
+        expect(form.props('modelValue')).toBe(true);
+        expect(form.props('row')).toMatchObject({ id: 2 });
         view.unmount();
     });
 });

@@ -10,6 +10,8 @@ export type DashboardFilter = {
   tahun?: number
   bulan?: number
   tanggal?: string
+  /** ID periode akuntansi (tahun ajaran) */
+  periode?: number
 }
 
 export const dashboardApi = {
@@ -17,16 +19,16 @@ export const dashboardApi = {
     api
       .get<DashboardRingkasan>("/dashboard/ringkasan/", { params: filter })
       .then((r) => r.data),
-  prediksiKas: (tahun?: number) =>
+  prediksiKas: (scope?: number | { periode: number }) =>
     api
       .get<PrediksiKasRow[]>("/dashboard/prediksi-kas/", {
-        params: tahun ? { tahun } : {},
+        params: typeof scope === "number" ? { tahun: scope } : scope ?? {},
       })
       .then((r) => r.data),
-  labaRugiBulanan: (tahun?: number) =>
+  labaRugiBulanan: (scope?: number | { periode: number }) =>
     api
       .get<LabaRugiBulananResult>("/dashboard/laba-rugi-bulanan/", {
-        params: tahun ? { tahun } : {},
+        params: typeof scope === "number" ? { tahun: scope } : scope ?? {},
       })
       .then((r) => r.data),
   menuHariIni: (tanggal?: string) =>

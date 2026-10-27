@@ -182,6 +182,19 @@ export function weekdaysOfWeek(anchor: Date): string[] {
   })
 }
 
+/** Senin–Jumat dalam bulan yang berisi `anchor` */
+export function weekdaysOfMonth(anchor: Date): string[] {
+  const year = anchor.getFullYear(), month = anchor.getMonth()
+  const last = new Date(year, month + 1, 0).getDate()
+  const out: string[] = []
+  for (let day = 1; day <= last; day++) {
+    const weekday = new Date(year, month, day).getDay()
+    if (weekday >= 1 && weekday <= 5)
+      out.push(`${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`)
+  }
+  return out
+}
+
 export function weekRange(dates: string[]) {
   return { tanggal__gte: dates[0], tanggal__lte: dates[dates.length - 1] }
 }

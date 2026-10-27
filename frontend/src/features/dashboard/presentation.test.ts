@@ -17,3 +17,17 @@ describe("dashboard priorities and review eligibility", () => {
     expect(canReviewJurnal(pending, undefined)).toBe(false)
   })
 })
+
+describe("defaultPeriode", () => {
+  const rows = [
+    { id: 1, tgl_mulai: "2025-07-01", tgl_selesai: "2026-06-30" },
+    { id: 2, tgl_mulai: "2026-07-01", tgl_selesai: "2027-06-30" },
+  ]
+  it("chooses the school year containing today, else the latest", async () => {
+    const { defaultPeriode } = await import("./presentation")
+    expect(defaultPeriode(rows, "2026-10-28")?.id).toBe(2)
+    expect(defaultPeriode(rows, "2026-06-30")?.id).toBe(1)
+    expect(defaultPeriode(rows, "2030-01-01")?.id).toBe(2)
+    expect(defaultPeriode([], "2026-10-28")).toBeNull()
+  })
+})

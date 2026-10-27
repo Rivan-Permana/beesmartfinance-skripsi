@@ -328,7 +328,7 @@ onBeforeUnmount(() => {
       </Message>
     </div>
     <PendaftaranDirectory :rows="filtered" :names="names" :loading="loading" :error="error"
-      :filtered="!!query.trim()||!!status" @detail="detail" @retry="load" @clear="query='';status=null" />
+      :filtered="!!query.trim()||!!status" @detail="detail" @edit="openEdit" @remove="remove" @retry="load" @clear="query='';status=null" />
   </section>
   <PendaftaranFormDialog v-model="formOpen" :row="editing" :levels="levels" :levels-loading="levelsLoading"
     :levels-error="levelsError" :saving="saving" :error="formError" @save="save"

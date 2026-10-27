@@ -21,7 +21,7 @@ import { downloadCsv, jenjangApi, kelompokApi, kehadiranApi, monthDateRange } fr
 import type { Jenjang, Kelompok } from '@/types/api';
 import { buildKateringRekapFromRecords, kateringRekapToCsv, tarifKateringApi, type KateringRekapRow } from './api';
 import { legacyExportApi } from './legacyExport';
-import MenuMingguan from './MenuMingguan.vue';
+import MenuBulanan from './MenuBulanan.vue';
 import '@/shared/components/school-services.css';
 interface Scope {
     bulan: number;
@@ -156,7 +156,7 @@ onBeforeUnmount(() => {
 </script>
 <template>
 <PageLayout class="school-service-page" title="Katering"
-  subtitle="Periksa penggunaan, atur tarif bulanan, dan siapkan menu mingguan." :surface="false"><template
+  subtitle="Periksa penggunaan, atur tarif bulanan, dan siapkan menu bulanan." :surface="false"><template
     #actions>
     <RouterLink class="service-link" to="/absensi-siswa">
       <Icon name="calendar-blank" />Buka absensi
@@ -164,7 +164,7 @@ onBeforeUnmount(() => {
   </template>
   <nav class="service-nav" aria-label="Bagian katering"><button type="button" :aria-pressed="tab==='rekap'"
       :disabled="menuBusy" @click="tab='rekap'">Rekap katering</button><button type="button"
-      :aria-pressed="tab==='menu'" :disabled="saving" @click="tab='menu'">Menu mingguan</button></nav>
+      :aria-pressed="tab==='menu'" :disabled="saving" @click="tab='menu'">Menu bulanan</button></nav>
   <div v-if="tab==='rekap'" class="bee-subpage">
     <section class="service-panel">
       <header class="service-heading">
@@ -257,7 +257,7 @@ onBeforeUnmount(() => {
         layar.</p>
     </section>
   </div>
-  <div v-else class="bee-subpage"><MenuMingguan @busy="menuBusy=$event" /></div>
+  <div v-else class="bee-subpage"><MenuBulanan @busy="menuBusy=$event" /></div>
 </PageLayout>
 </template>
 <style scoped>

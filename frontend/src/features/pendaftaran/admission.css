@@ -307,3 +307,5 @@
     flex: 1 1 100%
   }
 }
+
+.admission-row-actions { display:flex;flex-wrap:wrap;align-items:center;gap:var(--bee-space-1); }

@@ -504,21 +504,26 @@ export interface DashboardRingkasan {
   anggaran: { pagu: string | number; realisasi: string | number }
   operasional?: DashboardOperasional
   periode_filter?: {
-    mode: "day" | "month" | "year"
+    mode: "day" | "month" | "year" | "period"
     tahun: number
     bulan: number | null
     tanggal: string | null
+    periode?: number | null
+    awal?: string
+    akhir?: string
     label: string
   }
 }
 
 export interface LabaRugiBulananRow {
+  tahun?: number
   bulan: number
   pendapatan: number
   beban: number
 }
 export interface LabaRugiBulananResult {
   tahun: number
+  periode?: string
   data: LabaRugiBulananRow[]
 }
 
