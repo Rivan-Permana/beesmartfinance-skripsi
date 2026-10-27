@@ -60,6 +60,10 @@ Dijalankan read-only (`default_transaction_read_only = on`) lewat SSH dengan VPN
 
 Kesimpulan: tidak ada temuan yang menghalangi merge dari sisi data dan migrasi.
 
+### Cek ulang — 28 Oktober 2026
+
+Semua hasil sama dengan 22 Oktober, kecuali kini ada 1 slip gaji berjurnal: `GJ-1-202610`, POSTED, dengan potongan kasbon Rp 0. Backfill `0015` hanya menandainya sebagai sudah diselesaikan tanpa mengubah saldo kasbon. Kasbon #2 masih belum dicairkan. Belum ada periode CLOSED. Versi ter-deploy tetap `045bfdd`, migrasi di `0013`, dan backup terakhir masih 15/10/2026. Kesimpulan tidak berubah.
+
 ## Rollback
 
 - Kode: revert merge commit di `main` lalu push. Poller akan men-deploy ulang (backend membuat dump baru lebih dulu).
