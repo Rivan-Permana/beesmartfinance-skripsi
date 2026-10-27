@@ -1,0 +1,27 @@
+.asset-register .employee-table td:first-child { max-width: 300px; }
+.asset-register .employee-table td:nth-child(2) { min-width: 170px; }
+.asset-register .employee-table .employee-number { min-width: 155px; }
+.asset-register .employee-table .employee-number small { text-align: end; font-variant-numeric: normal; }
+.asset-register .employee-table .employee-action-column { width: 130px; min-width: 130px; }
+.asset-register .asset-money { font-variant-numeric: tabular-nums; font-weight: 500; color: var(--app-text); }
+.asset-register .employee-table time { white-space: nowrap; }
+.asset-detail-dialog .employee-detail-heading { margin-bottom: var(--bee-space-4); }
+.asset-detail-dialog .employee-detail-list { margin: 0; }
+.asset-detail-dialog .employee-detail-list dd { max-width: 65%; }
+.asset-account-title { font-size: var(--bee-type-body); font-weight: 600; margin: var(--bee-space-5) 0 0; }
+.asset-account-list dd { text-align: end; }
+.asset-detail-dialog .p-dialog-footer { flex-wrap: wrap; }
+.asset-form-dialog .employee-form-section:first-child { border-top: 0; padding-top: 0; }
+.asset-form-dialog form { gap: var(--bee-space-4); }
+.asset-form-dialog .employee-preview { margin-top: var(--bee-space-4); }
+.asset-cards dd { font-variant-numeric: tabular-nums; }
+@container employee-panel (max-width: 900px) { .asset-register .employee-table { display: none; } .asset-register .employee-cards { display: block; } }
+@media (max-width: 520px) {
+  .asset-detail-dialog .employee-detail-list>div { align-items: start; }
+  .asset-detail-dialog .employee-detail-list dd { max-width: 100%; text-align: start; }
+  .asset-detail-dialog .p-dialog-footer { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .asset-detail-dialog .p-dialog-footer .p-button { min-width: 0; }
+  .asset-detail-dialog .p-dialog-footer .p-button:last-child { grid-column: 1 / -1; }
+  .asset-form-dialog .p-dialog-footer { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .asset-form-dialog .p-dialog-footer .p-button { min-width: 0; }
+}

@@ -2,7 +2,8 @@ import { api } from "@/core/api"
 import type { BayarPendaftaranInput, Paginated, PendaftaranSiswa, PendaftaranSiswaInput } from "@/types/api"
 
 export const pendaftaranSiswaApi = {
-  list: (params?: { status?: string; page?: number }) =>
+  get: (id: number) => api.get<PendaftaranSiswa>(`/pendaftaran-siswa/${id}/`).then(r => r.data),
+  list: (params?: { status?: string; page?: number; page_size?: number }) =>
     api
       .get<Paginated<PendaftaranSiswa>>("/pendaftaran-siswa/", { params })
       .then((r) => r.data),
@@ -11,7 +12,7 @@ export const pendaftaranSiswaApi = {
     let page = 1
     let hasNext = true
     while (hasNext) {
-      const data = await pendaftaranSiswaApi.list({ page })
+      const data = await pendaftaranSiswaApi.list({ page_size: 200, page })
       results.push(...data.results)
       hasNext = !!data.next
       page += 1

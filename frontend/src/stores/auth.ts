@@ -35,8 +35,9 @@ export const useAuthStore = defineStore("auth", {
       if (tokenStore.access) {
         try {
           await this.fetchMe()
-        } catch {
-          tokenStore.clear()
+        } catch (e: any) {
+          // Only a rejected session ends it; rate limits, server or network errors keep the tokens for a retry.
+          if (e?.response?.status === 401) tokenStore.clear()
         }
       }
       this.ready = true

@@ -35,10 +35,17 @@ async function submit() {
     }
     await router.push(roleHome(auth.roles))
   } catch (e: any) {
-    error.value =
-      e?.response?.status === 401
-        ? "Username atau password salah."
-        : "Gagal masuk. Coba lagi."
+    const status = e?.response?.status
+    if (status === 401) error.value = "Username atau password salah."
+    else if (status === 429) {
+      // Two limits answer 429: login attempts per address (token request) and the daily request quota per account (later requests).
+      const wait = Number(e.response.headers?.["retry-after"])
+      const when = Number.isFinite(wait) && wait > 0 ? (wait > 3600 ? `sekitar ${Math.ceil(wait / 3600)} jam lagi` : `dalam ${Math.ceil(wait)} detik`) : "sebentar lagi"
+      error.value = String(e.config?.url ?? "").includes("auth/token")
+        ? `Terlalu banyak percobaan masuk dari perangkat ini. Coba lagi ${when}.`
+        : `Akun ini sudah mencapai batas permintaan harian. Coba lagi ${when} atau hubungi admin.`
+    }
+    else error.value = "Gagal masuk. Coba lagi."
   } finally {
     loading.value = false
   }

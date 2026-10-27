@@ -82,6 +82,7 @@ def import_kafalah_payroll(
                     "tenor_bulan": max(1, int((jumlah / angsuran).to_integral_value()) if angsuran else 1),
                     "angsuran_per_bulan": angsuran,
                     "sudah_terbayar": max(jumlah - prow.sisa_balance, Decimal(0)),
+                    "is_legacy": True,
                 },
             )
             stats["pinjaman_upserted"] += 1

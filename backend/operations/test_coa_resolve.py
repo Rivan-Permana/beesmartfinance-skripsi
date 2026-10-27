@@ -65,6 +65,21 @@ class CoaResolveTests(TestCase):
         self.assertEqual(kode, "114")
         self.assertTrue(MsCoa.objects.filter(kode_akun="114").exists())
 
+    def test_legacy_1103_perlengkapan_tidak_dipakai_untuk_kasbon(self):
+        sub = MsSubGolongan.objects.get(kode_sub="11")
+        MsCoa.objects.create(
+            kode_akun="1103", sub_golongan=sub, nama_akun="Perlengkapan Sekolah", posisi_normal="D",
+        )
+        MsPostingRule.objects.create(
+            event_code="SISTEM", komponen="PIUTANG_KARYAWAN",
+            akun_debit_id="111", akun_kredit_id="1103", aktif=True,
+        )
+
+        self.assertEqual(resolve_system_account("PIUTANG_KARYAWAN"), "114")
+        seed_system_posting_rules()
+        rule = MsPostingRule.objects.get(event_code="SISTEM", komponen="PIUTANG_KARYAWAN")
+        self.assertEqual(rule.akun_kredit_id, "114")
+
     def test_resolve_system_account_coa_final(self):
         seed_system_posting_rules()
         self.assertIn(resolve_system_account("KAS"), ("111", "112"))

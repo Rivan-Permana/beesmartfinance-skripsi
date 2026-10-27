@@ -9,7 +9,8 @@ export const siswaApi = {
     let page = 1
     let hasNext = true
     while (hasNext) {
-      const data = await siswaApi.list({ ...params, page })
+      // 200 per request: a whole group or the full roster loads in one round trip.
+      const data = await siswaApi.list({ page_size: 200, ...params, page })
       out.push(...data.results)
       hasNext = !!data.next
       page += 1

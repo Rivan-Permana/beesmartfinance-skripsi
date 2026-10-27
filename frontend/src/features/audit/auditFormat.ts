@@ -37,7 +37,16 @@ export const AUDIT_FIELD_LABEL: Record<string, string> = {
   submitted_at: "Waktu pengajuan",
   kode_akun: "Kode akun",
   nama_akun: "Nama akun",
+  kode_golongan: "Kode golongan",
+  nama_golongan: "Nama golongan",
+  kode_sub: "Kode subgolongan",
+  nama_sub: "Nama subgolongan",
+  sub_golongan_id: "Subgolongan",
+  golongan_id: "Golongan",
   posisi_normal: "Posisi normal",
+  is_active: "Akun aktif",
+  saldo_awal: "Saldo awal",
+  tanggal_saldo_awal: "Tanggal saldo awal",
   debit: "Debit",
   kredit: "Kredit",
   pagu: "Pagu anggaran",
@@ -45,6 +54,10 @@ export const AUDIT_FIELD_LABEL: Record<string, string> = {
   tahun: "Tahun",
   bulan: "Bulan",
   nominal: "Nominal",
+  nominal_anggaran: "Pagu",
+  tahun_anggaran: "Tahun anggaran",
+  carry_over: "Carry-over ditandai",
+  periode_id: "Periode",
   is_deleted: "Dihapus (soft delete)",
   created_by_id: "Dibuat oleh",
   approved_by_id: "Disetujui oleh",
@@ -97,6 +110,7 @@ const HIDDEN_AUDIT_FIELDS = new Set([
 ])
 
 const ISO_DATETIME = /^\d{4}-\d{2}-\d{2}T/
+const MONEY_FIELDS = new Set(["saldo_awal", "nominal_anggaran", "debit", "kredit", "pagu", "realisasi", "nominal"])
 
 export function auditFieldLabel(key: string) {
   return AUDIT_FIELD_LABEL[key] ?? key.replaceAll("_", " ")
@@ -129,6 +143,10 @@ export function formatAuditValue(
   if (key === "posisi_normal") {
     if (value === "D") return "Debit"
     if (value === "K") return "Kredit"
+  }
+  if (MONEY_FIELDS.has(key) && (typeof value === "string" || typeof value === "number")) {
+    const match = /^(-?\d+)(?:\.(\d{1,2}))?$/.exec(String(value))
+    if (match) return `Rp ${match[1]!.startsWith("-") ? "−" : ""}${BigInt(match[1]!.replace("-", "")).toLocaleString("id-ID")},${(match[2] ?? "").padEnd(2, "0")}`
   }
   if (typeof value === "boolean") return value ? "Ya" : "Tidak"
   if (typeof value === "string" && ISO_DATETIME.test(value)) {

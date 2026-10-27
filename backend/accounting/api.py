@@ -74,6 +74,11 @@ class MsPeriodeAkuntansiViewSet(viewsets.ModelViewSet):
     serializer_class = MsPeriodeAkuntansiSerializer
     permission_classes = [IsFinanceOrReadOnly]
 
+    def perform_destroy(self, instance):
+        if instance.status == "CLOSED":
+            raise ValidationError("Periode yang sudah ditutup tidak dapat dihapus.")
+        instance.delete()
+
     @action(detail=True, methods=["post"], permission_classes=[IsPrincipal])
     def tutup(self, request, pk=None):
         """Tutup buku (fiscal year closing) -> jurnal penutup + status CLOSED."""
@@ -82,6 +87,7 @@ class MsPeriodeAkuntansiViewSet(viewsets.ModelViewSet):
             jurnal = close_period(periode, user=request.user)
         except ValueError as exc:
             raise ValidationError(str(exc))
+        periode.refresh_from_db()
         return Response({
             "detail": f"Periode {periode.kode} berhasil ditutup; jurnal penutup dibuat.",
             "periode": self.get_serializer(periode).data,
@@ -102,6 +108,10 @@ class JurnalPagination(PageNumberPagination):
 
 
 class BatalPenerimaanInputSerializer(serializers.Serializer):
+    alasan = serializers.CharField(max_length=500)
+
+
+class TolakJurnalInputSerializer(serializers.Serializer):
     alasan = serializers.CharField(max_length=500)
 
 
@@ -131,7 +141,7 @@ class TrJurnalViewSet(viewsets.ModelViewSet):
         # Finance: buat/ubah draft, submit, hapus draft. Principal: approve, void.
         if self.action in ("create", "update", "partial_update", "submit", "destroy", "catat", "batal_penerimaan"):
             return [IsFinance()]
-        if self.action in ("approve", "void"):
+        if self.action in ("approve", "void", "tolak"):
             return [IsPrincipal()]
         return [IsAuthenticated()]
 
@@ -187,6 +197,23 @@ class TrJurnalViewSet(viewsets.ModelViewSet):
             raise ValidationError(humanize_db_error(msg))
         return Response(self.get_serializer(jurnal).data, status=status.HTTP_200_OK)
 
+    @extend_schema(request=TolakJurnalInputSerializer)
+    @action(detail=True, methods=["post"])
+    def tolak(self, request, pk=None):
+        """PENDING -> DRAFT (checker mengembalikan ke pembuat dengan alasan)."""
+        payload = TolakJurnalInputSerializer(data=request.data)
+        payload.is_valid(raise_exception=True)
+        with transaction.atomic(), audit_user(request.user):
+            jurnal = TrJurnal.objects.select_for_update().get(pk=self.get_object().pk)
+            if jurnal.status != "PENDING":
+                raise ValidationError("Hanya jurnal PENDING yang bisa ditolak.")
+            if jurnal.created_by_id == request.user.id:
+                raise PermissionDenied("Penolak tidak boleh sama dengan pembuat (SoD).")
+            jurnal.status = "DRAFT"
+            jurnal.keterangan = f"{jurnal.keterangan or ''}\nDitolak Kepala Sekolah: {payload.validated_data['alasan']}".strip()
+            jurnal.save(update_fields=["status", "keterangan"])
+        return Response(self.get_serializer(self.get_object()).data)
+
     @extend_schema(request=None)
     @action(detail=True, methods=["post"])
     def catat(self, request, pk=None):
@@ -205,7 +232,10 @@ class TrJurnalViewSet(viewsets.ModelViewSet):
         payload.is_valid(raise_exception=True)
         try:
             target = self.get_object()
-            if target.tipe_sumber in {"AUTO_PENDAFTARAN", "AUTO_SITIN"}:
+            if target.tipe_sumber in {"AUTO_PAYROLL", "AUTO_KASBON"}:
+                from operations.services.payroll import batalkan_draf_kepegawaian
+                jurnal = batalkan_draf_kepegawaian(target, request.user, payload.validated_data["alasan"])
+            elif target.tipe_sumber in {"AUTO_PENDAFTARAN", "AUTO_SITIN"}:
                 from operations.services.registration import batalkan_penerimaan_pendaftaran
                 jurnal = batalkan_penerimaan_pendaftaran(target, request.user, payload.validated_data["alasan"])
             else:

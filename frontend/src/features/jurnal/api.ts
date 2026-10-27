@@ -2,6 +2,7 @@ import { api } from "@/core/api"
 import type { Coa, Jurnal, JurnalInput, Paginated } from "@/types/api"
 
 export const jurnalApi = {
+  get: (id: string) => api.get<Jurnal>(`/jurnal/${id}/`).then((r) => r.data),
   list: (params?: Record<string, unknown>) =>
     api.get<Paginated<Jurnal>>("/jurnal/", { params }).then((r) => r.data),
   create: (payload: JurnalInput) =>
@@ -13,6 +14,8 @@ export const jurnalApi = {
     api.post<Jurnal>(`/jurnal/${id}/submit/`).then((r) => r.data),
   approve: (id: string) =>
     api.post<Jurnal>(`/jurnal/${id}/approve/`).then((r) => r.data),
+  tolak: (id: string, alasan: string) =>
+    api.post<Jurnal>(`/jurnal/${id}/tolak/`, { alasan }).then((r) => r.data),
   catat: (id: string) =>
     api.post<Jurnal>(`/jurnal/${id}/catat/`).then((r) => r.data),
   batalPenerimaan: (id: string, alasan: string) =>
@@ -27,7 +30,7 @@ export const coaApi = {
     let hasNext = true
     while (hasNext) {
       const { data } = await api.get<Paginated<Coa>>("/coa/", {
-        params: { page },
+        params: { page_size: 200, page },
       })
       out.push(...data.results)
       hasNext = !!data.next

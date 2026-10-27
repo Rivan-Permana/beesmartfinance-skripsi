@@ -1,0 +1,380 @@
+.school-service-page .service-panel {
+  container: service-panel / inline-size;
+  min-width: 0;
+  background: var(--app-surface);
+  border: 1px solid var(--app-border);
+  border-radius: var(--bee-radius-panel);
+  margin-bottom: var(--bee-space-5)
+}
+
+.school-service-page .service-heading {
+  padding: var(--bee-space-5)
+}
+
+.school-service-page .service-heading h2 {
+  font-size: var(--bee-type-section);
+  margin: 0;
+  font-weight: 600
+}
+
+.school-service-page .service-heading p {
+  font-size: var(--bee-type-ui);
+  color: var(--app-text-muted);
+  margin: var(--bee-space-2) 0 0;
+  max-width: 85ch
+}
+
+/* Same underline tabs as Kelompok and Absensi pegawai. */
+.school-service-page .service-nav {
+  display: flex;
+  gap: var(--bee-space-1);
+  overflow-x: auto;
+  background: var(--app-surface);
+  border-bottom: 1px solid var(--app-border);
+  margin-bottom: var(--bee-space-5)
+}
+
+.school-service-page .service-nav button {
+  flex: 0 0 auto;
+  min-height: 44px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: var(--app-text-muted);
+  font: inherit;
+  font-size: var(--bee-type-ui);
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+  padding: var(--bee-space-3) var(--bee-space-4);
+  transition: color var(--bee-motion-overlay) var(--bee-motion-ease-out), border-color var(--bee-motion-overlay) var(--bee-motion-ease-out)
+}
+
+.school-service-page .service-nav button:hover {
+  color: var(--app-text)
+}
+
+.school-service-page .service-nav button[aria-pressed=true] {
+  color: var(--bee-color-brand);
+  border-bottom-color: var(--bee-color-brand)
+}
+
+.school-service-page .service-controls,
+.school-service-page .service-toolbar {
+  display: flex;
+  align-items: end;
+  gap: var(--bee-space-4);
+  flex-wrap: wrap;
+  padding: 0 var(--bee-space-5) var(--bee-space-5)
+}
+
+.school-service-page .service-toolbar {
+  align-items: center;
+  justify-content: space-between
+}
+
+/* With a labelled field, buttons must line up with the input, not the label + input block. */
+.school-service-page .service-toolbar:has(> .service-field) {
+  align-items: end
+}
+
+.school-service-page .service-field,
+.service-dialog .service-field {
+  display: grid;
+  gap: var(--bee-space-2);
+  min-width: 0;
+  flex: 1 1 160px
+}
+
+.school-service-page .service-field>label,
+.service-dialog label {
+  font-size: var(--bee-type-caption);
+  font-weight: 500
+}
+
+.school-service-page .service-field>.p-select,
+.school-service-page .p-inputnumber {
+  width: 100%
+}
+
+.school-service-page .service-note {
+  font-size: var(--bee-type-caption);
+  color: var(--app-text-muted);
+  margin: 0;
+  padding: 0 var(--bee-space-5) var(--bee-space-4);
+  max-width: 100ch
+}
+
+.school-service-page .service-notice {
+  display: grid;
+  justify-items: start;
+  gap: var(--bee-space-3);
+  padding: 0 var(--bee-space-5) var(--bee-space-4)
+}
+
+.school-service-page .service-empty {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+  gap: var(--bee-space-3);
+  padding: var(--bee-space-7) var(--bee-space-5)
+}
+
+.school-service-page .service-empty>.bee-icon {
+  width: 32px;
+  height: 32px;
+  color: var(--app-text-muted)
+}
+
+.school-service-page .service-empty h3 {
+  font-size: var(--bee-type-section);
+  font-weight: 500;
+  margin: 0
+}
+
+.school-service-page .service-empty p {
+  color: var(--app-text-muted);
+  max-width: 60ch;
+  margin: 0
+}
+
+.school-service-page .service-total,
+.school-service-page .service-result-count {
+  padding: var(--bee-space-4) var(--bee-space-5);
+  border-top: 1px solid var(--app-border)
+}
+
+.school-service-page .service-result-count {
+  color: var(--app-text-muted);
+  font-size: var(--bee-type-caption)
+}
+
+.school-service-page .service-total {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--bee-space-4);
+  flex-wrap: wrap;
+  background: var(--bee-color-surface-subtle)
+}
+
+.school-service-page .service-total strong {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums
+}
+
+/* Header shortcut uses the outlined secondary style other pages use for "Buka rekap". */
+.school-service-page .service-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--bee-space-2);
+  min-height: 44px;
+  padding: var(--bee-space-2) var(--bee-space-4);
+  border: 1px solid var(--bee-color-control-border);
+  border-radius: var(--bee-radius-control);
+  background: var(--app-surface);
+  color: var(--app-text);
+  font-size: var(--bee-type-ui);
+  font-weight: 500;
+  text-decoration: none
+}
+
+.school-service-page .service-link:hover {
+  border-color: var(--app-text)
+}
+
+.service-dialog {
+  width: min(36rem, calc(100vw - 32px)) !important
+}
+
+.service-dialog form,
+.service-dialog .service-form {
+  display: grid;
+  gap: var(--bee-space-5)
+}
+
+.service-dialog .service-form {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0
+}
+
+.service-dialog small {
+  font-size: var(--bee-type-caption);
+  color: var(--app-text-muted)
+}
+
+.service-dialog .service-error {
+  color: var(--bee-color-critical)
+}
+
+.service-dialog .p-dialog-footer {
+  border-top: 1px solid var(--app-border);
+  padding-top: var(--bee-space-4)
+}
+
+.service-dialog input[type=file] {
+  max-width: 100%;
+  min-height: 44px;
+  font: inherit;
+  font-size: var(--bee-type-ui)
+}
+
+.service-dialog input[type=file]::file-selector-button {
+  min-height: 44px;
+  background: var(--app-surface);
+  border: 1px solid var(--bee-color-control-border);
+  border-radius: var(--bee-radius-control);
+  font: inherit;
+  color: var(--app-text);
+  margin-right: var(--bee-space-3);
+  padding: var(--bee-space-2)
+}
+
+.service-dialog .service-preview {
+  width: 100%;
+  max-height: 220px;
+  object-fit: contain;
+  border-radius: var(--bee-radius-control)
+}
+
+.school-service-page .service-master-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: var(--bee-type-ui)
+}
+
+.school-service-page .service-master-table th:first-child { width: 38% }
+.school-service-page .service-master-table th:nth-child(2) { width: 30% }
+.school-service-page .service-master-table th:last-child { width: 9rem }
+
+.school-service-page .service-master-table th,
+.school-service-page .service-master-table td {
+  text-align: start;
+  padding: var(--bee-space-4) var(--bee-space-5);
+  border-bottom: 1px solid var(--app-border);
+  vertical-align: middle
+}
+
+.school-service-page .service-master-table thead {
+  background: var(--bee-color-surface-subtle);
+  color: var(--app-text-muted);
+  font-size: var(--bee-type-caption)
+}
+
+.school-service-page .service-master-table th {
+  font-weight: 500
+}
+
+.school-service-page .service-master-table small,
+.school-service-page .service-master-cards small {
+  display: block;
+  font-size: var(--bee-type-caption);
+  color: var(--app-text-muted);
+  margin-top: var(--bee-space-1)
+}
+
+.school-service-page .service-master-table th,
+.school-service-page .service-master-table td:not(.service-master-actions) {
+  overflow-wrap: anywhere
+}
+
+/* Actions and amounts sit on the right edge, matching the other directories. */
+.school-service-page .service-master-table th:last-child,
+.school-service-page .service-master-table .service-master-actions,
+.school-service-page .service-master-table .service-master-number {
+  text-align: end
+}
+
+.school-service-page .service-master-table .service-master-actions {
+  white-space: nowrap
+}
+
+.school-service-page .service-master-cards {
+  display: none;
+  list-style: none;
+  padding: 0;
+  margin: 0
+}
+
+.school-service-page .service-master-cards li {
+  padding: var(--bee-space-4);
+  border-bottom: 1px solid var(--app-border);
+  overflow-wrap: anywhere
+}
+
+.school-service-page .service-master-cards p {
+  font-size: var(--bee-type-ui);
+  margin: var(--bee-space-3) 0;
+  color: var(--app-text-muted)
+}
+
+.school-service-page .service-master-cards strong {
+  font-weight: 500
+}
+
+@container service-panel (max-width:750px) {
+  .school-service-page .service-master-table {
+    display: none
+  }
+
+  .school-service-page .service-master-cards {
+    display: block
+  }
+}
+
+@container service-panel (max-width:600px) {
+  .school-service-page .service-heading {
+    padding: var(--bee-space-4)
+  }
+
+  .school-service-page .service-controls,
+  .school-service-page .service-toolbar {
+    padding-inline: var(--bee-space-4);
+    gap: var(--bee-space-4)
+  }
+
+  .school-service-page .service-field {
+    flex-basis: 100%
+  }
+
+  .school-service-page .service-controls>.p-button {
+    width: 100%
+  }
+
+  .school-service-page .service-note,
+  .school-service-page .service-notice {
+    padding-inline: var(--bee-space-4)
+  }
+
+  .school-service-page .service-toolbar>.service-field {
+    flex-basis: 100%
+  }
+
+  /* Stacked toolbar actions share the field's full width instead of leaving a ragged edge. */
+  .school-service-page .service-toolbar:has(> .service-field)>:not(.service-field) {
+    width: 100%
+  }
+
+  .school-service-page .service-toolbar:has(> .service-field)>:not(.service-field)>* {
+    flex: 1 1 100%
+  }
+}
+
+.school-service-page .service-caption {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0
+}
+
+.school-service-page .service-card-total {
+  flex-wrap: wrap
+}

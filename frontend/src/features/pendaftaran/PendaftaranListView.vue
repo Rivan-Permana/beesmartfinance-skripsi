@@ -1,614 +1,455 @@
 <script setup lang="ts">
-import Button from "primevue/button"
-import Column from "primevue/column"
-import Checkbox from "primevue/checkbox"
-import DataTable from "primevue/datatable"
-import DatePicker from "primevue/datepicker"
-import Dialog from "primevue/dialog"
-import InputNumber from "primevue/inputnumber"
-import InputText from "primevue/inputtext"
-import Message from "primevue/message"
-import Select from "primevue/select"
-import Tag from "primevue/tag"
-import { useConfirm } from "primevue/useconfirm"
-import { useToast } from "primevue/usetoast"
-import { computed, onMounted, reactive, ref } from "vue"
-import { useRouter } from "vue-router"
-
-import { pendaftaranSiswaApi } from "./api"
-import { jenjangApi } from "@/features/absensi/api"
-import { coaApi } from "@/features/jurnal/api"
-import { formatRp } from "@/core/format"
-import { notifyError, notifySuccess } from "@/core/errors"
-import EmptyState from "@/shared/components/EmptyState.vue"
-import PageLayout from "@/shared/components/PageLayout.vue"
-import SearchField from "@/shared/components/SearchField.vue"
-import { useTableSearch } from "@/shared/composables/useTableSearch"
-import type { Coa, Jenjang, PendaftaranSiswa, PendaftaranSiswaStatus } from "@/types/api"
-
-const toast = useToast()
-const confirm = useConfirm()
-const router = useRouter()
-
-const rows = ref<PendaftaranSiswa[]>([])
-const jenjangList = ref<Jenjang[]>([])
-const loading = ref(false)
-const filterStatus = ref<PendaftaranSiswaStatus | null>(null)
-
-const STATUS_OPTIONS = [
-  { label: "Semua status", value: null as PendaftaranSiswaStatus | null },
-  { label: "Sit-in / Trial", value: "TRIAL" as const },
-  { label: "Terdaftar", value: "REGISTERED" as const },
-  { label: "Batal", value: "BATAL" as const },
-]
-
-const statusLabel: Record<PendaftaranSiswaStatus, string> = {
-  TRIAL: "Sit-in / Trial",
-  REGISTERED: "Terdaftar",
-  BATAL: "Batal",
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { onBeforeRouteLeave, RouterLink } from 'vue-router';
+import Button from 'primevue/button';
+import Dialog from 'primevue/dialog';
+import InputNumber from 'primevue/inputnumber';
+import Select from 'primevue/select';
+import Tag from 'primevue/tag';
+import Message from 'primevue/message';
+import { useConfirm } from 'primevue/useconfirm';
+import { useToast } from 'primevue/usetoast';
+import PageLayout from '@/shared/components/PageLayout.vue';
+import SearchField from '@/shared/components/SearchField.vue';
+import Icon from '@/shared/components/PhosphorIcon.vue';
+import { useTableSearch } from '@/shared/composables/useTableSearch';
+import { friendlyError, notifySuccess } from '@/core/errors';
+import { jenjangApi } from '@/features/absensi/api';
+import { coaApi } from '@/features/jurnal/api';
+import type { BayarPendaftaranInput, Coa, Jenjang, PendaftaranSiswa, PendaftaranSiswaInput, PendaftaranSiswaStatus } from '@/types/api';
+import { pendaftaranSiswaApi } from './api';
+import { cents, components, dateLabel, editable, finalizable, journalLabels, money, receivable, statusLabels, statusOptions, statusSeverity } from './presentation';
+import PendaftaranDirectory from './PendaftaranDirectory.vue';
+import PendaftaranFormDialog from './PendaftaranFormDialog.vue';
+import PendaftaranPaymentDialog from './PendaftaranPaymentDialog.vue';
+import './admission.css';
+const toast = useToast(), confirm = useConfirm();
+const rows = ref<PendaftaranSiswa[]>([]), loading = ref(false), error = ref(''), actionError = ref('');
+const levels = ref<Jenjang[]>([]), levelsLoading = ref(false), levelsError = ref('');
+const names = computed(() => new Map(levels.value.map(row => [row.id, row.nama])));
+const status = ref<PendaftaranSiswaStatus | null>(null), scoped = computed(() => rows.value.filter(row => !status.value || row.status === status.value));
+const { query, filtered } = useTableSearch(scoped, row => [row.nama_calon, row.jenjang ? names.value.get(row.jenjang) ?? '' : '', statusLabels[row.status]]);
+const formOpen = ref(false), editing = ref<PendaftaranSiswa | null>(null), saving = ref(false), formError = ref(''), uncertainCreate = ref(false);
+const detailTarget = ref<PendaftaranSiswa | null>(null), detailLoading = ref(false), detailError = ref('');
+const paymentOpen = ref(false), paymentTarget = ref<PendaftaranSiswa | null>(null), paymentSaving = ref(false), paymentError = ref(''), paymentUncertain = ref(false), lastPayment = ref<BayarPendaftaranInput | null>(null);
+const accounts = ref<Coa[]>([]), accountsLoading = ref(false), accountsError = ref('');
+const finalOpen = ref(false), finalTarget = ref<PendaftaranSiswa | null>(null), finalSaving = ref(false), finalError = ref(''), spp = ref<number | null>(null), finalUncertain = ref(false), lastSpp = ref<string | null>(null);
+const deleting = ref(false), busy = computed(() => saving.value || paymentSaving.value || finalSaving.value || deleting.value);
+let listSequence = 0, detailSequence = 0, accountSequence = 0;
+function message(e: unknown, fallback: string) {
+    const result = friendlyError(e, fallback);
+    return [result.summary, result.detail].filter(Boolean).join('. ');
 }
-
-const statusSeverity: Record<PendaftaranSiswaStatus, string> = {
-  TRIAL: "warn",
-  REGISTERED: "success",
-  BATAL: "danger",
+function ambiguous(e: unknown) {
+    const status = (e as {
+        response?: {
+            status?: number;
+        };
+    })?.response?.status;
+    return !status || status >= 500;
 }
-
-const jenjangMap = computed(() => {
-  const m = new Map<number, string>()
-  jenjangList.value.forEach((j) => m.set(j.id, j.kode))
-  return m
-})
-
-const filteredRows = computed(() =>
-  filterStatus.value ? rows.value.filter((r) => r.status === filterStatus.value) : rows.value,
-)
-
-const { query: searchQuery, filtered: displayRows } = useTableSearch(filteredRows, (row) => [
-  row.nama_calon,
-  row.jenjang ? jenjangMap.value.get(row.jenjang) ?? String(row.jenjang) : "",
-  formatDate(row.tanggal_daftar),
-  formatRp(row.biaya_sitin),
-  formatRp(row.biaya_pendaftaran),
-  statusLabel[row.status],
-  row.jurnal_sitin ? "jurnal sit-in sudah" : "jurnal sit-in belum",
-  row.jurnal_pendaftaran ? "jurnal daftar sudah" : "jurnal daftar belum",
-])
-
-function toDateStr(d: Date | null): string {
-  if (!d) return ""
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, "0")
-  const day = String(d.getDate()).padStart(2, "0")
-  return `${y}-${m}-${day}`
+function upsert(row: PendaftaranSiswa) {
+    rows.value = [...rows.value.filter(item => item.id !== row.id), row].sort((a, b) => b.tanggal_daftar.localeCompare(a.tanggal_daftar) || a.id - b.id);
+    if (detailTarget.value?.id === row.id)
+        detailTarget.value = row;
 }
-
-function formatDate(iso: string) {
-  return new Date(iso + "T00:00:00").toLocaleDateString("id-ID", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  })
-}
-
 async function load() {
-  loading.value = true
-  try {
-    const [data, jenjangs] = await Promise.all([
-      pendaftaranSiswaApi.listAll(),
-      jenjangApi.list(),
-    ])
-    rows.value = data
-    jenjangList.value = jenjangs
-  } catch (e) {
-    notifyError(toast, e, "Gagal memuat pendaftaran siswa.")
-  } finally {
-    loading.value = false
-  }
+    const request = ++listSequence;
+    loading.value = true;
+    error.value = '';
+    rows.value = [];
+    try {
+        const data = await pendaftaranSiswaApi.listAll();
+        if (request === listSequence) {
+            rows.value = data;
+            uncertainCreate.value = false;
+        }
+    }
+    catch (e) {
+        if (request === listSequence)
+            error.value = message(e, 'Daftar pendaftaran belum berhasil dimuat');
+    }
+    finally {
+        if (request === listSequence)
+            loading.value = false;
+    }
 }
-
-// --- form CRUD ---
-const dialog = ref(false)
-const editingId = ref<number | null>(null)
-const saving = ref(false)
-const form = reactive({
-  nama_calon: "",
-  jenjang: null as number | null,
-  tanggal_daftar: new Date() as Date | null,
-  biaya_sitin: null as number | null,
-  biaya_formulir: null as number | null,
-})
-const formError = ref("")
-const editingRow = ref<PendaftaranSiswa | null>(null)
-const totalForm = computed(() => form.biaya_sitin === null || form.biaya_formulir === null ? null
-  : (Math.round(form.biaya_sitin * 100) + Math.round(form.biaya_formulir * 100)) / 100)
-
+async function loadLevels() {
+    levelsLoading.value = true;
+    levelsError.value = '';
+    try {
+        levels.value = await jenjangApi.listAll();
+    }
+    catch (e) {
+        levelsError.value = message(e, 'Jenjang belum berhasil dimuat');
+    }
+    finally {
+        levelsLoading.value = false;
+    }
+}
+async function detail(row: PendaftaranSiswa) {
+    const request = ++detailSequence;
+    detailTarget.value = row;
+    detailLoading.value = true;
+    detailError.value = '';
+    actionError.value = '';
+    try {
+        const fresh = await pendaftaranSiswaApi.get(row.id);
+        if (request === detailSequence)
+            upsert(fresh);
+    }
+    catch (e) {
+        if (request === detailSequence)
+            detailError.value = message(e, 'Rincian terbaru belum berhasil diperiksa');
+    }
+    finally {
+        if (request === detailSequence)
+            detailLoading.value = false;
+    }
+}
+function closeDetail() {
+    detailSequence++;
+    detailTarget.value = null;
+    detailLoading.value = false;
+}
 function openCreate() {
-  formError.value = ""
-  editingRow.value = null
-  editingId.value = null
-  Object.assign(form, {
-    nama_calon: "",
-    jenjang: jenjangList.value[0]?.id ?? null,
-    tanggal_daftar: new Date(),
-    biaya_sitin: null,
-    biaya_formulir: null,
-  })
-  dialog.value = true
+    formError.value = '';
+    editing.value = null;
+    formOpen.value = true;
 }
-
 function openEdit(row: PendaftaranSiswa) {
-  formError.value = ""
-  editingRow.value = row
-  editingId.value = row.id
-  Object.assign(form, {
-    nama_calon: row.nama_calon,
-    jenjang: row.jenjang,
-    tanggal_daftar: new Date(row.tanggal_daftar + "T00:00:00"),
-    biaya_sitin: Number(row.biaya_sitin),
-    biaya_formulir: row.biaya_formulir === null ? null : Number(row.biaya_formulir),
-  })
-  dialog.value = true
+    if (!editable(row))
+        return;
+    closeDetail();
+    editing.value = row;
+    formError.value = '';
+    formOpen.value = true;
 }
-
-async function save() {
-  if (saving.value) return
-  formError.value = ""
-  if (!form.nama_calon.trim() || !form.tanggal_daftar || form.biaya_sitin === null || form.biaya_formulir === null
-      || !Number.isFinite(form.biaya_sitin) || !Number.isFinite(form.biaya_formulir)
-      || form.biaya_sitin < 0 || form.biaya_formulir < 0) {
-    formError.value = "Isi nama, tanggal daftar, dan kedua komponen biaya. Isi 0 jika komponen memang tidak dikenakan."
-    return
-  }
-  saving.value = true
-  try {
-    const payload = {
-      nama_calon: form.nama_calon.trim(),
-      jenjang: form.jenjang,
-      tanggal_daftar: toDateStr(form.tanggal_daftar),
-      biaya_sitin: form.biaya_sitin.toFixed(2),
-      biaya_formulir: form.biaya_formulir.toFixed(2),
+async function save(payload: PendaftaranSiswaInput) {
+    if (saving.value)
+        return;
+    if (uncertainCreate.value && !editing.value) {
+        formError.value = 'Hasil penambahan sebelumnya belum pasti. Kembali, muat ulang daftar, dan periksa calon sebelum membuat lagi.';
+        return;
     }
-    if (editingId.value) {
-      await pendaftaranSiswaApi.update(editingId.value, payload)
-      notifySuccess(toast, "Pendaftaran diperbarui.")
-    } else {
-      await pendaftaranSiswaApi.create(payload)
-      notifySuccess(toast, "Calon siswa ditambahkan.", {
-        detail: "Status awal: Sit-in / Trial.",
-      })
+    saving.value = true;
+    formError.value = '';
+    try {
+        const result = editing.value ? await pendaftaranSiswaApi.update(editing.value.id, payload) : await pendaftaranSiswaApi.create(payload);
+        upsert(result);
+        formOpen.value = false;
+        notifySuccess(toast, 'Data calon tersimpan');
     }
-    dialog.value = false
-    await load()
-  } catch (e) {
-    notifyError(toast, e, "Gagal menyimpan pendaftaran.")
-  } finally {
-    saving.value = false
-  }
-}
-
-function confirmDelete(row: PendaftaranSiswa) {
-  confirm.require({
-    header: "Hapus pendaftaran?",
-    message: `Hapus data calon "${row.nama_calon}"?`,
-    acceptLabel: "Hapus",
-    rejectLabel: "Batal",
-    acceptClass: "p-button-danger",
-    accept: async () => {
-      try {
-        await pendaftaranSiswaApi.remove(row.id)
-        notifySuccess(toast, "Pendaftaran dihapus.")
-        await load()
-      } catch (e) {
-        notifyError(toast, e, "Gagal menghapus pendaftaran.")
-      }
-    },
-  })
-}
-
-const rincianTarget = ref<PendaftaranSiswa | null>(null)
-const bayarDialog = ref(false)
-const bayarTarget = ref<PendaftaranSiswa | null>(null)
-const bayarSaving = ref(false)
-const bayarError = ref("")
-const loadingKas = ref(false)
-const akunKas = ref<Coa[]>([])
-const bayarForm = reactive({ tanggal: new Date() as Date | null, no_bukti: "", akun_kas: null as string | null })
-const komponenBayar = ref<("FORMULIR" | "SITIN")[]>([])
-const opsiKomponen = computed(() => bayarTarget.value ? [
-  { kode: "FORMULIR" as const, label: "Formulir", nominal: Number(bayarTarget.value.biaya_formulir), dibayar: bayarTarget.value.formulir_terbayar },
-  { kode: "SITIN" as const, label: "Sit-in / observasi", nominal: Number(bayarTarget.value.biaya_sitin), dibayar: bayarTarget.value.sitin_terbayar },
-] : [])
-const totalBayar = computed(() => opsiKomponen.value.filter((o) => komponenBayar.value.includes(o.kode))
-  .reduce((total, o) => total + Math.round(o.nominal * 100), 0) / 100)
-
-async function openBayar(row: PendaftaranSiswa) {
-  bayarTarget.value = row
-  bayarError.value = ""
-  Object.assign(bayarForm, { tanggal: new Date(), no_bukti: "", akun_kas: null })
-  komponenBayar.value = opsiKomponen.value.filter((o) => !o.dibayar && o.nominal > 0).map((o) => o.kode)
-  bayarDialog.value = true
-  loadingKas.value = true
-  try {
-    akunKas.value = (await coaApi.list()).filter((a) => a.is_active && ["111", "112", "1011", "1101", "1102"].includes(a.kode_akun))
-  } catch (e) {
-    akunKas.value = []
-    notifyError(toast, e, "Gagal memuat Kas/Bank.")
-  } finally {
-    loadingKas.value = false
-  }
-}
-
-async function runBayar() {
-  if (!bayarTarget.value || bayarSaving.value) return
-  bayarError.value = ""
-  if (!bayarForm.tanggal || !bayarForm.no_bukti.trim() || !bayarForm.akun_kas || totalBayar.value <= 0) {
-    bayarError.value = "Pilih komponen, tanggal, nomor bukti, dan Kas/Bank penerimaan."
-    return
-  }
-  bayarSaving.value = true
-  try {
-    await pendaftaranSiswaApi.bayar(bayarTarget.value.id, {
-      komponen: [...komponenBayar.value], tanggal: toDateStr(bayarForm.tanggal), no_bukti: bayarForm.no_bukti.trim(),
-      akun_kas: bayarForm.akun_kas, nominal: totalBayar.value.toFixed(2),
-    })
-    notifySuccess(toast, "Penerimaan tersimpan; jurnal menunggu pencatatan Finance.")
-    bayarDialog.value = false
-    await load()
-  } catch (e) {
-    notifyError(toast, e, "Gagal mencatat penerimaan pendaftaran.")
-  } finally {
-    bayarSaving.value = false
-  }
-}
-
-// --- finalisasi ---
-const finalDialog = ref(false)
-const finalSaving = ref(false)
-const finalTarget = ref<PendaftaranSiswa | null>(null)
-const sppNominal = ref<number | null>(null)
-const finalError = ref("")
-
-function openFinalisasi(row: PendaftaranSiswa) {
-  finalTarget.value = row
-  sppNominal.value = null
-  finalError.value = ""
-  finalDialog.value = true
-}
-
-async function runFinalisasi() {
-  if (!finalTarget.value || finalSaving.value) return
-  finalError.value = ""
-  if (sppNominal.value === null || !Number.isFinite(sppNominal.value) || sppNominal.value < 0) {
-    finalError.value = "Isi nominal SPP bulanan yang disepakati. Isi 0 jika memang tidak dikenakan."
-    return
-  }
-  finalSaving.value = true
-  try {
-    const res = await pendaftaranSiswaApi.finalisasi(
-      finalTarget.value.id,
-      sppNominal.value.toFixed(2),
-    )
-    notifySuccess(toast, `${finalTarget.value.nama_calon} resmi terdaftar sebagai siswa.`, {
-      detail: "Finalisasi tidak mencatat penerimaan uang."
-    })
-    finalDialog.value = false
-    finalTarget.value = null
-    await load()
-    if (res.siswa) {
-      confirm.require({
-        header: "Lanjut ke data siswa?",
-        message: "Calon sudah jadi siswa aktif. Buka halaman Data Siswa untuk melengkapi profil?",
-        acceptLabel: "Buka Data Siswa",
-        rejectLabel: "Nanti",
-        accept: () => router.push("/siswa"),
-      })
+    catch (e) {
+        uncertainCreate.value = !editing.value && ambiguous(e);
+        formError.value = message(e, 'Data calon belum berhasil disimpan') + (uncertainCreate.value ? '. Kembali dan muat ulang daftar untuk memeriksa hasil sebelum menambah kembali.' : '');
     }
-  } catch (e) {
-    notifyError(toast, e, "Gagal finalisasi pendaftaran.")
-  } finally {
-    finalSaving.value = false
-  }
+    finally {
+        saving.value = false;
+    }
 }
-
-onMounted(load)
+function remove(row: PendaftaranSiswa) {
+    if (!editable(row))
+        return;
+    confirm.require({ header: 'Hapus pendaftaran?', message: `Data calon ${row.nama_calon} akan dihapus dari daftar. Tindakan hanya tersedia sebelum calon menjadi siswa dan memiliki riwayat penerimaan.`, acceptLabel: 'Hapus calon', rejectLabel: 'Kembali', acceptProps: { severity: 'danger' }, accept: async () => {
+            if (busy.value)
+                return;
+            deleting.value = true;
+            actionError.value = '';
+            try {
+                await pendaftaranSiswaApi.remove(row.id);
+                rows.value = rows.value.filter(item => item.id !== row.id);
+                closeDetail();
+                notifySuccess(toast, 'Data calon dihapus');
+            }
+            catch (e) {
+                actionError.value = message(e, 'Data calon belum berhasil dihapus') + '. Muat ulang rincian untuk memeriksa hasil.';
+            }
+            finally {
+                deleting.value = false;
+            }
+        } });
+}
+async function loadAccounts() {
+    const request = ++accountSequence;
+    accountsLoading.value = true;
+    accountsError.value = '';
+    accounts.value = [];
+    try {
+        const result = await coaApi.list();
+        if (request === accountSequence)
+            accounts.value = result.filter(row => row.is_active && ['111', '112', '1011', '1101', '1102'].includes(row.kode_akun));
+    }
+    catch (e) {
+        if (request === accountSequence)
+            accountsError.value = message(e, 'Kas/Bank belum berhasil dimuat');
+    }
+    finally {
+        if (request === accountSequence)
+            accountsLoading.value = false;
+    }
+}
+function openPayment(row: PendaftaranSiswa) {
+    if (!receivable(row))
+        return;
+    closeDetail();
+    paymentTarget.value = row;
+    paymentError.value = '';
+    paymentUncertain.value = false;
+    lastPayment.value = null;
+    paymentOpen.value = true;
+    void loadAccounts();
+}
+async function pay(payload: BayarPendaftaranInput) {
+    if (!paymentTarget.value || paymentSaving.value)
+        return;
+    paymentSaving.value = true;
+    paymentError.value = '';
+    lastPayment.value = { ...payload, komponen: [...payload.komponen] };
+    try {
+        const result = await pendaftaranSiswaApi.bayar(paymentTarget.value.id, payload);
+        upsert(result.pendaftaran);
+        paymentOpen.value = false;
+        paymentUncertain.value = false;
+        notifySuccess(toast, 'Penerimaan tersimpan', { detail: 'Jurnal menunggu pencatatan Finance.' });
+    }
+    catch (e) {
+        paymentUncertain.value = paymentUncertain.value || ambiguous(e);
+        paymentError.value = message(e, 'Penerimaan belum berhasil dikonfirmasi');
+    }
+    finally {
+        paymentSaving.value = false;
+    }
+}
+function retryPayment() {
+    if (paymentUncertain.value && lastPayment.value)
+        void pay(lastPayment.value);
+}
+function openFinal(row: PendaftaranSiswa) {
+    if (!finalizable(row))
+        return;
+    closeDetail();
+    finalTarget.value = row;
+    finalError.value = '';
+    spp.value = null;
+    lastSpp.value = null;
+    finalUncertain.value = false;
+    finalOpen.value = true;
+}
+async function finalize() {
+    if (!finalTarget.value || finalSaving.value)
+        return;
+    if (!finalUncertain.value && cents(spp.value) == null) {
+        finalError.value = 'Isi nominal SPP bulanan yang disepakati. Isi 0 jika memang tidak dikenakan.';
+        return;
+    }
+    finalSaving.value = true;
+    finalError.value = '';
+    const amount = finalUncertain.value ? lastSpp.value! : spp.value!.toFixed(2);
+    lastSpp.value = amount;
+    try {
+        const result = await pendaftaranSiswaApi.finalisasi(finalTarget.value.id, amount);
+        upsert(result);
+        finalOpen.value = false;
+        finalUncertain.value = false;
+        notifySuccess(toast, 'Calon resmi terdaftar', { detail: 'Finalisasi tidak mencatat penerimaan uang.' });
+        void detail(result);
+    }
+    catch (e) {
+        finalUncertain.value = finalUncertain.value || ambiguous(e);
+        finalError.value = message(e, 'Finalisasi belum berhasil dikonfirmasi');
+    }
+    finally {
+        finalSaving.value = false;
+    }
+}
+function beforeUnload(event: BeforeUnloadEvent) {
+    if (busy.value) {
+        event.preventDefault();
+        event.returnValue = '';
+    }
+}
+onBeforeRouteLeave(() => !busy.value);
+onMounted(() => {
+    void load();
+    void loadLevels();
+    window.addEventListener('beforeunload', beforeUnload);
+});
+onBeforeUnmount(() => {
+    listSequence++;
+    detailSequence++;
+    accountSequence++;
+    window.removeEventListener('beforeunload', beforeUnload);
+});
 </script>
-
 <template>
-  <PageLayout
-    title="Pendaftaran Siswa"
-    subtitle="Rincian biaya formulir dan sit-in, penerimaan, serta finalisasi siswa"
-  >
-    <template #actions>
-      <Button label="Daftar Calon Baru" icon="pi pi-user-plus" @click="openCreate" />
-    </template>
-
-    <template #filters>
-      <SearchField
-        v-model="searchQuery"
-        hint="Cari nama calon, jenjang, status, biaya"
-      />
-      <Select
-        v-model="filterStatus"
-        :options="STATUS_OPTIONS"
-        option-label="label"
-        option-value="value"
-        placeholder="Filter status"
-        class="bee-filter-field"
-      />
-    </template>
-
-    <Message severity="info" :closable="false" class="bee-mb">
-      <strong>Alur pendaftaran calon siswa:</strong>
-      <ol class="info-steps">
-        <li><strong>Daftar calon</strong> — isi biaya formulir dan sit-in/observasi sesuai kesepakatan. Total dijumlahkan otomatis.</li>
-        <li><strong>Catat penerimaan</strong> — pilih komponen yang benar-benar dibayar, tanggal, bukti, serta Kas/Bank.</li>
-        <li><strong>Finalisasi</strong> — calon resmi jadi siswa dan nominal SPP ditetapkan. Finalisasi tidak mencatat pembayaran.</li>
+<PageLayout class="admission-page" title="Pendaftaran siswa"
+  subtitle="Kelola calon, periksa biaya, lalu catat penerimaan atau finalisasi sesuai kebutuhan."
+  :surface="false"><template #actions><Button label="Daftar calon baru" :disabled="busy||loading"
+      @click="openCreate"><template #icon>
+        <Icon name="user-plus" />
+      </template></Button></template>
+  <section class="admission-panel">
+    <details class="admission-guide">
+      <summary><Icon name="caret-right" class="admission-guide-caret" />Alur calon, penerimaan, dan finalisasi</summary>
+      <ol>
+        <li>Daftarkan calon dengan biaya formulir serta sit-in/observasi sesuai kesepakatan.</li>
+        <li>Catat penerimaan hanya untuk komponen yang benar-benar dibayar. Jurnalnya menunggu pencatatan
+          Finance.</li>
+        <li>Finalisasi calon menjadi siswa aktif dengan SPP yang ditetapkan. Tindakan ini tidak mencatat
+          pembayaran atau menganggap biaya lunas.</li>
       </ol>
-      Setiap pembayaran otomatis membuat jurnal akuntansi berstatus <strong>DRAFT</strong> (perlu diposting di menu Jurnal).
-    </Message>
-    <Message v-if="rows.some((row) => row.perlu_rekonsiliasi)" severity="warn" :closable="false" class="bee-mb">
-      Data lama yang rincian biayanya belum dicocokkan ditandai <strong>Perlu dicocokkan</strong>.
-      Jumlah dibayar dan sisa belum ditetapkan; penerimaan baru diblokir agar tidak ditagih ulang.
-    </Message>
-
-    <DataTable
-      :value="displayRows"
-      :loading="loading"
-      data-key="id"
-      paginator :rows="15"
-      striped-rows
-    >
-      <template #empty>
-        <EmptyState message="Belum ada calon siswa. Klik Daftar Calon Baru untuk memulai." />
-      </template>
-
-      <Column field="nama_calon" header="Nama Calon" sortable />
-      <Column field="jenjang" header="Jenjang">
-        <template #body="{ data }">
-          {{ data.jenjang ? jenjangMap.get(data.jenjang) ?? `#${data.jenjang}` : "—" }}
-        </template>
-      </Column>
-      <Column field="tanggal_daftar" header="Tanggal Daftar">
-        <template #body="{ data }">
-          {{ formatDate(data.tanggal_daftar) }}
-        </template>
-      </Column>
-      <Column header="Rincian Biaya">
-        <template #body="{ data }">
-          <div>Formulir: {{ data.biaya_formulir === null ? 'Belum dipetakan' : formatRp(data.biaya_formulir) }}</div>
-          <div>Sit-in: {{ formatRp(data.biaya_sitin) }}</div>
-        </template>
-      </Column>
-      <Column header="Total Pendaftaran">
-        <template #body="{ data }">
-          {{ data.total_biaya === null ? 'Perlu dicocokkan' : formatRp(data.total_biaya) }}
-        </template>
-      </Column>
-      <Column header="Status" style="width: 7rem">
-        <template #body="{ data }">
-          <Tag :value="statusLabel[data.status as PendaftaranSiswaStatus]" :severity="statusSeverity[data.status as PendaftaranSiswaStatus]" />
-        </template>
-      </Column>
-      <Column header="Penerimaan">
-        <template #body="{ data }">
-          {{ data.total_terbayar === null ? 'Belum diketahui' : formatRp(data.total_terbayar) }}
-        </template>
-      </Column>
-      <Column header="Sisa">
-        <template #body="{ data }">
-          <Tag v-if="data.perlu_rekonsiliasi" value="Perlu dicocokkan" severity="warn" />
-          <span v-else>{{ formatRp(data.sisa_biaya) }}</span>
-        </template>
-      </Column>
-      <Column header="Aksi" headerClass="bee-col-actions--xl" bodyClass="bee-col-actions--xl">
-        <template #body="{ data }">
-          <div class="bee-actions">
-            <Button label="Rincian" size="small" text @click="rincianTarget = data" />
-            <Button v-if="data.status !== 'BATAL' && !data.perlu_rekonsiliasi && Number(data.sisa_biaya) > 0"
-              label="Catat Penerimaan" size="small" severity="success" outlined @click="openBayar(data)" />
-            <template v-if="data.status === 'TRIAL'">
-              <Button
-                label="Finalisasi"
-                size="small"
-                @click="openFinalisasi(data)"
-              />
-              <Button
-                v-if="!data.jurnal_sitin && !data.jurnal_pendaftaran"
-                icon="pi pi-pencil"
-                aria-label="Edit pendaftaran"
-                size="small"
-                text
-                severity="secondary"
-                @click="openEdit(data)"
-              />
-              <Button
-                v-if="!data.jurnal_sitin && !data.jurnal_pendaftaran"
-                icon="pi pi-trash"
-                aria-label="Hapus pendaftaran"
-                size="small"
-                text
-                severity="danger"
-                @click="confirmDelete(data)"
-              />
-            </template>
-            <template v-else-if="data.status === 'REGISTERED' && data.siswa">
-              <Button
-                label="Lihat Siswa"
-                size="small"
-                text
-                @click="router.push('/siswa')"
-              />
-            </template>
-          </div>
-        </template>
-      </Column>
-    </DataTable>
-
-    <!-- Form calon -->
-    <Dialog
-      v-model:visible="dialog"
-      :header="editingId ? 'Edit Pendaftaran' : 'Daftar Calon Siswa'"
-      modal
-      :style="{ width: 'min(480px, 96vw)' }"
-    >
-      <div class="bee-form-stack">
-        <Message v-if="editingRow?.perlu_rekonsiliasi" severity="warn" :closable="false">
-          Nilai biaya pendaftaran lama {{ formatRp(editingRow.biaya_pendaftaran) }} dipertahankan sebagai catatan.
-          Isi biaya formulir yang benar setelah mencocokkan rincian; nilainya tidak disalin otomatis.
-        </Message>
-        <div class="bee-field">
-          <label for="nama-calon">Nama calon</label>
-          <InputText id="nama-calon" v-model="form.nama_calon" fluid />
-        </div>
-        <div class="bee-field">
-          <label for="jenjang">Jenjang</label>
-          <Select
-            input-id="jenjang"
-            v-model="form.jenjang"
-            :options="jenjangList"
-            option-label="kode"
-            option-value="id"
-            placeholder="Pilih jenjang"
-            show-clear
-            fluid
-          />
-        </div>
-        <div class="bee-field">
-          <label for="tanggal">Tanggal daftar</label>
-          <DatePicker
-            input-id="tanggal"
-            v-model="form.tanggal_daftar"
-            date-format="dd/mm/yy"
-            show-icon
-            fluid
-          />
-        </div>
-        <div class="bee-field">
-          <label for="sitin">Biaya sit-in</label>
-          <InputNumber input-id="sitin" v-model="form.biaya_sitin" :min="0" :max-fraction-digits="2" locale="id-ID" fluid />
-        </div>
-        <div class="bee-field">
-          <label for="formulir">Biaya formulir</label>
-          <InputNumber input-id="formulir" v-model="form.biaya_formulir" :min="0" :max-fraction-digits="2" locale="id-ID" fluid />
-        </div>
-        <p><strong>Total biaya pendaftaran: {{ totalForm === null ? 'Isi kedua komponen' : formatRp(totalForm) }}</strong></p>
-        <small>Tarif mengikuti kesepakatan sekolah. Isi 0 jika komponen memang tidak dikenakan.</small>
-        <Message v-if="formError" severity="error" :closable="false" role="alert">{{ formError }}</Message>
+    </details>
+    <header class="admission-heading">
+      <h2>Daftar calon siswa</h2>
+      <p>Periksa rincian untuk melihat komponen biaya, bukti penerimaan, dan tindakan yang tersedia.</p>
+    </header>
+    <div class="admission-controls">
+      <div class="admission-field"><label for="admission-search">Cari calon siswa</label>
+        <SearchField input-id="admission-search" v-model="query" placeholder="Nama, jenjang, atau status"
+          hint="Mencari pada seluruh pendaftaran yang dimuat, termasuk halaman lain." />
       </div>
-      <template #footer>
-        <Button label="Batal" severity="secondary" text @click="dialog = false" />
-        <Button
-          label="Simpan"
-          :loading="saving"
-          :disabled="saving"
-          @click="save"
-        />
-      </template>
-    </Dialog>
-
-    <!-- Finalisasi -->
-    <Dialog
-      v-model:visible="finalDialog"
-      header="Finalisasi Pendaftaran"
-      modal
-      :style="{ width: 'min(420px, 96vw)' }"
-    >
-      <p v-if="finalTarget" class="bee-final-intro">
-        Finalisasi <strong>{{ finalTarget.nama_calon }}</strong> menjadi siswa resmi.
-        Finalisasi tidak mencatat penerimaan uang atau menganggap biaya sudah lunas.
-      </p>
-      <div class="bee-field">
-        <label for="spp">Nominal SPP bulanan</label>
-        <InputNumber input-id="spp" v-model="sppNominal" :min="0" :max-fraction-digits="2" locale="id-ID" fluid />
+      <div class="admission-field"><label for="admission-status">Status pendaftaran</label><Select
+          input-id="admission-status" placeholder="Semua status" v-model="status" :options="statusOptions"
+          option-label="label" option-value="value"><template #dropdownicon>
+            <Icon name="caret-down" />
+          </template></Select></div><Button label="Muat ulang daftar" severity="secondary"
+        :disabled="loading||busy" @click="load"><template #icon>
+          <Icon name="arrows-clockwise" />
+        </template></Button>
+    </div>
+    <div v-if="levelsError" class="admission-notice">
+      <Message severity="warn" :closable="false">{{ levelsError }} Data calon tetap ditampilkan.</Message>
+      <Button label="Muat ulang jenjang" severity="secondary" :disabled="levelsLoading" @click="loadLevels" />
+    </div>
+    <div v-if="rows.some(row=>row.perlu_rekonsiliasi)" class="admission-notice">
+      <Message severity="warn" :closable="false">Data lama yang belum jelas ditandai Perlu dicocokkan. Total,
+        penerimaan, dan sisa belum dianggap pasti; penerimaan baru diblokir sampai rincian dicocokkan.
+      </Message>
+    </div>
+    <PendaftaranDirectory :rows="filtered" :names="names" :loading="loading" :error="error"
+      :filtered="!!query.trim()||!!status" @detail="detail" @retry="load" @clear="query='';status=null" />
+  </section>
+  <PendaftaranFormDialog v-model="formOpen" :row="editing" :levels="levels" :levels-loading="levelsLoading"
+    :levels-error="levelsError" :saving="saving" :error="formError" @save="save"
+    @reload-levels="loadLevels" />
+  <PendaftaranPaymentDialog v-model="paymentOpen" :row="paymentTarget" :accounts="accounts"
+    :accounts-loading="accountsLoading" :accounts-error="accountsError" :saving="paymentSaving"
+    :error="paymentError" :uncertain="paymentUncertain" @save="pay" @retry="retryPayment"
+    @reload-accounts="loadAccounts" />
+  <Dialog :visible="!!detailTarget" @update:visible="closeDetail" header="Rincian pendaftaran"
+    class="admission-dialog" modal :closable="!busy" :close-on-escape="!busy"><template #closeicon>
+      <Icon name="x" />
+    </template>
+    <div v-if="detailTarget" class="admission-form">
+      <div>
+        <p class="admission-person">{{ detailTarget.nama_calon }}</p>
+        <p class="admission-help">{{ dateLabel(detailTarget.tanggal_daftar) }} ·
+          {{ detailTarget.jenjang?names.get(detailTarget.jenjang)??'Nama jenjang belum dimuat':'Jenjang belum dipilih' }}
+        </p>
+        <Tag :value="statusLabels[detailTarget.status]" :severity="statusSeverity[detailTarget.status]" />
       </div>
-      <Message v-if="finalError" severity="error" :closable="false" role="alert">{{ finalError }}</Message>
-      <template #footer>
-        <Button label="Batal" severity="secondary" text @click="finalDialog = false" />
-        <Button label="Finalisasi" :loading="finalSaving" :disabled="finalSaving" @click="runFinalisasi" />
-      </template>
-    </Dialog>
-
-    <Dialog v-model:visible="bayarDialog" header="Catat Penerimaan Pendaftaran" modal :closable="!bayarSaving" :style="{ width: 'min(480px, 96vw)' }">
-      <div class="bee-form-stack">
-        <p>{{ bayarTarget?.nama_calon }}</p>
-        <div v-for="opsi in opsiKomponen" :key="opsi.kode">
-          <Checkbox v-model="komponenBayar" :input-id="`bayar-${opsi.kode}`" :value="opsi.kode" :disabled="bayarSaving || !!opsi.dibayar || opsi.nominal <= 0" />
-          <label :for="`bayar-${opsi.kode}`"> {{ opsi.label }} — {{ formatRp(opsi.nominal) }}{{ opsi.dibayar ? ' (sudah diterima)' : '' }}</label>
+      <p v-if="detailLoading" role="status">Memeriksa rincian terbaru…</p>
+      <div v-if="detailError" class="admission-notice">
+        <Message severity="error" :closable="false">{{ detailError }} Tindakan menunggu rincian terbaru
+          berhasil dimuat.</Message><Button label="Muat ulang rincian" severity="secondary"
+          @click="detail(detailTarget)" />
+      </div>
+      <Message v-if="detailTarget.perlu_rekonsiliasi" severity="warn" :closable="false">Perlu dicocokkan
+        dengan bukti sekolah. Nilai pendaftaran lama {{ money(detailTarget.biaya_pendaftaran) }} tetap
+        tersimpan; total, penerimaan, dan sisa belum dapat dipastikan.</Message>
+      <dl v-else class="admission-detail-grid">
+        <div>
+          <dt>Total biaya</dt>
+          <dd>{{ money(detailTarget.total_biaya) }}</dd>
         </div>
-        <strong>Jumlah diterima: {{ formatRp(totalBayar) }}</strong>
-        <small>Penerimaan mencakup seluruh nilai komponen yang dipilih. Komponen yang sudah diterima tidak ditagih lagi.</small>
-        <div class="bee-field"><label for="bayar-tanggal">Tanggal penerimaan</label><DatePicker input-id="bayar-tanggal" v-model="bayarForm.tanggal" date-format="dd/mm/yy" :disabled="bayarSaving" show-icon fluid /></div>
-        <div class="bee-field"><label for="bayar-bukti">Nomor bukti penerimaan</label><InputText id="bayar-bukti" v-model="bayarForm.no_bukti" :maxlength="50" :disabled="bayarSaving" fluid /></div>
-        <div class="bee-field"><label for="bayar-kas">Kas / Bank penerimaan</label><Select input-id="bayar-kas" v-model="bayarForm.akun_kas" :options="akunKas" option-label="nama_akun" option-value="kode_akun" placeholder="Pilih Kas/Bank" :loading="loadingKas" :disabled="bayarSaving" fluid /></div>
-        <Message v-if="bayarError" severity="error" :closable="false" role="alert">{{ bayarError }}</Message>
-      </div>
-      <template #footer>
-        <Button label="Batal" text severity="secondary" :disabled="bayarSaving" @click="bayarDialog = false" />
-        <Button label="Simpan Penerimaan" :loading="bayarSaving" :disabled="bayarSaving || loadingKas" @click="runBayar" />
-      </template>
-    </Dialog>
-
-    <Dialog :visible="!!rincianTarget" header="Rincian Pendaftaran" modal :style="{ width: 'min(560px, 96vw)' }" @update:visible="rincianTarget = null">
-      <div v-if="rincianTarget" class="bee-form-stack">
-        <strong>{{ rincianTarget.nama_calon }}</strong>
-        <Message v-if="rincianTarget.perlu_rekonsiliasi" severity="warn" :closable="false">
-          Biaya/penerimaan lama perlu dicocokkan dengan bukti. Nilai biaya pendaftaran lama: {{ formatRp(rincianTarget.biaya_pendaftaran) }}.
-          Total, jumlah dibayar, dan sisa belum dapat dipastikan.
-        </Message>
-        <p v-else>Total {{ formatRp(rincianTarget.total_biaya) }} · Diterima {{ formatRp(rincianTarget.total_terbayar) }} · Sisa {{ formatRp(rincianTarget.sisa_biaya) }}</p>
-        <p v-if="!rincianTarget.pembayaran.length">Belum ada catatan penerimaan.</p>
-        <div v-for="p in rincianTarget.pembayaran" :key="p.jurnal_id">
-          <strong>{{ p.no_bukti }} — {{ formatRp(p.nominal) }}</strong>
-          <div>{{ formatDate(p.tanggal) }} · {{ p.komponen.join(' + ') }}</div>
-          <Tag :value="p.dibatalkan ? 'Dibatalkan' : `Jurnal ${p.status}`" :severity="p.dibatalkan ? 'warn' : 'info'" />
+        <div>
+          <dt>Diterima</dt>
+          <dd>{{ money(detailTarget.total_terbayar) }}</dd>
         </div>
-        <small>Penerimaan yang jurnalnya masih DRAFT/PENDING menunggu pencatatan Finance ke buku besar.</small>
+        <div>
+          <dt>Sisa</dt>
+          <dd>{{ money(detailTarget.sisa_biaya) }}</dd>
+        </div>
+      </dl>
+      <h3>Komponen biaya</h3>
+      <div class="admission-payment-components">
+        <div v-for="option in components(detailTarget)" :key="option.kode"><strong>{{ option.label }}</strong>
+          <p class="admission-help">{{ money(option.nominal==null?null:option.nominal/100) }} ·
+            {{ option.paid==null?'Penerimaan belum dipastikan':option.paid?'Sudah diterima':option.nominal===0?'Tidak dikenakan':'Belum diterima' }}
+          </p>
+        </div>
       </div>
-    </Dialog>
-  </PageLayout>
+      <h3>Bukti penerimaan</h3>
+      <p v-if="!detailTarget.pembayaran.length" class="admission-help">Belum ada catatan penerimaan pada data
+        ini.</p>
+      <ul v-else class="admission-receipts">
+        <li v-for="receipt in detailTarget.pembayaran" :key="receipt.jurnal_id">
+          <strong>{{ receipt.no_bukti }}</strong>
+          <p>{{ money(receipt.nominal) }} · {{ dateLabel(receipt.tanggal) }}</p>
+          <p>{{ receipt.komponen.map(code=>code==='FORMULIR'?'Formulir':'Sit-in / observasi').join(' + ') }}
+          </p>
+          <Tag :value="receipt.dibatalkan?'Dibatalkan':journalLabels[receipt.status]??receipt.status"
+            :severity="receipt.dibatalkan?'warn':receipt.status==='POSTED'?'success':'info'" />
+        </li>
+      </ul>
+      <p class="admission-help">Data ini menampilkan jurnal terakhir tiap komponen yang tersedia. Koreksi
+        penerimaan dilakukan oleh Finance/Kepala Sekolah sesuai status jurnal.</p>
+      <Message v-if="actionError" severity="error" :closable="false">{{ actionError }}</Message>
+    </div><template #footer>
+      <div v-if="detailTarget" class="admission-detail-actions"><template
+          v-if="!detailLoading&&!detailError"><Button v-if="editable(detailTarget)" label="Ubah calon"
+            severity="secondary" :disabled="busy" @click="openEdit(detailTarget)"><template #icon>
+              <Icon name="pencil-simple" />
+            </template></Button><Button v-if="editable(detailTarget)" label="Hapus calon" severity="danger"
+            text :disabled="busy" @click="remove(detailTarget)"><template #icon>
+              <Icon name="trash" />
+            </template></Button><Button v-if="finalizable(detailTarget)" label="Finalisasi"
+            severity="secondary" :disabled="busy" @click="openFinal(detailTarget)" /><Button
+            v-if="receivable(detailTarget)" label="Catat penerimaan" :disabled="busy"
+            @click="openPayment(detailTarget)"><template #icon>
+              <Icon name="money" />
+            </template></Button>
+          <RouterLink v-if="detailTarget.status==='REGISTERED'&&detailTarget.siswa"
+            class="admission-student-link" to="/siswa">Buka data siswa
+            <Icon name="arrow-right" />
+          </RouterLink>
+        </template><Button label="Tutup rincian" severity="secondary" text :disabled="busy"
+          @click="closeDetail" /></div>
+    </template>
+  </Dialog>
+  <Dialog :visible="finalOpen" @update:visible="value=>{if(!finalSaving)finalOpen=value}"
+    header="Finalisasi pendaftaran" class="admission-dialog" modal :closable="!finalSaving"
+    :close-on-escape="!finalSaving"><template #closeicon>
+      <Icon name="x" />
+    </template>
+    <form id="admission-final" @submit.prevent="finalize">
+      <p class="admission-person">{{ finalTarget?.nama_calon }}</p>
+      <p class="admission-help">Finalisasi membuat calon menjadi siswa aktif. Finalisasi tidak mencatat
+        penerimaan uang atau menganggap biaya sudah lunas.</p>
+      <div class="admission-field"><label for="spp">SPP bulanan yang disepakati (wajib)</label>
+        <InputNumber input-id="spp" v-model="spp" :min="0" :max-fraction-digits="2" locale="id-ID"
+          :disabled="finalSaving||finalUncertain" :invalid="!!finalError&&cents(spp)==null" fluid /><small>Isi
+          0 jika SPP memang tidak dikenakan. Profil siswa dapat dilengkapi setelah finalisasi.</small>
+      </div>
+      <Message v-if="finalError" severity="error" :closable="false" role="alert">{{ finalError }} Input tetap
+        ada.</Message>
+      <Message v-if="finalUncertain" severity="warn" :closable="false">Hasil sebelumnya belum pasti. Coba
+        ulang menggunakan nominal SPP yang sama untuk memeriksa hasil finalisasi.</Message>
+    </form><template #footer><Button label="Kembali" severity="secondary" :disabled="finalSaving"
+        @click="finalOpen=false" /><Button :label="finalUncertain?'Coba ulang finalisasi':'Finalisasi siswa'"
+        form="admission-final" type="submit" :disabled="finalSaving" :loading="finalSaving" /></template>
+  </Dialog>
+</PageLayout>
 </template>
-
 <style scoped>
-.bee-filter-field {
-  min-width: 12rem;
-}
-
-.bee-mb {
-  margin-bottom: 1rem;
-}
-
-.info-steps {
-  margin: 0.5rem 0 0.5rem 1.25rem;
-  padding: 0;
-  line-height: 1.55;
-}
-
-.info-steps li {
-  margin-bottom: 0.25rem;
-}
-
-.bee-form-stack {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.bee-field label {
-  display: block;
-  font-size: 0.875rem;
-  font-weight: 600;
-  margin-bottom: 0.35rem;
-  color: var(--bee-navy-700);
-}
-
-.muted {
-  color: var(--app-text-muted);
-  font-size: 0.85rem;
-}
-
-.bee-final-intro {
-  margin: 0 0 1rem;
-  line-height: 1.5;
+.admission-student-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--bee-space-2);
+  min-height: 44px;
+  color: var(--bee-color-brand);
+  text-decoration: none;
+  font-size: var(--bee-type-ui)
 }
 </style>

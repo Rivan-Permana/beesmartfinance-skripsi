@@ -627,6 +627,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/jurnal/{id}/tolak/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description PENDING -> DRAFT (checker mengembalikan ke pembuat dengan alasan). */
+        post: operations["v1_jurnal_tolak_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/jurnal/{id}/void/": {
         parameters: {
             query?: never;
@@ -2173,6 +2190,8 @@ export interface components {
             readonly sisa_pinjaman?: number;
             /** Format: uuid */
             readonly jurnal?: string | null;
+            readonly is_legacy?: boolean;
+            readonly ikut_potongan?: boolean;
         };
         PatchedSiswa: {
             readonly id?: number;
@@ -2332,6 +2351,8 @@ export interface components {
             readonly sisa_pinjaman: number;
             /** Format: uuid */
             readonly jurnal: string | null;
+            readonly is_legacy: boolean;
+            readonly ikut_potongan: boolean;
         };
         /**
          * @description * `D` - Debit
@@ -2437,6 +2458,9 @@ export interface components {
             readonly access: string;
             refresh: string;
         };
+        TolakJurnalInput: {
+            alasan: string;
+        };
         TrAnggaran: {
             readonly id: number;
             kode_akun: string;
@@ -2498,6 +2522,8 @@ export interface operations {
                 ordering?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
                 pegawai?: number;
                 /** @description A search term. */
                 search?: string;
@@ -2694,6 +2720,8 @@ export interface operations {
                 ordering?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
                 /** @description A search term. */
                 search?: string;
             };
@@ -2844,6 +2872,8 @@ export interface operations {
                 ordering?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
                 /** @description A search term. */
                 search?: string;
             };
@@ -2994,6 +3024,8 @@ export interface operations {
                 ordering?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
                 /** @description A search term. */
                 search?: string;
             };
@@ -3176,6 +3208,8 @@ export interface operations {
                 ordering?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
                 /** @description A search term. */
                 search?: string;
                 table_name?: string;
@@ -3317,6 +3351,8 @@ export interface operations {
                 ordering?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
                 /** @description A search term. */
                 search?: string;
             };
@@ -3589,6 +3625,8 @@ export interface operations {
                 ordering?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
                 /** @description A search term. */
                 search?: string;
             };
@@ -3767,6 +3805,8 @@ export interface operations {
                 ordering?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
                 /** @description A search term. */
                 search?: string;
             };
@@ -3917,6 +3957,8 @@ export interface operations {
                 ordering?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
                 /** @description A search term. */
                 search?: string;
             };
@@ -4327,6 +4369,34 @@ export interface operations {
             };
         };
     };
+    v1_jurnal_tolak_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A UUID string identifying this tr jurnal. */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TolakJurnalInput"];
+                "application/x-www-form-urlencoded": components["schemas"]["TolakJurnalInput"];
+                "multipart/form-data": components["schemas"]["TolakJurnalInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrJurnal"];
+                };
+            };
+        };
+    };
     v1_jurnal_void_create: {
         parameters: {
             query?: never;
@@ -4362,6 +4432,8 @@ export interface operations {
                 ordering?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
                 penanggung_jawab?: number;
                 periode?: number;
                 /** @description A search term. */
@@ -4571,6 +4643,8 @@ export interface operations {
                 ordering?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
                 /** @description A search term. */
                 search?: string;
                 siswa?: number;
@@ -4733,6 +4807,8 @@ export interface operations {
                 ordering?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
                 /** @description A search term. */
                 search?: string;
             };
@@ -5018,6 +5094,8 @@ export interface operations {
                 ordering?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
                 /** @description A search term. */
                 search?: string;
                 tanggal?: string;
@@ -5171,6 +5249,8 @@ export interface operations {
                 ordering?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
                 /** @description A search term. */
                 search?: string;
             };
@@ -5322,6 +5402,8 @@ export interface operations {
                 ordering?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
                 /** @description A search term. */
                 search?: string;
                 siswa?: number;
@@ -5473,6 +5555,8 @@ export interface operations {
                 ordering?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
                 /** @description A search term. */
                 search?: string;
                 /**
@@ -5713,6 +5797,8 @@ export interface operations {
                 ordering?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
                 /** @description A search term. */
                 search?: string;
             };
@@ -5891,6 +5977,8 @@ export interface operations {
                 ordering?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
                 /** @description A search term. */
                 search?: string;
             };
@@ -6070,6 +6158,8 @@ export interface operations {
                 ordering?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
                 /** @description A search term. */
                 search?: string;
                 /**
@@ -6229,6 +6319,8 @@ export interface operations {
                 ordering?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
                 /** @description A search term. */
                 search?: string;
             };
@@ -6379,6 +6471,8 @@ export interface operations {
                 ordering?: string;
                 /** @description A page number within the paginated result set. */
                 page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
                 periode_bulan?: number;
                 periode_tahun?: number;
                 /** @description A search term. */

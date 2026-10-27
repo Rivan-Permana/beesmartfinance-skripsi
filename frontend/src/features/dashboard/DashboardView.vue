@@ -1,852 +1,207 @@
 <script setup lang="ts">
-import Chart from "primevue/chart"
-import DatePicker from "primevue/datepicker"
-import Message from "primevue/message"
-import Select from "primevue/select"
-import Tag from "primevue/tag"
-import { useToast } from "primevue/usetoast"
 import { computed, onMounted, ref, watch } from "vue"
 import { useRouter } from "vue-router"
-
-import { dashboardApi, type DashboardFilter } from "./api"
-import {
-  barChartOptions,
-  barColorByThreshold,
-  CHART,
-  CHART_PALETTE,
-  doughnutChartOptions,
-  lineChartOptions,
-  sparkBarOptions,
-} from "./chartTheme"
-import { formatRp } from "@/core/format"
-import { notifyError } from "@/core/errors"
-import ChartPanel from "@/shared/components/ChartPanel.vue"
-import KpiCard from "@/shared/components/KpiCard.vue"
+import Chart from "primevue/chart"
+import Select from "primevue/select"
+import Button from "primevue/button"
+import Message from "primevue/message"
+import Tag from "primevue/tag"
+import Tabs from "primevue/tabs"
+import TabList from "primevue/tablist"
+import Tab from "primevue/tab"
+import TabPanels from "primevue/tabpanels"
+import TabPanel from "primevue/tabpanel"
 import PageLayout from "@/shared/components/PageLayout.vue"
-import RingGauge from "@/shared/components/RingGauge.vue"
+import ChartPanel from "@/shared/components/ChartPanel.vue"
+import ChartDataTable from "@/shared/components/ChartDataTable.vue"
+import KpiCard from "@/shared/components/KpiCard.vue"
+import PeriodPicker from "@/shared/components/PeriodPicker.vue"
+import Icon from "@/shared/components/PhosphorIcon.vue"
 import { useAuthStore } from "@/stores/auth"
+import { formatRp } from "@/core/format"
+import { dashboardApi, type DashboardFilter } from "./api"
+import { CHART, CHART_PALETTE, lineChartOptions, barChartOptions } from "./chartTheme"
+import { dashboardMode, canReviewJurnal } from "./presentation"
 import { jurnalApi } from "@/features/jurnal/api"
 import { kegiatanApi } from "@/features/kegiatan/api"
 import { laporanApi } from "@/features/laporan/api"
 import { tagihanApi } from "@/features/tagihan/api"
-import type {
-  DashboardRingkasan,
-  Jurnal,
-  Kegiatan,
-  LabaRugiBulananResult,
-  LabaRugiResult,
-  MenuKatering,
-  PrediksiKasRow,
-  RealisasiAnggaranRow,
-  Tagihan,
-} from "@/types/api"
-import PeriodPicker from "@/shared/components/PeriodPicker.vue"
+import type { DashboardRingkasan, Jurnal, Kegiatan, LabaRugiBulananResult, LabaRugiResult, PrediksiKasRow, RealisasiAnggaranRow, Tagihan } from "@/types/api"
 
-const toast = useToast()
-const router = useRouter()
 const auth = useAuthStore()
-
-const BULAN = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"]
-const THRESH = { warn: 80, danger: 100 }
-const UTIL_COLORS = { ok: CHART.navy, warn: CHART.orange, danger: CHART.magenta }
-
-function rp(v: string | number | null | undefined) {
-  return formatRp(v)
-}
-function pct(num: number, denom: number) {
-  return denom > 0 ? Math.round((num / denom) * 100) : 0
-}
-
-// ---------------- state ----------------
+const router = useRouter()
+const mode = computed(() => dashboardMode(auth.roles))
+const principal = computed(() => mode.value === "principal")
+const months = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"]
 const ringkasan = ref<DashboardRingkasan | null>(null)
 const labaRugi = ref<LabaRugiResult | null>(null)
-const prediksi = ref<PrediksiKasRow[]>([])
-const lrBulanan = ref<LabaRugiBulananResult | null>(null)
-const realisasi = ref<RealisasiAnggaranRow[]>([])
-const kegiatan = ref<Kegiatan[]>([])
+const monthly = ref<LabaRugiBulananResult | null>(null)
+const cash = ref<PrediksiKasRow[]>([])
+const budget = ref<RealisasiAnggaranRow[]>([])
+const activities = ref<Kegiatan[]>([])
 const outstanding = ref<Tagihan[]>([])
-const pendingJurnal = ref<Jurnal[]>([])
-const mutasi = ref<Jurnal[]>([])
-const menuHariIni = ref<MenuKatering | null>(null)
+const queue = ref<Jurnal[]>([])
+const recent = ref<Jurnal[]>([])
+const queuePageCount = ref(0)
 const loading = ref(true)
-const error = ref("")
-
-type FilterMode = "month" | "year" | "day"
-const filterMode = ref<FilterMode>("month")
-const filterBulan = ref(new Date().getMonth() + 1)
-const filterTahun = ref(new Date().getFullYear())
-const filterTanggal = ref(new Date())
-
-const FILTER_MODE_OPTS = [
-  { label: "Per Bulan", value: "month" as FilterMode },
-  { label: "Per Tahun", value: "year" as FilterMode },
-  { label: "Per Hari", value: "day" as FilterMode },
-]
-
-const tahunOptions = computed(() => {
-  const end = new Date().getFullYear() + 1
-  const opts: { label: string; value: number }[] = []
-  for (let y = end; y >= 2023; y -= 1) opts.push({ label: String(y), value: y })
-  return opts
-})
-
-const filterParams = computed((): DashboardFilter => {
-  if (filterMode.value === "day") {
-    return { tanggal: filterTanggal.value.toISOString().slice(0, 10) }
-  }
-  if (filterMode.value === "year") return { tahun: filterTahun.value }
-  return { tahun: filterTahun.value, bulan: filterBulan.value }
-})
-
-const periodeLabel = computed(
-  () => ringkasan.value?.periode_filter?.label ?? "…",
-)
-
-// ---------------- KPI cards ----------------
+const failed = ref<string[]>([])
+const filterMode = ref<"month" | "year">("month")
+const month = ref(new Date().getMonth() + 1)
+const year = ref(new Date().getFullYear())
+const appliedYear = ref(year.value)
+const appliedScope = ref("")
+const cashScope = ref("")
+const appliedProfitScope = ref("")
+let loadSequence = 0
+const filterModes = [{ label: "Bulanan", value: "month" }, { label: "Tahunan", value: "year" }]
+const years = Array.from({ length: new Date().getFullYear() - 2023 + 2 }, (_, index) => new Date().getFullYear() + 1 - index)
+const params = computed((): DashboardFilter => filterMode.value === "year" ? { tahun: year.value } : { tahun: year.value, bulan: month.value })
+const rp = (value: string | number | null | undefined) => value == null ? "Belum diketahui" : formatRp(value)
 const cards = computed(() => [
-  { label: "Kas & Bank",        value: rp(ringkasan.value?.kas),              icon: "pi pi-wallet",          tone: "navy" },
-  { label: "Total Pendapatan",  value: rp(ringkasan.value?.total_pendapatan), icon: "pi pi-arrow-down-left", tone: "green" },
-  { label: "Total Beban",       value: rp(ringkasan.value?.total_beban),      icon: "pi pi-arrow-up-right",  tone: "magenta" },
-  { label: "Surplus / Defisit", value: rp(ringkasan.value?.surplus_defisit),  icon: "pi pi-chart-line",      tone: "orange" },
+  { label: "Pendapatan", value: rp(ringkasan.value?.total_pendapatan), icon: "arrow-down-left" },
+  { label: "Beban", value: rp(ringkasan.value?.total_beban), icon: "arrow-up-right" },
+  { label: "Surplus / defisit", value: rp(ringkasan.value?.surplus_defisit), icon: "chart-line" },
 ])
+const reviewQueue = computed(() => principal.value ? queue.value.filter((item) => canReviewJurnal(item, auth.user?.id)) : queue.value)
+const budgetTop = computed(() => [...budget.value].sort((a, b) => Number(b.realisasi) - Number(a.realisasi)).slice(0, 5))
+const cashData = computed(() => ({ labels: cash.value.map((row) => `${months[row.bulan - 1]} ${row.tahun}`), datasets: [
+  { label: "Kas masuk", data: cash.value.map((row) => Number(row.arus_kas_masuk)), borderColor: CHART.navy, backgroundColor: CHART.navy, pointRadius: 3 },
+  { label: "Kas keluar", data: cash.value.map((row) => Number(row.arus_kas_keluar)), borderColor: CHART.magenta, backgroundColor: CHART.magenta, borderDash: [5, 4], pointRadius: 3 },
+  { label: "Arus kas bersih", data: cash.value.map((row) => Number(row.net_cash_flow_bulanan)), borderColor: CHART.blue, backgroundColor: CHART.blue, borderDash: [2, 3], pointRadius: 3 },
+] }))
+const monthlyData = computed(() => ({ labels: (monthly.value?.data ?? []).map((row) => months[row.bulan - 1]!), datasets: [
+  { label: "Pendapatan", data: (monthly.value?.data ?? []).map((row) => row.pendapatan), backgroundColor: CHART.navy },
+  { label: "Beban", data: (monthly.value?.data ?? []).map((row) => row.beban), backgroundColor: CHART.magenta },
+] }))
+const budgetData = computed(() => ({ labels: budgetTop.value.map((row) => `${row.kode_akun} ${row.nama_akun}`), datasets: [
+  { label: "Pagu", data: budgetTop.value.map((row) => Number(row.pagu)), backgroundColor: CHART.navy },
+  { label: "Realisasi", data: budgetTop.value.map((row) => Number(row.realisasi)), backgroundColor: CHART.blue },
+] }))
+const incomeData = computed(() => ({ labels: (labaRugi.value?.pendapatan ?? []).map((row) => row.nama_akun), datasets: [{ label: "Pendapatan", data: (labaRugi.value?.pendapatan ?? []).map((row) => Number(row.saldo_akhir)), backgroundColor: CHART_PALETTE }] }))
+const expenseData = computed(() => ({ labels: (labaRugi.value?.beban ?? []).map((row) => row.nama_akun), datasets: [{ label: "Beban", data: (labaRugi.value?.beban ?? []).map((row) => Number(row.saldo_akhir)), backgroundColor: CHART_PALETTE }] }))
+const lineOptions = lineChartOptions(true)
+const barOptions = barChartOptions()
+const horizontalOptions = barChartOptions({ horizontal: true })
 
-const ops = computed(() => ringkasan.value?.operasional)
-const opsCards = computed(() => {
-  const o = ops.value
-  if (!o) return []
-  const hadirLabel = filterMode.value === "day" ? "Hadir (hari ini)" : `Hadir (${o.periode_ops_label})`
-  return [
-    { label: "Siswa Aktif", value: String(o.siswa_aktif), icon: "pi pi-users", tone: "navy" as const },
-    { label: hadirLabel, value: String(o.hadir_bulan_ini), icon: "pi pi-check-circle", tone: "green" as const },
-    { label: "Hari Katering", value: String(o.katering_bulan_ini), icon: "pi pi-calendar", tone: "orange" as const },
-    { label: "Tunggakan Tagihan", value: String(o.tagihan_belum), icon: "pi pi-exclamation-circle", tone: "magenta" as const },
-    { label: "Tagihan Terverifikasi Lunas", value: `${o.collection_rate_pct}%`, icon: "pi pi-percentage", tone: "navy" as const },
-    { label: "Jurnal Belum Dicatat", value: String(o.jurnal_menunggu_approve), icon: "pi pi-inbox", tone: "orange" as const },
-    { label: "Pembayaran Perlu Rekonsiliasi", value: String(o.tagihan_perlu_rekonsiliasi), icon: "pi pi-search", tone: "orange" as const },
-  ]
-})
-
-const absensiSparkData = computed(() => ({
-  labels: (ops.value?.absensi_sparkline ?? []).map((r) => r.label),
-  datasets: [{
-    label: "Kehadiran (hadir)",
-    data: (ops.value?.absensi_sparkline ?? []).map((r) => r.hadir),
-    backgroundColor: CHART.blue + "cc",
-    hoverBackgroundColor: CHART.blue,
-    borderRadius: 8,
-    borderSkipped: false,
-    maxBarThickness: 36,
-  }],
-}))
-
-// ---------------- charts ----------------
-const arusKasData = computed(() => ({
-  labels: prediksi.value.map((r) => r.periode),
-  datasets: [
-    {
-      label: "Kas Masuk",
-      data: prediksi.value.map((r) => Number(r.arus_kas_masuk)),
-      borderColor: CHART.green,
-      backgroundColor: CHART.green + "28",
-      fill: true,
-    },
-    {
-      label: "Kas Keluar",
-      data: prediksi.value.map((r) => Number(r.arus_kas_keluar)),
-      borderColor: CHART.magenta,
-      backgroundColor: CHART.magenta + "22",
-      fill: true,
-    },
-    {
-      label: "Net Cash Flow",
-      data: prediksi.value.map((r) => Number(r.net_cash_flow_bulanan)),
-      borderColor: CHART.navy,
-      backgroundColor: "transparent",
-      borderDash: [5, 4],
-      fill: false,
-    },
-  ],
-}))
-
-const lrBulananData = computed(() => ({
-  labels: BULAN,
-  datasets: [
-    {
-      label: "Pendapatan",
-      backgroundColor: CHART.green + "dd",
-      hoverBackgroundColor: CHART.green,
-      borderRadius: { topLeft: 6, topRight: 6 },
-      borderSkipped: false,
-      data: (lrBulanan.value?.data ?? []).map((r) => r.pendapatan),
-    },
-    {
-      label: "Beban",
-      backgroundColor: CHART.magenta + "cc",
-      hoverBackgroundColor: CHART.magenta,
-      borderRadius: { topLeft: 6, topRight: 6 },
-      borderSkipped: false,
-      data: (lrBulanan.value?.data ?? []).map((r) => r.beban),
-    },
-  ],
-}))
-
-const donutPendapatan = computed(() => ({
-  labels: (labaRugi.value?.pendapatan ?? []).map((r) => r.nama_akun),
-  datasets: [{
-    data: (labaRugi.value?.pendapatan ?? []).map((r) => Number(r.saldo_akhir)),
-    backgroundColor: CHART_PALETTE,
-    borderWidth: 0,
-    hoverOffset: 10,
-  }],
-}))
-
-const donutBeban = computed(() => ({
-  labels: (labaRugi.value?.beban ?? []).map((r) => r.nama_akun),
-  datasets: [{
-    data: (labaRugi.value?.beban ?? []).map((r) => Number(r.saldo_akhir)),
-    backgroundColor: CHART_PALETTE,
-    borderWidth: 0,
-    hoverOffset: 10,
-  }],
-}))
-
-const hasDonutPendapatan = computed(() => (labaRugi.value?.pendapatan?.length ?? 0) > 0)
-const hasDonutBeban = computed(() => (labaRugi.value?.beban?.length ?? 0) > 0)
-const hasArusKas = computed(() => prediksi.value.length > 0)
-const hasLrBulanan = computed(() => (lrBulanan.value?.data?.length ?? 0) > 0)
-const hasAbsensiSpark = computed(() => (ops.value?.absensi_sparkline?.length ?? 0) > 0)
-
-const realisasiTop = computed(() =>
-  [...realisasi.value]
-    .map((r) => ({ ...r, utilisasi: pct(Number(r.realisasi), Number(r.pagu)) }))
-    .sort((a, b) => b.utilisasi - a.utilisasi)
-    .slice(0, 5),
-)
-const realisasiBarData = computed(() => ({
-  labels: realisasiTop.value.map((r) => `${r.kode_akun} · ${r.nama_akun}`),
-  datasets: [{
-    label: "% Utilisasi",
-    data: realisasiTop.value.map((r) => r.utilisasi),
-    backgroundColor: realisasiTop.value.map((r) =>
-      barColorByThreshold(r.utilisasi, THRESH, UTIL_COLORS),
-    ),
-    borderRadius: 8,
-    borderSkipped: false,
-    barThickness: 14,
-  }],
-}))
-
-const kegiatanTop = computed(() =>
-  [...kegiatan.value]
-    .map((k) => ({ ...k, pctU: Math.round(k.rasio_utilisasi * 100) }))
-    .sort((a, b) => b.pctU - a.pctU)
-    .slice(0, 5),
-)
-const kegiatanBarData = computed(() => ({
-  labels: kegiatanTop.value.map((k) => k.nama),
-  datasets: [{
-    label: "% Utilisasi Pagu",
-    data: kegiatanTop.value.map((k) => k.pctU),
-    backgroundColor: kegiatanTop.value.map((k) =>
-      barColorByThreshold(k.pctU, THRESH, { ok: CHART.blue, warn: CHART.orange, danger: CHART.magenta }),
-    ),
-    borderRadius: 8,
-    borderSkipped: false,
-    maxBarThickness: 40,
-  }],
-}))
-
-const lineOpts = lineChartOptions(true)
-const stackedOpts = barChartOptions({ percent: false })
-const donutOpts = doughnutChartOptions()
-const hbarOpts = barChartOptions({ horizontal: true, percent: true })
-const vbarOpts = barChartOptions({ percent: true })
-const sparkOpts = sparkBarOptions()
-
-const surplusTone = computed(() => {
-  const v = Number(ringkasan.value?.surplus_defisit ?? 0)
-  if (v > 0) return "positive"
-  if (v < 0) return "negative"
-  return "neutral"
-})
-
-// gauge utilisasi total anggaran
-const utilisasiTotal = computed(() => {
-  const p = Number(ringkasan.value?.anggaran.pagu ?? 0)
-  const r = Number(ringkasan.value?.anggaran.realisasi ?? 0)
-  return p > 0 ? Math.round((r / p) * 100) : 0
-})
-
-// ---------------- load ----------------
 async function loadDashboard() {
+  const sequence = ++loadSequence
   loading.value = true
-  error.value = ""
-  const fp = filterParams.value
-  const tahunChart = fp.tahun ?? filterTahun.value
-
-  const settled = await Promise.allSettled([
-    dashboardApi.ringkasan(fp),
-    laporanApi.labaRugi(
-      filterMode.value === "month" ? { tahun: fp.tahun, bulan: fp.bulan } : { tahun: tahunChart },
-    ),
-    dashboardApi.prediksiKas(tahunChart),
-    dashboardApi.labaRugiBulanan(tahunChart),
-    laporanApi.realisasiAnggaran(tahunChart),
-    auth.hasRole(["TeacherInCharge", "SchoolPrincipal", "Finance"])
-      ? kegiatanApi.list()
-      : Promise.resolve({ results: [] as Kegiatan[] }),
+  const scope = params.value
+  const chartYear = scope.tahun ?? year.value
+  const currentMode = mode.value
+  const result = await Promise.allSettled([
+    dashboardApi.ringkasan(scope),
+    laporanApi.labaRugi(filterMode.value === "month" ? { tahun: scope.tahun, bulan: scope.bulan } : { tahun: chartYear }),
+    dashboardApi.prediksiKas(chartYear), dashboardApi.labaRugiBulanan(chartYear), laporanApi.realisasiAnggaran(chartYear),
+    currentMode === "principal" ? kegiatanApi.list() : Promise.resolve({ results: [] as Kegiatan[] }),
     tagihanApi.list({ status: "BELUM" }),
-    jurnalApi.list({ status: "DRAFT", ordering: "-tanggal" }),
+    jurnalApi.list({ status: currentMode === "principal" ? "PENDING" : "DRAFT", ordering: "-tanggal" }),
     jurnalApi.list({ status: "POSTED", ordering: "-tanggal" }),
-    dashboardApi.menuHariIni(
-      filterMode.value === "day" && fp.tanggal ? fp.tanggal : undefined,
-    ),
   ])
-
-  const pick = <T,>(i: number) =>
-    settled[i].status === "fulfilled" ? (settled[i] as PromiseFulfilledResult<T>).value : null
-
-  const r = pick<DashboardRingkasan>(0)
-  const lr = pick<LabaRugiResult>(1)
-  const pk = pick<PrediksiKasRow[]>(2)
-  const lrb = pick<LabaRugiBulananResult>(3)
-  const ra = pick<RealisasiAnggaranRow[]>(4)
-  const k = pick<{ results: Kegiatan[] }>(5)
-  const t = pick<{ results: Tagihan[] }>(6)
-  const pj = pick<{ results: Jurnal[] }>(7)
-  const j = pick<{ results: Jurnal[] }>(8)
-  const menu = pick<{ tanggal: string; menu: MenuKatering | null }>(9)
-
-  if (r) ringkasan.value = r
-  if (lr) labaRugi.value = lr
-  if (pk) prediksi.value = pk
-  if (lrb) lrBulanan.value = lrb
-  if (ra) realisasi.value = ra
-  if (k) kegiatan.value = k.results
-  if (t) outstanding.value = t.results.slice(0, 5)
-  if (pj) pendingJurnal.value = pj.results.slice(0, 5)
-  if (j) mutasi.value = j.results.slice(0, 5)
-  menuHariIni.value = menu?.menu ?? null
-
-  if (!r) {
-    error.value = "Ringkasan keuangan belum dapat dimuat. Coba muat ulang halaman."
-    const failed = settled[0]
-    if (failed.status === "rejected") notifyError(toast, failed.reason, "Gagal memuat dashboard.")
+  if (sequence !== loadSequence) return
+  const errors: string[] = []
+  function pick<T>(index: number, label: string): T | null {
+    const item = result[index]!
+    if (item.status === "fulfilled") return item.value as T
+    errors.push(label)
+    return null
   }
-
+  ringkasan.value = pick<DashboardRingkasan>(0, "Ringkasan keuangan")
+  labaRugi.value = pick<LabaRugiResult>(1, "Rincian pendapatan dan beban")
+  cash.value = pick<PrediksiKasRow[]>(2, "Arus kas") ?? []
+  monthly.value = pick<LabaRugiBulananResult>(3, "Laba rugi bulanan")
+  budget.value = pick<RealisasiAnggaranRow[]>(4, "Anggaran") ?? []
+  activities.value = pick<{ results: Kegiatan[] }>(5, "Kegiatan")?.results ?? []
+  outstanding.value = pick<{ results: Tagihan[] }>(6, "Tagihan")?.results.slice(0, 5) ?? []
+  queue.value = pick<{ results: Jurnal[] }>(7, "Jurnal yang perlu ditinjau")?.results ?? []
+  queuePageCount.value = queue.value.length
+  recent.value = pick<{ results: Jurnal[] }>(8, "Jurnal tercatat")?.results.slice(0, 5) ?? []
+  failed.value = errors
+  cashScope.value = scope.bulan ? `Saldo kumulatif hingga akhir ${months[scope.bulan - 1]} ${chartYear}.` : `Saldo kumulatif hingga akhir tahun ${chartYear}.`
+  appliedProfitScope.value = scope.bulan ? `${months[scope.bulan - 1]} ${chartYear}` : `Tahun ${chartYear}`
+  appliedYear.value = chartYear
+  appliedScope.value = ringkasan.value?.periode_filter?.label ?? (scope.tanggal ?? (scope.bulan ? `${months[scope.bulan - 1]} ${chartYear}` : `Tahun ${chartYear}`))
   loading.value = false
 }
-
-watch([filterMode, filterBulan, filterTahun, filterTanggal], loadDashboard)
+watch([filterMode, month, year, mode], () => { if (auth.isAuthenticated) void loadDashboard() })
 onMounted(loadDashboard)
 </script>
 
 <template>
-  <PageLayout title="Dashboard" subtitle="Ringkasan keuangan & operasional sekolah">
+  <PageLayout class="dashboard-page" :title="principal ? 'Ikhtisar sekolah' : 'Ringkasan keuangan'" :subtitle="principal ? 'Keputusan, kondisi keuangan, dan kegiatan sekolah.' : 'Kas, pencatatan, dan tindak lanjut transaksi.'" :surface="false">
+    <template #actions><Button label="Muat ulang" aria-label="Muat ulang dashboard" severity="secondary" :loading="loading" @click="loadDashboard"><template #icon><Icon name="arrows-clockwise" /></template></Button></template>
     <template #filters>
-      <Select
-        v-model="filterMode"
-        :options="FILTER_MODE_OPTS"
-        option-label="label"
-        option-value="value"
-        placeholder="Mode filter"
-      />
-      <PeriodPicker
-        v-if="filterMode === 'month'"
-        v-model:bulan="filterBulan"
-        v-model:tahun="filterTahun"
-      />
-      <Select
-        v-else-if="filterMode === 'year'"
-        v-model="filterTahun"
-        :options="tahunOptions"
-        option-label="label"
-        option-value="value"
-        placeholder="Tahun"
-      />
-      <DatePicker
-        v-else
-        v-model="filterTanggal"
-        date-format="yy-mm-dd"
-        show-button-bar
-      />
+      <Select v-model="filterMode" :options="filterModes" option-label="label" option-value="value" aria-label="Cakupan ringkasan" />
+      <PeriodPicker v-if="filterMode === 'month'" v-model:bulan="month" v-model:tahun="year" />
+      <Select v-else v-model="year" :options="years" aria-label="Tahun ringkasan" />
     </template>
-
-    <div class="dash-toolbar">
-      <span class="periode-badge">
-        <i class="pi pi-calendar" />
-        Periode aktif: <strong>{{ periodeLabel }}</strong>
-      </span>
+    <Message v-if="failed.length" severity="warn" :closable="false" class="dashboard-error">Belum dapat memuat: {{ failed.join(', ') }}. Panel terkait ditandai di bawah; coba muat ulang.</Message>
+    <p class="dashboard-scope" role="status">{{ loading ? 'Memuat ringkasan…' : `Ringkasan: ${appliedScope}` }}. Grafik dan daftar menyebut cakupannya masing-masing.</p>
+    <div class="dashboard-summary">
+      <section class="cash-position" aria-label="Kas dan bank">
+        <span><Icon name="wallet" />Kas dan bank</span>
+        <strong class="tabular-nums">{{ loading ? 'Memuat…' : rp(ringkasan?.kas) }}</strong>
+        <p>{{ loading ? 'Memuat cakupan saldo…' : cashScope }}</p>
+        <Button label="Buka laporan" text @click="router.push('/laporan')" />
+      </section>
+      <section class="journal-queue" :aria-label="principal ? 'Menunggu persetujuan' : 'Jurnal draf'">
+        <header><h2>{{ principal ? 'Menunggu persetujuan' : 'Lanjutkan pencatatan' }}</h2><Button label="Buka jurnal" text @click="router.push('/jurnal')" /></header>
+        <p>{{ principal ? 'Jurnal yang diajukan untuk ditinjau; transaksi milik sendiri tidak ditampilkan.' : 'Jurnal draf yang belum masuk buku besar.' }}</p>
+        <p v-if="loading" role="status">Memuat jurnal…</p>
+        <Message v-else-if="failed.includes('Jurnal yang perlu ditinjau')" severity="warn" :closable="false">Antrean belum berhasil dimuat.</Message>
+        <ul v-else><li v-for="item in reviewQueue.slice(0, 3)" :key="item.id"><div><strong>{{ item.keterangan || item.no_bukti }}</strong><small>{{ item.no_bukti }} · {{ item.tanggal }}</small></div><Tag :value="principal ? 'Menunggu' : 'Draf'" :severity="principal ? 'warn' : 'secondary'" /></li><li v-if="!reviewQueue.length">{{ principal ? 'Tidak ada jurnal yang memenuhi syarat pada halaman ini.' : 'Tidak ada jurnal draf pada halaman ini.' }}</li></ul>
+        <small v-if="!loading && !failed.includes('Jurnal yang perlu ditinjau')">{{ reviewQueue.length }} sesuai dari {{ queuePageCount }} jurnal pada halaman pertama; tampil maksimal 3.</small>
+      </section>
     </div>
-
-    <Message v-if="error" severity="warn" :closable="false">{{ error }}</Message>
-
-    <div v-if="ringkasan && !loading" class="hero-strip" :class="surplusTone">
-      <div class="hero-strip__main">
-        <span class="hero-strip__label">Surplus / Defisit</span>
-        <span class="hero-strip__value tabular-nums">{{ rp(ringkasan.surplus_defisit) }}</span>
-      </div>
-      <div class="hero-strip__meta">
-        <div><span>Kas & Bank</span><strong class="tabular-nums">{{ rp(ringkasan.kas) }}</strong></div>
-        <div><span>Pendapatan</span><strong class="tabular-nums">{{ rp(ringkasan.total_pendapatan) }}</strong></div>
-        <div><span>Beban</span><strong class="tabular-nums">{{ rp(ringkasan.total_beban) }}</strong></div>
-      </div>
-    </div>
-
-    <h3 class="section-title"><i class="pi pi-wallet" /> Keuangan</h3>
-    <div class="kpi-grid">
-      <KpiCard
-        v-for="c in cards"
-        :key="c.label"
-        :label="c.label"
-        :value="loading ? '…' : c.value"
-        :icon="c.icon"
-        :tone="c.tone as 'navy' | 'green' | 'magenta' | 'orange'"
-      />
-    </div>
-
-    <template v-if="opsCards.length">
-      <h3 class="section-title"><i class="pi pi-users" /> Operasional Siswa</h3>
-      <div class="grid menu-widget-row">
-        <ChartPanel
-          class="span-4"
-          title="Menu Katering Hari Ini"
-          subtitle="Foto & keterangan menu"
-          icon="pi pi-image"
-          accent="orange"
-          size="sm"
-          :loading="loading"
-        >
-          <div v-if="menuHariIni?.gambar_url" class="menu-photo-wrap">
-            <img :src="menuHariIni.gambar_url" alt="Foto menu katering" class="menu-photo" />
+    <div class="dashboard-kpis"><KpiCard v-for="card in cards" :key="card.label" :label="card.label" :value="loading ? 'Memuat…' : card.value" :icon="card.icon" /></div>
+    <Tabs value="overview" class="dashboard-analysis" scrollable>
+      <template #previcon><Icon name="caret-left" /></template><template #nexticon><Icon name="caret-right" /></template>
+      <TabList :pt="{tabList:{'aria-label':'Analisis dashboard'},prevButton:{'aria-label':'Lihat tab analisis sebelumnya'},nextButton:{'aria-label':'Lihat tab analisis berikutnya'}}"><Tab value="overview">{{ principal ? 'Anggaran dan kegiatan' : 'Arus kas dan hasil usaha' }}</Tab><Tab value="accounts">Rincian akun</Tab><Tab value="activity">Transaksi terbaru</Tab></TabList>
+      <TabPanels>
+        <TabPanel value="overview">
+          <div class="dashboard-charts" :class="{ 'principal-order': principal }">
+            <ChartPanel title="Bagaimana kas bergerak?" :subtitle="`Tahun ${appliedYear} · rupiah · jurnal tercatat`" icon="chart-line" :loading="loading" :empty="!cash.length" :empty-text="failed.includes('Arus kas') ? 'Arus kas belum berhasil dimuat.' : 'Belum ada arus kas pada tahun ini.'">
+              <div class="chart-wrap"><Chart type="line" :data="cashData" :options="lineOptions" :canvas-props="{ role: 'img', 'aria-label': 'Kas masuk, keluar, dan bersih. Angka tersedia pada tabel berikut.' }" /></div><ChartDataTable :labels="cashData.labels" :series="cashData.datasets" />
+            </ChartPanel>
+            <ChartPanel class="budget-panel" title="Bagaimana pagu dibanding realisasi?" :subtitle="`Tahun ${appliedYear} · rupiah · 5 akun dengan realisasi terbesar`" icon="chart-bar" :loading="loading" :empty="!budget.length" :empty-text="failed.includes('Anggaran') ? 'Anggaran belum berhasil dimuat.' : 'Belum ada anggaran pada tahun ini.'">
+              <div class="chart-wrap"><Chart type="bar" :data="budgetData" :options="horizontalOptions" :canvas-props="{ role: 'img', 'aria-label': 'Pagu dan realisasi lima akun. Angka tersedia pada tabel berikut.' }" /></div><ChartDataTable :labels="budgetData.labels" :series="budgetData.datasets" />
+            </ChartPanel>
+            <ChartPanel title="Bagaimana pendapatan dibanding beban?" :subtitle="`Tahun ${appliedYear} · rupiah · per bulan`" icon="chart-bar" :loading="loading" :empty="!monthly?.data.length" :empty-text="failed.includes('Laba rugi bulanan') ? 'Laba rugi bulanan belum berhasil dimuat.' : 'Belum ada angka bulanan pada tahun ini.'">
+              <div class="chart-wrap"><Chart type="bar" :data="monthlyData" :options="barOptions" :canvas-props="{ role: 'img', 'aria-label': 'Pendapatan dan beban per bulan. Angka tersedia pada tabel berikut.' }" /></div><ChartDataTable :labels="monthlyData.labels" :series="monthlyData.datasets" />
+            </ChartPanel>
+            <ChartPanel v-if="principal" title="Kegiatan yang perlu dipantau" subtitle="Halaman pertama daftar kegiatan · cakupan tahun pelajaran per kegiatan" icon="flag" :loading="loading" :empty="!activities.length" :empty-text="failed.includes('Kegiatan') ? 'Kegiatan belum berhasil dimuat.' : 'Belum ada kegiatan pada halaman ini.'">
+              <template #action><Button label="Buka kegiatan" text @click="router.push('/kegiatan')" /></template>
+              <ul class="activity-list"><li v-for="item in activities.slice(0, 5)" :key="item.id"><strong>{{ item.nama }}</strong><span>Pagu {{ rp(item.pagu) }} · realisasi {{ rp(item.realisasi) }}</span></li></ul>
+            </ChartPanel>
           </div>
-          <p v-if="menuHariIni?.keterangan" class="menu-text">{{ menuHariIni.keterangan }}</p>
-          <p v-else-if="!loading" class="muted menu-empty">Belum ada menu untuk hari ini.</p>
-        </ChartPanel>
-      </div>
-      <div class="kpi-grid ops-grid">
-        <KpiCard
-          v-for="c in opsCards"
-          :key="c.label"
-          :label="c.label"
-          :value="loading ? '…' : c.value"
-          :icon="c.icon"
-          :tone="c.tone"
-        />
-      </div>
-      <div class="grid">
-        <ChartPanel
-          class="span-6"
-          title="Tren Kehadiran"
-          subtitle="6 bulan terakhir"
-          icon="pi pi-chart-bar"
-          accent="blue"
-          size="sm"
-          :loading="loading"
-          :empty="!hasAbsensiSpark"
-        >
-          <div class="chart-wrap"><Chart type="bar" :data="absensiSparkData" :options="sparkOpts" /></div>
-        </ChartPanel>
-        <ChartPanel
-          class="span-6"
-          title="Jurnal Menunggu Approve"
-          subtitle="Status draft"
-          icon="pi pi-inbox"
-          accent="orange"
-          size="sm"
-          :loading="loading"
-        >
-          <template #action>
-            <a class="link" @click.prevent="router.push('/jurnal')">Buka jurnal</a>
-          </template>
-          <div class="table-wrap">
-            <table class="mini">
-              <thead><tr><th>No. Bukti</th><th>Tanggal</th><th>Tipe</th></tr></thead>
-              <tbody>
-                <tr v-for="j in pendingJurnal" :key="j.id">
-                  <td>{{ j.no_bukti }}</td>
-                  <td>{{ j.tanggal }}</td>
-                  <td class="muted">{{ j.tipe_sumber }}</td>
-                </tr>
-                <tr v-if="pendingJurnal.length === 0">
-                  <td colspan="3" class="muted center">Tidak ada jurnal draft.</td>
-                </tr>
-              </tbody>
-            </table>
+        </TabPanel>
+        <TabPanel value="accounts"><div class="dashboard-charts"><ChartPanel title="Pendapatan per akun" :subtitle="appliedProfitScope" icon="arrow-down-left" :loading="loading" :empty="!incomeData.labels.length" :empty-text="failed.includes('Rincian pendapatan dan beban') ? 'Rincian belum berhasil dimuat.' : 'Belum ada pendapatan.'"><div class="chart-wrap"><Chart type="bar" :data="incomeData" :options="horizontalOptions" /></div><ChartDataTable :labels="incomeData.labels" :series="incomeData.datasets" /></ChartPanel><ChartPanel title="Beban per akun" :subtitle="appliedProfitScope" icon="arrow-up-right" :loading="loading" :empty="!expenseData.labels.length" :empty-text="failed.includes('Rincian pendapatan dan beban') ? 'Rincian belum berhasil dimuat.' : 'Belum ada beban.'"><div class="chart-wrap"><Chart type="bar" :data="expenseData" :options="horizontalOptions" /></div><ChartDataTable :labels="expenseData.labels" :series="expenseData.datasets" /></ChartPanel></div></TabPanel>
+        <TabPanel value="activity">
+          <div class="dashboard-charts">
+            <ChartPanel title="Tagihan belum lunas" subtitle="5 tagihan dari halaman pertama berstatus belum lunas · periode pada tiap baris" icon="file-text" :loading="loading" :empty="!outstanding.length" :empty-text="failed.includes('Tagihan') ? 'Tagihan belum berhasil dimuat.' : 'Tidak ada tagihan pada halaman ini.'"><template #action><Button label="Lihat tagihan" text @click="router.push('/tunggakan-tagihan')" /></template><div class="dashboard-table-scroll" tabindex="0" role="region" aria-label="Tagihan belum lunas"><table><thead><tr><th>Siswa</th><th>Periode</th><th>Total tagihan</th></tr></thead><tbody><tr v-for="item in outstanding" :key="item.id"><td>{{ item.siswa_nama || `#${item.siswa}` }}</td><td>{{ months[item.periode_bulan - 1] }} {{ item.periode_tahun }}</td><td class="numeric">{{ rp(item.total) }}</td></tr></tbody></table></div></ChartPanel>
+            <ChartPanel title="Jurnal tercatat terbaru" subtitle="5 jurnal dari halaman pertama · urutan tanggal terbaru" icon="book-open" :loading="loading" :empty="!recent.length" :empty-text="failed.includes('Jurnal tercatat') ? 'Jurnal belum berhasil dimuat.' : 'Belum ada jurnal tercatat pada halaman ini.'"><template #action><Button label="Buka jurnal" text @click="router.push('/jurnal')" /></template><ul class="activity-list"><li v-for="item in recent" :key="item.id"><strong>{{ item.no_bukti }}</strong><span>{{ item.tanggal }} · {{ item.keterangan || item.tipe_sumber }}</span><Tag value="Tercatat" severity="success" /></li></ul></ChartPanel>
           </div>
-        </ChartPanel>
-      </div>
-    </template>
-
-    <div class="grid">
-      <ChartPanel
-        class="span-8"
-        title="Arus Kas Bulanan"
-        subtitle="Kas masuk, keluar & net flow dari jurnal posted"
-        icon="pi pi-chart-line"
-        accent="green"
-        size="lg"
-        :loading="loading"
-        :empty="!hasArusKas"
-      >
-        <div class="chart-wrap"><Chart type="line" :data="arusKasData" :options="lineOpts" /></div>
-      </ChartPanel>
-      <ChartPanel
-        class="span-4"
-        title="Utilisasi Anggaran"
-        subtitle="Pagu vs realisasi total"
-        icon="pi pi-percentage"
-        accent="navy"
-        size="lg"
-        :loading="loading"
-      >
-        <div class="gauge-wrap">
-          <RingGauge :value="utilisasiTotal" label="terpakai" :size="168" />
-          <div class="gauge-stats">
-            <div class="gauge-stat">
-              <span>Pagu</span>
-              <strong class="tabular-nums">{{ rp(ringkasan?.anggaran.pagu) }}</strong>
-            </div>
-            <div class="gauge-stat">
-              <span>Realisasi</span>
-              <strong class="tabular-nums">{{ rp(ringkasan?.anggaran.realisasi) }}</strong>
-            </div>
-          </div>
-        </div>
-      </ChartPanel>
-    </div>
-
-    <div class="grid">
-      <ChartPanel
-        class="span-4"
-        title="Komposisi Pendapatan"
-        subtitle="Per akun pendapatan"
-        icon="pi pi-arrow-down-left"
-        accent="green"
-        :loading="loading"
-        :empty="!hasDonutPendapatan"
-      >
-        <div class="chart-wrap"><Chart type="doughnut" :data="donutPendapatan" :options="donutOpts" /></div>
-      </ChartPanel>
-      <ChartPanel
-        class="span-4"
-        title="Komposisi Beban"
-        subtitle="Per akun beban"
-        icon="pi pi-arrow-up-right"
-        accent="magenta"
-        :loading="loading"
-        :empty="!hasDonutBeban"
-      >
-        <div class="chart-wrap"><Chart type="doughnut" :data="donutBeban" :options="donutOpts" /></div>
-      </ChartPanel>
-      <ChartPanel
-        class="span-4"
-        title="Realisasi vs Pagu"
-        subtitle="Top 5 akun — % terpakai"
-        icon="pi pi-sliders-h"
-        accent="navy"
-        :loading="loading"
-        :empty="realisasiTop.length === 0"
-      >
-        <div class="chart-wrap"><Chart type="bar" :data="realisasiBarData" :options="hbarOpts" /></div>
-      </ChartPanel>
-    </div>
-
-    <div class="grid">
-      <ChartPanel
-        class="span-8"
-        title="Laba Rugi per Bulan"
-        :subtitle="`Tahun ${lrBulanan?.tahun ?? filterTahun}`"
-        icon="pi pi-chart-bar"
-        accent="green"
-        size="lg"
-        :loading="loading"
-        :empty="!hasLrBulanan"
-      >
-        <div class="chart-wrap"><Chart type="bar" :data="lrBulananData" :options="stackedOpts" /></div>
-      </ChartPanel>
-      <ChartPanel
-        class="span-4"
-        title="Utilisasi Kegiatan"
-        subtitle="Top 5 kegiatan"
-        icon="pi pi-flag"
-        accent="blue"
-        size="lg"
-        :loading="loading"
-        :empty="kegiatanTop.length === 0"
-      >
-        <div class="chart-wrap"><Chart type="bar" :data="kegiatanBarData" :options="vbarOpts" /></div>
-      </ChartPanel>
-    </div>
-
-    <div class="grid">
-      <ChartPanel
-        class="span-6"
-        title="Tagihan Belum Lunas"
-        subtitle="5 tagihan teratas"
-        icon="pi pi-exclamation-circle"
-        accent="magenta"
-        size="sm"
-        :loading="loading"
-      >
-        <template #action>
-          <a class="link" @click.prevent="router.push('/tunggakan-tagihan')">Lihat semua</a>
-        </template>
-        <div class="table-wrap">
-          <table class="mini">
-            <thead><tr><th>Siswa</th><th>Periode</th><th class="num">Total</th></tr></thead>
-            <tbody>
-              <tr v-for="t in outstanding" :key="t.id">
-                <td>{{ t.siswa_nama ?? `#${t.siswa}` }}</td>
-                <td>{{ BULAN[t.periode_bulan - 1] }} {{ t.periode_tahun }}</td>
-                <td class="num">{{ rp(t.total) }}</td>
-              </tr>
-              <tr v-if="outstanding.length === 0">
-                <td colspan="3" class="muted center">Tidak ada tagihan menunggak.</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </ChartPanel>
-
-      <ChartPanel
-        class="span-6"
-        title="Mutasi Jurnal Terbaru"
-        subtitle="Jurnal posted"
-        icon="pi pi-book"
-        accent="navy"
-        size="sm"
-        :loading="loading"
-      >
-        <template #action>
-          <a class="link" @click.prevent="router.push('/jurnal')">Lihat semua</a>
-        </template>
-        <div class="table-wrap">
-          <table class="mini">
-            <thead><tr><th>No. Bukti</th><th>Tanggal</th><th>Tipe</th><th>Status</th></tr></thead>
-            <tbody>
-              <tr v-for="j in mutasi" :key="j.id">
-                <td>{{ j.no_bukti }}</td>
-                <td>{{ j.tanggal }}</td>
-                <td class="muted">{{ j.tipe_sumber }}</td>
-                <td><Tag :value="j.status" severity="success" /></td>
-              </tr>
-              <tr v-if="mutasi.length === 0">
-                <td colspan="4" class="muted center">Belum ada jurnal posted.</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </ChartPanel>
-    </div>
+        </TabPanel>
+      </TabPanels>
+    </Tabs>
   </PageLayout>
 </template>
 
 <style scoped>
-.dash-toolbar {
-  margin-bottom: 1rem;
-}
-.periode-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  padding: 0.45rem 0.85rem;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--bee-navy) 8%, white);
-  color: var(--bee-navy);
-  font-size: 0.82rem;
-  font-weight: 600;
-}
-.periode-badge i { opacity: 0.7; font-size: 0.85rem; }
-
-.hero-strip {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem 1.5rem;
-  padding: 1.15rem 1.35rem;
-  margin-bottom: 1.25rem;
-  border-radius: var(--bee-radius-lg);
-  background: linear-gradient(135deg, var(--bee-navy) 0%, #3a3690 100%);
-  color: #fff;
-  box-shadow: 0 12px 32px rgba(46, 42, 110, 0.22);
-}
-.hero-strip.positive {
-  background: linear-gradient(135deg, #1f6b42 0%, var(--bee-success) 100%);
-  box-shadow: 0 12px 32px rgba(46, 158, 91, 0.25);
-}
-.hero-strip.negative {
-  background: linear-gradient(135deg, #9c0d55 0%, var(--bee-magenta) 100%);
-  box-shadow: 0 12px 32px rgba(229, 25, 127, 0.22);
-}
-.hero-strip__label {
-  display: block;
-  font-size: 0.78rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  opacity: 0.85;
-}
-.hero-strip__value {
-  font-family: "Baloo 2", sans-serif;
-  font-size: 1.85rem;
-  font-weight: 800;
-  line-height: 1.1;
-}
-.hero-strip__meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem 1.75rem;
-}
-.hero-strip__meta div {
-  display: flex;
-  flex-direction: column;
-  gap: 0.1rem;
-}
-.hero-strip__meta span {
-  font-size: 0.72rem;
-  opacity: 0.8;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-.hero-strip__meta strong {
-  font-size: 0.95rem;
-}
-
-.menu-widget-row {
-  margin-bottom: 0.5rem;
-}
-.menu-photo-wrap {
-  margin: 0.25rem 0 0.5rem;
-  border-radius: 12px;
-  overflow: hidden;
-  max-height: 160px;
-  box-shadow: 0 4px 16px rgba(46, 42, 110, 0.1);
-}
-.menu-photo {
-  width: 100%;
-  height: 160px;
-  object-fit: cover;
-  display: block;
-}
-.menu-text {
-  margin: 0;
-  font-size: 0.88rem;
-  line-height: 1.5;
-  color: var(--app-text);
-}
-.menu-empty { margin: 0; }
-
-.kpi-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1rem;
-  margin: 0.5rem 0 1.5rem;
-}
-.ops-grid {
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-}
-.section-title {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  margin: 0.5rem 0 0.75rem;
-  font-size: 0.88rem;
-  font-weight: 800;
-  color: var(--bee-navy);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-.section-title i {
-  font-size: 0.9rem;
-  opacity: 0.65;
-}
-
-.grid {
-  display: grid;
-  grid-template-columns: repeat(12, 1fr);
-  gap: 1rem;
-  margin-bottom: 1rem;
-}
-.grid > :deep(.chart-panel),
-.grid > .span-4,
-.grid > .span-6,
-.grid > .span-8 {
-  min-width: 0;
-}
-.span-4 { grid-column: span 4; }
-.span-6 { grid-column: span 6; }
-.span-8 { grid-column: span 8; }
-@media (max-width: 980px) {
-  .span-4, .span-6, .span-8 { grid-column: 1 / -1; }
-  .hero-strip { flex-direction: column; align-items: flex-start; }
-}
-
-.chart-wrap {
-  position: relative;
-  height: 280px;
-}
-
-.gauge-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-  padding: 0.5rem 0 0.25rem;
-}
-.gauge-stats {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-.gauge-stat {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.55rem 0.75rem;
-  border-radius: 10px;
-  background: rgba(46, 42, 110, 0.04);
-  font-size: 0.85rem;
-}
-.gauge-stat span { color: var(--app-text-muted); }
-.gauge-stat strong { color: var(--bee-navy); }
-
-.table-wrap {
-  overflow-x: auto;
-  margin: -0.15rem 0;
-}
-.muted { color: var(--app-text-muted); font-size: 0.82rem; }
-.center { text-align: center; padding: 0.75rem 0; }
-.link {
-  color: var(--bee-magenta);
-  cursor: pointer;
-  font-weight: 600;
-  font-size: 0.85rem;
-  text-decoration: none;
-}
-.link:hover { text-decoration: underline; }
-
-.mini { width: 100%; border-collapse: collapse; }
-.mini th {
-  padding: 0.5rem 0.4rem;
-  text-align: left;
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--app-text-muted);
-  border-bottom: 1px solid rgba(46, 42, 110, 0.08);
-}
-.mini td {
-  padding: 0.55rem 0.4rem;
-  text-align: left;
-  border-bottom: 1px solid rgba(46, 42, 110, 0.05);
-  font-size: 0.88rem;
-}
-.mini tbody tr:hover td {
-  background: rgba(46, 42, 110, 0.03);
-}
-.mini .num { text-align: right; font-variant-numeric: tabular-nums; }
+.dashboard-scope { color: var(--app-text-muted); font-size: var(--bee-type-caption); margin: var(--bee-space-4) 0 var(--bee-space-5); }
+.dashboard-error { margin-bottom: var(--bee-space-4); }
+.dashboard-summary { display: grid; grid-template-columns: 1fr 1.25fr; gap: var(--bee-space-5); }
+.cash-position { background: var(--bee-color-nav); color: var(--bee-color-nav-text); border-radius: var(--bee-radius-panel); padding: var(--bee-space-6); display: flex; flex-direction: column; align-items: flex-start; }
+.cash-position > span { display: flex; align-items: center; gap: var(--bee-space-2); font-size: var(--bee-type-ui); }.cash-position > span .bee-icon { color: var(--bee-color-honey); }
+.cash-position > strong { font-size: clamp(28px, 3vw, 44px); font-weight: 500; line-height: 1.2; margin-top: var(--bee-space-5); overflow-wrap: anywhere; }
+.cash-position p { color: var(--bee-color-nav-muted); font-size: var(--bee-type-caption); margin-block: var(--bee-space-4); }.cash-position :deep(.p-button) { color: var(--bee-color-nav-text); margin-top: auto; }.cash-position :deep(.p-button:hover) { background: var(--bee-color-nav-border); }.cash-position :deep(.p-button:focus-visible) { outline-color: var(--bee-color-nav-text); }
+.journal-queue { border: 1px solid var(--app-border); border-radius: var(--bee-radius-panel); padding: var(--bee-space-5); background: var(--app-surface); min-width: 0; }
+.journal-queue header { display: flex; align-items: center; justify-content: space-between; gap: var(--bee-space-3); flex-wrap: wrap; }.journal-queue h2 { font-size: var(--bee-type-section); font-weight: 500; }.journal-queue p,.journal-queue > small { color: var(--app-text-muted); font-size: var(--bee-type-caption); }.journal-queue ul { list-style: none; padding: 0; margin-block: var(--bee-space-4); }.journal-queue li { display: flex; align-items: center; justify-content: space-between; gap: var(--bee-space-3); padding-block: var(--bee-space-3); border-bottom: 1px solid var(--app-border); }.journal-queue li strong,.journal-queue li small { display: block; }.journal-queue li strong { font-weight: 500; }.journal-queue li small { color: var(--app-text-muted); margin-top: var(--bee-space-1); }
+.dashboard-kpis { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: var(--bee-space-5); margin-block: var(--bee-space-5) var(--bee-space-6); }
+.dashboard-analysis { min-width: 0; }.dashboard-analysis :deep(.p-tabpanels) { padding: var(--bee-space-5) 0 0; background: transparent; }.dashboard-analysis :deep(.p-tablist-tab-list) { background: transparent; }
+.dashboard-charts { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: var(--bee-space-5); }.principal-order .budget-panel { order: -1; }.chart-wrap { position: relative; height: 280px; }
+.activity-list { list-style: none; padding: 0; margin: 0; }.activity-list li { display: flex; align-items: flex-start; flex-wrap: wrap; gap: var(--bee-space-2); padding-block: var(--bee-space-3); border-bottom: 1px solid var(--app-border); }.activity-list strong { font-weight: 500; width: 100%; }.activity-list span { font-size: var(--bee-type-caption); color: var(--app-text-muted); }
+.dashboard-table-scroll { overflow-x: auto; }table { width: 100%; border-collapse: collapse; font-size: var(--bee-type-ui); }th,td { padding: var(--bee-space-3); text-align: start; border-bottom: 1px solid var(--app-border); }th { font-size: var(--bee-type-caption); color: var(--app-text-muted); font-weight: 500; }.numeric { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+@media(max-width:1100px) { .dashboard-summary { grid-template-columns: minmax(0,1fr); } }
+@media(max-width:767px) { .dashboard-kpis,.dashboard-charts { grid-template-columns: minmax(0,1fr); }.cash-position { padding: var(--bee-space-4); }.cash-position > strong { font-size: var(--bee-type-number-mobile); margin-top: var(--bee-space-3); }.cash-position p { margin-block: var(--bee-space-2); }.cash-position :deep(.p-button) { margin-top: var(--bee-space-1); }.journal-queue li { flex-wrap: wrap; }.dashboard-page :deep(.bee-page__header) { align-items: center; flex-wrap: nowrap; }.dashboard-page :deep(.bee-page__titles) { min-width: 0; }.dashboard-page :deep(.bee-page__actions) { flex: none; }.dashboard-page :deep(.bee-page__actions .p-button) { min-width: 44px; min-height: 44px; padding-inline: var(--bee-space-3); }.dashboard-page :deep(.bee-page__actions .p-button-label) { display: none; }.dashboard-page :deep(.bee-page__filters) { margin-bottom: var(--bee-space-3); }.dashboard-page :deep(.period-picker) { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); width: 100%; }.dashboard-page :deep(.period-picker .p-select) { min-width: 0; }.dashboard-scope { margin: var(--bee-space-3) 0; } }
 </style>
