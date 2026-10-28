@@ -80,7 +80,7 @@ Cara membaca hasilnya:
 | Jurnal DRAFT/PENDING | 7 | Sama seperti sebelumnya |
 | Periode | 2026/2027, 01/07/2026–30/06/2027, OPEN | Sesuai |
 
-Kesimpulan: tidak ada yang menghalangi backup dan merge. Sebelum impor biodata, buat 4 kelompok yang belum ada, dengan jenjang sesuai konfirmasi sekolah.
+Kesimpulan: tidak ada yang menghalangi backup dan merge. Sebelum impor biodata, buat 4 kelompok yang belum ada. Jenjangnya **TKB** (konfirmasi pengguna 28/10): `Bu Dini 26/27`, `Bu Cita 26/27`, `Bu Okta 26/27`, `Bu Latifah 26/27`.
 
 ## 2. Backup manual sebelum merge
 
@@ -125,7 +125,7 @@ Diharapkan: ukuran file mirip dump sebelumnya (28/10: ±248 KB) dan jumlah `TABL
 ## 4. Impor biodata (setelah rilis, oleh Staf TU)
 
 1. Buat backup lagi persis sebelum impor (blok bagian 2, ganti akhiran `before-batch45` menjadi `before-impor-biodata`).
-2. Pastikan semua kelompok untuk 11 kelas sudah ada (lihat bagian 1).
+2. Pastikan semua kelompok untuk 11 kelas sudah ada. Staf TU membuat 4 kelompok TKB di menu Kelompok → Tambah kelompok: Bu Dini 26/27, Bu Cita 26/27, Bu Okta 26/27, Bu Latifah 26/27. Saran pemetaan di pratinjau impor otomatis mengenali nama ini.
 3. Di Google Sheets, buka tab biodata → File → Download → Comma-separated values (.csv).
 4. Login sebagai Staf TU → Data siswa → **Impor biodata** → pilih CSV. Periksa pratinjau sebelum menyimpan:
    - Total siswa baru + diperbarui + sudah sama + bermasalah = **104** (hasil pratinjau lokal 28/10). Kalau jauh berbeda, berhenti.
