@@ -140,7 +140,26 @@ Hasil 28/10 17:34–17:35 UTC: `backups/db-20261028T173437Z-before-batch45.dump`
 
   Tidak ada data yang berubah.
 - Log poller sempat mencatat `curl: (22) … 502` sebelum `Deploy frontend`. Itu dari cek schema saat backend baru restart; curl mengulang (`--retry 10`) sampai berhasil, karena `backend_sha` tersimpan dan tahap frontend berjalan. Tidak perlu tindakan.
-- Belum: smoke test per role oleh pengguna.
+- Smoke test produksi per role (pengguna login di browser bawaan, Claude memeriksa, tanpa menyimpan data):
+  - **Staf TU:**
+    - Data siswa 32 siswa; tombol Impor biodata ada; SPP tampil.
+    - Form berisi Nama panggilan/Jenis kelamin/Tempat/Tanggal lahir; usia "4 tahun 11 bulan" muncul untuk 24/11/2021. Form ditutup dengan Batal.
+    - 7 nama kelompok bisa diklik; Lebah 1 membuka `/siswa?kelompok=5` dengan 10 siswa.
+    - Dialog impor terbuka dengan tombol Simpan nonaktif.
+  - **Guru:**
+    - Menu Absensi Siswa, Rekap Absensi, Kegiatan.
+    - Absensi PG Lebah 1 menampilkan 10 dari 10 siswa (tidak disimpan).
+    - `GET /siswa/` 200, 32 siswa, tanpa field nominal; halaman tanpa angka Rupiah.
+  - **Keuangan:**
+    - Data siswa 32 siswa dengan SPP dan Biaya masuk, tanpa tombol tulis.
+    - API siswa masih berisi nominal.
+    - `POST /siswa/impor-biodata/` tanpa berkas ditolak 403.
+  - **Kepsek:**
+    - Beranda tanpa error; filter Hari/Bulan/Periode 2026/2027.
+    - KPI Pendapatan Rp 6.715.000, Beban Rp 5.660.000, Surplus Rp 1.055.000.
+    - `GET /siswa/` 403, sesuai matriks akses.
+
+  Semua lulus.
 
 ## 4. Impor biodata (setelah rilis, oleh Staf TU)
 
