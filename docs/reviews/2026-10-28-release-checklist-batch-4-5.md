@@ -124,10 +124,47 @@ Hasil 28/10 17:34–17:35 UTC: `backups/db-20261028T173437Z-before-batch45.dump`
    - **Keuangan:** Data siswa masih menampilkan SPP dan biaya masuk.
    - **Kepsek:** Beranda normal.
 
+### Hasil rilis — 28 Oktober 2026
+
+- PR #23 di-merge ke `main` pukul 17:37 UTC (`0f0bebc`), atas keputusan rilis pengguna, setelah cek read-only dan backup `before-batch45`.
+- Backend baru aktif ±17:41 UTC: schema produksi memuat `/api/v1/siswa/impor-biodata/`.
+- Worker berganti ke bundle `index-B5KPjw6I.js` ±17:42 UTC (sebelumnya `index-BO5I_TBs.js`). Bundle memuat "Impor biodata", "Nama panggilan", "Belum diisi", "Lihat siswa", dan path `impor-biodata`.
+- Cek dari luar: `/login` 200; API tanpa token 401 lewat Worker dan origin.
+- Cek read-only pasca-rilis (web console, ±17:58 UTC):
+  - SHA backend dan frontend `0f0bebc`
+  - backend Up 20 menit, db healthy, disk 8%
+  - dump deploy `db-20261028T174003Z.dump` (249.159 byte)
+  - migrasi `0018_siswa_data_diri`, kolom 0018 = 3
+  - 32 siswa aktif, SPP 0 = 0, biodata terisi sama seperti sebelum rilis
+  - 7 kelompok, 7 tagihan bulanan, 7 jurnal DRAFT/PENDING, periode 2026/2027 OPEN
+
+  Tidak ada data yang berubah.
+- Log poller sempat mencatat `curl: (22) … 502` sebelum `Deploy frontend`. Itu dari cek schema saat backend baru restart; curl mengulang (`--retry 10`) sampai berhasil, karena `backend_sha` tersimpan dan tahap frontend berjalan. Tidak perlu tindakan.
+- Smoke test produksi per role (pengguna login di browser bawaan, Claude memeriksa, tanpa menyimpan data):
+  - **Staf TU:**
+    - Data siswa 32 siswa; tombol Impor biodata ada; SPP tampil.
+    - Form berisi Nama panggilan/Jenis kelamin/Tempat/Tanggal lahir; usia "4 tahun 11 bulan" muncul untuk 24/11/2021. Form ditutup dengan Batal.
+    - 7 nama kelompok bisa diklik; Lebah 1 membuka `/siswa?kelompok=5` dengan 10 siswa.
+    - Dialog impor terbuka dengan tombol Simpan nonaktif.
+  - **Guru:**
+    - Menu Absensi Siswa, Rekap Absensi, Kegiatan.
+    - Absensi PG Lebah 1 menampilkan 10 dari 10 siswa (tidak disimpan).
+    - `GET /siswa/` 200, 32 siswa, tanpa field nominal; halaman tanpa angka Rupiah.
+  - **Keuangan:**
+    - Data siswa 32 siswa dengan SPP dan Biaya masuk, tanpa tombol tulis.
+    - API siswa masih berisi nominal.
+    - `POST /siswa/impor-biodata/` tanpa berkas ditolak 403.
+  - **Kepsek:**
+    - Beranda tanpa error; filter Hari/Bulan/Periode 2026/2027.
+    - KPI Pendapatan Rp 6.715.000, Beban Rp 5.660.000, Surplus Rp 1.055.000.
+    - `GET /siswa/` 403, sesuai matriks akses.
+
+  Semua lulus.
+
 ## 4. Impor biodata (setelah rilis, oleh Staf TU)
 
-1. Buat backup lagi persis sebelum impor (blok bagian 2, ganti akhiran `before-batch45` menjadi `before-impor-biodata`).
-2. Pastikan semua kelompok untuk 11 kelas sudah ada. Staf TU membuat 4 kelompok TKB di menu Kelompok → Tambah kelompok: Bu Dini 26/27, Bu Cita 26/27, Bu Okta 26/27, Bu Latifah 26/27. Saran pemetaan di pratinjau impor otomatis mengenali nama ini.
+1. **Selesai 28/10 18:31 UTC:** `backups/db-20261028T183137Z-before-impor-biodata.dump` (249.561 byte, 50 `TABLE DATA`, sudah berisi 4 kelompok baru). Catatan asli langkah ini: buat backup lagi persis sebelum impor (blok bagian 2, ganti akhiran `before-batch45` menjadi `before-impor-biodata`).
+2. **Selesai 28/10:** 4 kelompok TKB dibuat Claude lewat UI produksi atas permintaan pengguna, dengan sesi Staf TU `admin.tu` yang login sendiri: id 8 Bu Dini, 9 Bu Cita, 10 Bu Okta, 11 Bu Latifah (semuanya 26/27, 0 siswa). Total 11 kelompok. Kelompok kosong bisa dihapus lagi dari menu Kelompok bila perlu. Catatan asli langkah ini: pastikan semua kelompok untuk 11 kelas sudah ada. Staf TU membuat 4 kelompok TKB di menu Kelompok → Tambah kelompok: Bu Dini 26/27, Bu Cita 26/27, Bu Okta 26/27, Bu Latifah 26/27. Saran pemetaan di pratinjau impor otomatis mengenali nama ini.
 3. Di Google Sheets, buka tab biodata → File → Download → Comma-separated values (.csv).
 4. Login sebagai Staf TU → Data siswa → **Impor biodata** → pilih CSV. Periksa pratinjau sebelum menyimpan:
    - Total siswa baru + diperbarui + sudah sama + bermasalah = **104** (hasil pratinjau lokal 28/10). Kalau jauh berbeda, berhenti.
@@ -149,6 +186,31 @@ Hasil 28/10 17:34–17:35 UTC: `backups/db-20261028T173437Z-before-batch45.dump`
    ```
 7. Isi SPP semua siswa bertanda **Belum diisi** sebelum tagihan November dibuat.
 8. Ubah akses spreadsheet biodata menjadi **Dibatasi**.
+
+### Hasil impor biodata — 28 Oktober 2026 (±18:35 UTC)
+
+Impor disimpan dari sesi Staf TU di browser bawaan oleh pengguna, sebelum pratinjau sempat dicocokkan Claude. Hasilnya diperiksa sesudahnya lewat API dengan sesi yang sama (hanya baca):
+
+- **Total siswa:** 108 (sebelumnya 32), semuanya aktif.
+  - 104 baris sheet tersimpan: 76 siswa baru (SPP Rp 0, bertanda "Belum diisi") dan 28 siswa lama diperbarui.
+  - 4 siswa lama tidak ada di sheet dan tidak berubah: 2 di PG Lebah 2 dan 2 tanpa kelompok. Kemiripan nama dengan siswa baru paling tinggi 0,33 (satu kata sama), jadi tidak ada indikasi siswa dobel.
+- **Per kelompok (sama dengan jumlah per kelas di sheet):**
+  - PG: Kepompong 3, Lebah 1 10, Lebah 2 8 (+2 lama)
+  - TKA: Bu Desi 10, Bu Indri 10, Bu Ita 11, Bu Mei 11
+  - TKB: Bu Cita 10, Bu Dini 11, Bu Latifah 9, Bu Okta 11
+
+  Tidak ada siswa pindah lintas jenjang. PG lama tetap PG, dan 7 siswa Bu Indri lama tetap di Bu Indri.
+- **Biodata:**
+  - 104 siswa punya JK, tempat lahir, dan tanggal lahir.
+  - 104 alamat terisi; 90 diawali/memuat `Jl.` dan 68 memuat `RT xxx/RW xxx`.
+  - 208 nomor HP: semua angka dan diawali 0; 1 nomor panjangnya janggal (sudah ditandai saat pratinjau).
+- **Tagihan:** tetap 7. Impor tidak membuat tagihan.
+
+Tindak lanjut:
+1. Isi SPP 76 siswa baru sebelum tagihan November.
+2. Konfirmasi ke sekolah status 4 siswa lama yang tidak ada di sheet.
+3. Periksa 2 nomor HP yang ditandai.
+4. Ubah akses spreadsheet menjadi Dibatasi.
 
 ## Rollback
 

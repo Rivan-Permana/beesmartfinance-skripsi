@@ -2,8 +2,9 @@ import { flushPromises, mount } from "@vue/test-utils"
 import PrimeVue from "primevue/config"
 import { primevueLocale } from "@/core/primevueLocale"
 import { describe, expect, it, vi } from "vitest"
-import type { ImporBiodataHasil } from "@/types/api"
+import type { ImporBiodataHasil, ImporSppHasil } from "@/types/api"
 import SiswaImportDialog from "./SiswaImportDialog.vue"
+import SppImportDialog from "./SppImportDialog.vue"
 import { identitasSiswa, sppBelumDiisi, usiaSiswa } from "./presentation"
 
 const preview: ImporBiodataHasil = {
@@ -17,7 +18,20 @@ const preview: ImporBiodataHasil = {
   ],
 }
 const imporBiodata = vi.fn(async (_file: File, _map: Record<string, number | null> | null, simpan: boolean) => ({ ...preview, disimpan: simpan }))
-vi.mock("./api", () => ({ siswaApi: { imporBiodata: (...args: Parameters<typeof imporBiodata>) => imporBiodata(...args) } }))
+const sppPreview: ImporSppHasil = {
+  disimpan: false, diisi: 0,
+  ringkasan: { isi: 1, sama: 0, beda: 1, cek: 1, galat: 0 },
+  baris: [
+    { baris: 4, nama: "Anak Baru", kelas: "TK A", aksi: "isi", siswa: 1, spp_lama: "0.00", spp_baru: "1350000.00", nilai: [1350000], alasan: null },
+    { baris: 5, nama: "Anak Beda", kelas: "TK B", aksi: "beda", siswa: 2, spp_lama: "1300000.00", spp_baru: "1350000.00", nilai: [1350000], alasan: null },
+    { baris: 6, nama: "Anak Variasi", kelas: "TK B", aksi: "cek", siswa: 3, spp_lama: "0.00", spp_baru: "1300000.00", nilai: [650000, 1300000], alasan: "Nominal SPP berbeda antar bulan." },
+  ],
+}
+const imporSpp = vi.fn(async (_file: File, simpan: boolean) => ({ ...sppPreview, disimpan: simpan, diisi: simpan ? 1 : 0 }))
+vi.mock("./api", () => ({ siswaApi: {
+  imporBiodata: (...args: Parameters<typeof imporBiodata>) => imporBiodata(...args),
+  imporSpp: (...args: Parameters<typeof imporSpp>) => imporSpp(...args),
+} }))
 const global = { plugins: [[PrimeVue, { unstyled: true, locale: primevueLocale }]] }
 
 describe("student biodata import", () => {
@@ -50,6 +64,26 @@ describe("student biodata import", () => {
     await flushPromises()
     expect(imporBiodata).toHaveBeenLastCalledWith(file, { "BU MAWAR": 2 }, true)
     expect(view.emitted("saved")?.[0]?.[0]).toMatchObject({ disimpan: true })
+    view.unmount()
+  })
+  it("previews SPP from the master tab, keeps flagged and different rows unchanged, then fills only new SPP", async () => {
+    const view = mount(SppImportDialog, { global, attachTo: document.body, props: { modelValue: true } })
+    await flushPromises()
+    const input = document.querySelector<HTMLInputElement>("#impor-spp-berkas")!
+    const file = new File(["Nama,Juli"], "master.csv", { type: "text/csv" })
+    Object.defineProperty(input, "files", { value: [file] })
+    input.dispatchEvent(new Event("change"))
+    await flushPromises()
+    expect(imporSpp).toHaveBeenLastCalledWith(file, false)
+    const text = document.body.textContent ?? ""
+    expect(text).toContain("Rp 1.350.000 per bulan")
+    expect(text).toContain("Sistem Rp 1.300.000 · berkas Rp 1.350.000")
+    expect(text).toContain("Nominal di berkas: Rp 650.000, Rp 1.300.000")
+    const save = [...document.querySelectorAll("button")].find((b) => b.textContent?.includes("Isi SPP 1 siswa"))!
+    save.click()
+    await flushPromises()
+    expect(imporSpp).toHaveBeenLastCalledWith(file, true)
+    expect(view.emitted("saved")?.[0]?.[0]).toMatchObject({ disimpan: true, diisi: 1 })
     view.unmount()
   })
 })

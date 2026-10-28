@@ -26,7 +26,7 @@ const props = defineProps<{
   /** Filter kelompok awal, mis. dari klik nama kelompok di menu Kelompok. */
   initialGroup?: number | null
 }>()
-const emit = defineEmits<{ create: []; edit: [row: Siswa]; remove: [row: Siswa]; receive: [row: Siswa]; retry: []; manageGroups: []; import: [] }>()
+const emit = defineEmits<{ create: []; edit: [row: Siswa]; remove: [row: Siswa]; receive: [row: Siswa]; retry: []; manageGroups: []; import: []; importSpp: [] }>()
 const status = ref<SiswaStatus | null>(null)
 const group = ref<number | "unassigned" | null>(null)
 const first = ref(0)
@@ -56,7 +56,7 @@ function reset() { query.value = ""; status.value = null; group.value = null }
   <section class="siswa-directory" aria-label="Direktori siswa" :aria-busy="loading">
     <div class="directory-heading">
       <div><h2>Daftar siswa <span v-if="!loading && !error">{{ rows.length }}</span></h2><p>Profil, kelompok belajar, SPP bulanan, dan biaya masuk.</p></div>
-      <div v-if="!readonly" class="directory-heading-actions"><Button label="Impor biodata" severity="secondary" text @click="emit('import')"><template #icon><Icon name="file-arrow-up" /></template></Button><Button label="Kelola kelompok" severity="secondary" text @click="emit('manageGroups')"><template #icon><Icon name="squares-four" /></template></Button></div>
+      <div v-if="!readonly" class="directory-heading-actions"><Button label="Impor biodata" severity="secondary" text @click="emit('import')"><template #icon><Icon name="file-arrow-up" /></template></Button><Button label="Impor SPP" severity="secondary" text @click="emit('importSpp')"><template #icon><Icon name="file-arrow-up" /></template></Button><Button label="Kelola kelompok" severity="secondary" text @click="emit('manageGroups')"><template #icon><Icon name="squares-four" /></template></Button></div>
     </div>
     <div class="directory-toolbar">
       <div class="directory-field directory-search"><label for="siswa-search">Cari siswa</label><SearchField input-id="siswa-search" v-model="query" placeholder="Nama, panggilan, NIS, atau kelompok" hint="Cari nama, nama panggilan, NIS, kelompok, status, atau nominal SPP" /></div>

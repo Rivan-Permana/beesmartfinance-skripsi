@@ -1,5 +1,5 @@
 import { api } from "@/core/api"
-import type { BiayaMasukField, ImporBiodataHasil, Paginated, Siswa, SiswaInput } from "@/types/api"
+import type { BiayaMasukField, ImporBiodataHasil, ImporSppHasil, Paginated, Siswa, SiswaInput } from "@/types/api"
 
 export const siswaApi = {
   list: (params?: Record<string, unknown>) =>
@@ -29,6 +29,13 @@ export const siswaApi = {
     fd.append("simpan", simpan ? "true" : "false")
     if (kelasMap) fd.append("kelas_map", JSON.stringify(kelasMap))
     return api.post<ImporBiodataHasil>("/siswa/impor-biodata/", fd).then((r) => r.data)
+  },
+  /** Pratinjau (simpan=false) atau isi SPP siswa yang masih Rp 0 dari tab master Recap Cash In. */
+  imporSpp(berkas: File, simpan: boolean) {
+    const fd = new FormData()
+    fd.append("berkas", berkas)
+    fd.append("simpan", simpan ? "true" : "false")
+    return api.post<ImporSppHasil>("/siswa/impor-spp/", fd).then((r) => r.data)
   },
   /** Nominal daftar harga sesuai jenjang kelompok, untuk mengisi awal biaya masuk. */
   biayaMasukDefault: (kelompok: number) =>
