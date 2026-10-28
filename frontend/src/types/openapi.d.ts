@@ -1229,6 +1229,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/siswa/impor-spp/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Pratinjau (simpan=false) atau isi SPP siswa yang masih Rp 0 dari tab master Recap Cash In. */
+        post: operations["v1_siswa_impor_spp_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/sub-golongan/": {
         parameters: {
             query?: never;
@@ -1427,14 +1444,6 @@ export interface components {
             terlambat?: number;
             pegawai: number;
         };
-        /**
-         * @description * `baru` - baru
-         *     * `ubah` - ubah
-         *     * `sama` - sama
-         *     * `galat` - galat
-         * @enum {string}
-         */
-        AksiEnum: "baru" | "ubah" | "sama" | "galat";
         AlokasiPembayaranInput: {
             detail: number;
             /** Format: decimal */
@@ -1594,7 +1603,7 @@ export interface components {
             baris: number;
             kelas: string;
             nama: string;
-            aksi: components["schemas"]["AksiEnum"];
+            aksi: components["schemas"]["ImporBiodataBarisAksiEnum"];
             siswa: number | null;
             peringatan: string[];
             galat: string | null;
@@ -1605,6 +1614,14 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        /**
+         * @description * `baru` - baru
+         *     * `ubah` - ubah
+         *     * `sama` - sama
+         *     * `galat` - galat
+         * @enum {string}
+         */
+        ImporBiodataBarisAksiEnum: "baru" | "ubah" | "sama" | "galat";
         ImporBiodataHasil: {
             disimpan: boolean;
             ringkasan: components["schemas"]["ImporBiodataRingkasan"];
@@ -1630,6 +1647,47 @@ export interface components {
             sama: number;
             galat: number;
             peringatan: number;
+        };
+        ImporSppBaris: {
+            baris: number;
+            nama: string;
+            kelas: string;
+            aksi: components["schemas"]["ImporSppBarisAksiEnum"];
+            siswa: number | null;
+            /** Format: decimal */
+            spp_lama: string | null;
+            /** Format: decimal */
+            spp_baru: string | null;
+            nilai: number[];
+            alasan: string | null;
+        };
+        /**
+         * @description * `isi` - isi
+         *     * `sama` - sama
+         *     * `beda` - beda
+         *     * `cek` - cek
+         *     * `galat` - galat
+         * @enum {string}
+         */
+        ImporSppBarisAksiEnum: "isi" | "sama" | "beda" | "cek" | "galat";
+        ImporSppHasil: {
+            disimpan: boolean;
+            diisi: number;
+            ringkasan: components["schemas"]["ImporSppRingkasan"];
+            baris: components["schemas"]["ImporSppBaris"][];
+        };
+        ImporSppInput: {
+            /** Format: uri */
+            berkas: string;
+            /** @default false */
+            simpan: boolean;
+        };
+        ImporSppRingkasan: {
+            isi: number;
+            sama: number;
+            beda: number;
+            cek: number;
+            galat: number;
         };
         /**
          * @description * `BULANAN` - Bulanan
@@ -6521,6 +6579,29 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ImporBiodataHasil"];
+                };
+            };
+        };
+    };
+    v1_siswa_impor_spp_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["ImporSppInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImporSppHasil"];
                 };
             };
         };

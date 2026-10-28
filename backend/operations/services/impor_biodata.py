@@ -162,11 +162,11 @@ def _cari_kolom(header, sub):
     return kolom
 
 
-def parse_csv(berkas):
-    """Baca CSV menjadi baris biodata. Tiap baris: dict nilai mentah + nomor baris sumber."""
+def baca_csv(berkas, nama_tab="biodata"):
+    """Baca berkas CSV (maks. 1 MB, UTF-8 atau cp1252, pemisah , ; atau tab) menjadi daftar baris."""
     data = berkas.read(MAKS_UKURAN + 1)
     if len(data) > MAKS_UKURAN:
-        raise ImporBiodataError("Berkas lebih dari 1 MB. Unduh hanya tab biodata sebagai CSV.")
+        raise ImporBiodataError(f"Berkas lebih dari 1 MB. Unduh hanya tab {nama_tab} sebagai CSV.")
     try:
         teks = data.decode("utf-8-sig")
     except UnicodeDecodeError:
@@ -175,7 +175,12 @@ def parse_csv(berkas):
         delimiter = csv.Sniffer().sniff(teks[:4096], delimiters=",;\t").delimiter
     except csv.Error:
         delimiter = ","
-    rows = [[_bersih(c) for c in r] for r in csv.reader(io.StringIO(teks), delimiter=delimiter)]
+    return [[_bersih(c) for c in r] for r in csv.reader(io.StringIO(teks), delimiter=delimiter)]
+
+
+def parse_csv(berkas):
+    """Baca CSV menjadi baris biodata. Tiap baris: dict nilai mentah + nomor baris sumber."""
+    rows = baca_csv(berkas)
 
     hasil, kolom, kelas = [], None, ""
     for i, row in enumerate(rows):

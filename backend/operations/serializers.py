@@ -305,6 +305,38 @@ class ImporBiodataHasilSerializer(serializers.Serializer):
     baris = ImporBiodataBarisSerializer(many=True)
 
 
+class ImporSppInputSerializer(serializers.Serializer):
+    berkas = serializers.FileField()
+    simpan = serializers.BooleanField(default=False)
+
+
+class ImporSppBarisSerializer(serializers.Serializer):
+    baris = serializers.IntegerField()
+    nama = serializers.CharField()
+    kelas = serializers.CharField(allow_blank=True)
+    aksi = serializers.ChoiceField(choices=["isi", "sama", "beda", "cek", "galat"])
+    siswa = serializers.IntegerField(allow_null=True)
+    spp_lama = serializers.DecimalField(max_digits=18, decimal_places=2, allow_null=True)
+    spp_baru = serializers.DecimalField(max_digits=18, decimal_places=2, allow_null=True)
+    nilai = serializers.ListField(child=serializers.IntegerField())
+    alasan = serializers.CharField(allow_null=True)
+
+
+class ImporSppRingkasanSerializer(serializers.Serializer):
+    isi = serializers.IntegerField()
+    sama = serializers.IntegerField()
+    beda = serializers.IntegerField()
+    cek = serializers.IntegerField()
+    galat = serializers.IntegerField()
+
+
+class ImporSppHasilSerializer(serializers.Serializer):
+    disimpan = serializers.BooleanField()
+    diisi = serializers.IntegerField()
+    ringkasan = ImporSppRingkasanSerializer()
+    baris = ImporSppBarisSerializer(many=True)
+
+
 class SiswaSerializer(serializers.ModelSerializer):
     diskon_kategori = serializers.ListField(
         child=serializers.ChoiceField(choices=Siswa.DISKON_KATEGORI), required=False, allow_empty=True,

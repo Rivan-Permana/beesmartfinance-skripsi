@@ -78,6 +78,25 @@ export interface ImporBiodataHasil {
   kelas: { kelas: string; jumlah: number; kelompok: number | null }[]
   baris: ImporBiodataBaris[]
 }
+export type ImporSppAksi = "isi" | "sama" | "beda" | "cek" | "galat"
+export interface ImporSppBaris {
+  baris: number
+  nama: string
+  kelas: string
+  aksi: ImporSppAksi
+  siswa: number | null
+  spp_lama: string | null
+  spp_baru: string | null
+  /** Nominal SPP berbeda yang tercatat di berkas, urut naik. */
+  nilai: number[]
+  alasan: string | null
+}
+export interface ImporSppHasil {
+  disimpan: boolean
+  diisi: number
+  ringkasan: Record<ImporSppAksi, number>
+  baris: ImporSppBaris[]
+}
 export type DiskonKategori = "PG" | "SIPG" | "SIB" | "SIKBR"
 export type BiayaMasukField = "uang_masuk" | "uang_pengembangan" | "uang_kegiatan" | "uang_seragam"
 export type SiswaInput = Omit<Siswa, "id" | "biaya_masuk">

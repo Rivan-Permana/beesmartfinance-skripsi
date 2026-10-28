@@ -15,12 +15,14 @@ from operations.serializers import (
     BiayaMasukDefaultSerializer,
     ImporBiodataHasilSerializer,
     ImporBiodataInputSerializer,
+    ImporSppHasilSerializer,
+    ImporSppInputSerializer,
     JenjangSerializer,
     KehadiranSiswaSerializer,
     KelompokSerializer,
     SiswaSerializer,
 )
-from operations.services import impor_biodata
+from operations.services import impor_biodata, impor_spp
 from operations.services.biaya_masuk import default_biaya_masuk
 
 
@@ -141,6 +143,23 @@ class SiswaViewSet(viewsets.ModelViewSet):
             item.pop("_nilai")
         return Response(ImporBiodataHasilSerializer({
             "disimpan": disimpan, "ringkasan": impor_biodata.ringkas(hasil), "kelas": kelas, "baris": hasil,
+        }).data)
+
+    @extend_schema(request={"multipart/form-data": ImporSppInputSerializer}, responses=ImporSppHasilSerializer)
+    @action(detail=False, methods=["post"], url_path="impor-spp", parser_classes=[parsers.MultiPartParser])
+    def impor_spp(self, request):
+        """Pratinjau (simpan=false) atau isi SPP siswa yang masih Rp 0 dari tab master Recap Cash In."""
+        data = ImporSppInputSerializer(data=request.data)
+        data.is_valid(raise_exception=True)
+        try:
+            mentah = impor_spp.parse_master(data.validated_data["berkas"])
+        except impor_biodata.ImporBiodataError as exc:
+            raise ValidationError({"berkas": str(exc)})
+        hasil = impor_spp.susun_spp(mentah, Siswa.objects.all())
+        disimpan = data.validated_data["simpan"]
+        diisi = impor_spp.terapkan_spp(hasil, user=request.user) if disimpan else 0
+        return Response(ImporSppHasilSerializer({
+            "disimpan": disimpan, "diisi": diisi, "ringkasan": impor_spp.ringkas_spp(hasil), "baris": hasil,
         }).data)
 
 

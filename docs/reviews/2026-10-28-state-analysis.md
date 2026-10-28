@@ -58,6 +58,17 @@ Diperiksa ulang: model/migrasi `0016`–`0017`, service `operations/services/bia
 7. **Teknis kecil:** bundle frontend utama >500 kB; peringatan drf-spectacular `TarifKateringView` dan enum `status` di schema; poller VPS bergantung pada koneksi GitHub yang pernah putus-sambung.
 8. **Belum diuji:** Safari/iPad, pembaca layar, zoom 200%, printer fisik, tampilan Tunggakan/Laporan untuk tagihan Biaya masuk di browser (di API diperlakukan seperti tagihan biasa).
 9. **Batch 4–5 dirilis 28/10 17:37 UTC** (PR #23, `main` `0f0bebc`; backup `db-20261028T173437Z-before-batch45.dump`). Backend dan Worker baru aktif; cek read-only pasca-rilis bersih (migrasi `0018`, data tidak berubah); smoke test empat role di produksi lulus. 4 kelompok TKB dibuat, backup `db-20261028T183137Z-before-impor-biodata.dump`, impor biodata tersimpan: 108 siswa (76 baru dengan SPP 0, 28 diperbarui, 4 lama tidak di sheet). SPP siswa baru belum diisi. Sebelum impor: buat kelompok TKB Bu Dini/Bu Cita/Bu Okta/Bu Latifah 26/27 ([checklist rilis](./2026-10-28-release-checklist-batch-4-5.md): cek read-only web console, backup, merge, impor); setelah rilis: backup DB, impor biodata (104 siswa terbaca di pratinjau), isi SPP siswa baru sebelum tagihan November, lalu ubah akses spreadsheet biodata menjadi Dibatasi (saat ini siapa pun dengan link bisa membukanya); konfirmasi ke sekolah: apakah katering perlu tarif per anak (jemputan sudah per anak), dan minta Staf TU memuat ulang halaman (Ctrl+Shift+R) karena screenshot WA masih dari versi lama.
+- **Batch 6: impor SPP dari tab master Recap Cash In** (selesai di branch, belum dirilis; tanpa migrasi).
+  - Data siswa → **Impor SPP** (Staf TU): unggah CSV tab master, pratinjau, lalu "Isi SPP".
+  - Tarif = nominal SPP yang paling sering dibayar. Hanya siswa dengan SPP Rp 0 yang diisi.
+  - Ditandai "perlu dicek" dan tidak diisi: nominal berbeda antar bulan, belum ada pembayaran, atau di luar Rp 500 rb–2 jt. SPP sistem yang berbeda hanya ditampilkan. Tagihan, biodata, dan biaya masuk tidak berubah.
+  - Endpoint `POST /siswa/impor-spp/`.
+  - Verifikasi:
+    - backend 158 tes, frontend 146 tes, build bersih
+    - dry-run master asli: 108 siswa terbaca, 93 bisa diisi, 15 perlu dicek
+    - 5 skenario UAT data rekaan `UAT-B5`
+    - cek DOM desktop dan 375 px
+  - Analisis spreadsheet keuangan sekolah disimpan lokal saja (repo publik).
 10. **Spreadsheet:** baris "Ya, dijemput" → "Ya" dianggap selesai karena teks itu tidak ada di versi sekarang; dibuka lagi hanya bila sekolah masih melihatnya.
 
 ## Batas wajib untuk sesi berikutnya
