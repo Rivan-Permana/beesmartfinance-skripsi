@@ -36,7 +36,7 @@ describe("student workspace", () => {
     expect(view.text()).toContain("Bima")
     expect(view.text()).not.toContain("Alya")
     await view.get('.directory-results button').trigger('click')
-    expect(view.text()).toContain("Panggilan Alya · Perempuan · NIS LM-001")
+    expect(view.text()).toMatch(/Panggilan Alya · Perempuan · \d+ tahun \d+ bulan · NIS LM-001/)
     view.unmount()
   })
   it("clears a selected group without opening the dropdown or changing other fields, and hides clear while saving", async () => {

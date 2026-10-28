@@ -266,6 +266,45 @@ class BiayaMasukRingkasSerializer(serializers.Serializer):
     sisa = serializers.DecimalField(max_digits=18, decimal_places=2, allow_null=True)
 
 
+class ImporBiodataInputSerializer(serializers.Serializer):
+    berkas = serializers.FileField()
+    kelas_map = serializers.JSONField(binary=True, required=False, help_text="{nilai Kelas di CSV: id kelompok atau null}")
+    simpan = serializers.BooleanField(default=False)
+
+
+class ImporBiodataKelasSerializer(serializers.Serializer):
+    kelas = serializers.CharField()
+    jumlah = serializers.IntegerField()
+    kelompok = serializers.IntegerField(allow_null=True)
+
+
+class ImporBiodataBarisSerializer(serializers.Serializer):
+    baris = serializers.IntegerField()
+    kelas = serializers.CharField()
+    nama = serializers.CharField()
+    aksi = serializers.ChoiceField(choices=["baru", "ubah", "sama", "galat"])
+    siswa = serializers.IntegerField(allow_null=True)
+    peringatan = serializers.ListField(child=serializers.CharField())
+    galat = serializers.CharField(allow_null=True)
+    perubahan = serializers.DictField(child=serializers.ListField(allow_null=True))
+    nilai = serializers.DictField()
+
+
+class ImporBiodataRingkasanSerializer(serializers.Serializer):
+    baru = serializers.IntegerField()
+    ubah = serializers.IntegerField()
+    sama = serializers.IntegerField()
+    galat = serializers.IntegerField()
+    peringatan = serializers.IntegerField()
+
+
+class ImporBiodataHasilSerializer(serializers.Serializer):
+    disimpan = serializers.BooleanField()
+    ringkasan = ImporBiodataRingkasanSerializer()
+    kelas = ImporBiodataKelasSerializer(many=True)
+    baris = ImporBiodataBarisSerializer(many=True)
+
+
 class SiswaSerializer(serializers.ModelSerializer):
     diskon_kategori = serializers.ListField(
         child=serializers.ChoiceField(choices=Siswa.DISKON_KATEGORI), required=False, allow_empty=True,

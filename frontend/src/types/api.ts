@@ -59,6 +59,25 @@ export interface Siswa {
 }
 
 export type JenisKelamin = "L" | "P"
+export type ImporBiodataAksi = "baru" | "ubah" | "sama" | "galat"
+export interface ImporBiodataBaris {
+  baris: number
+  kelas: string
+  nama: string
+  aksi: ImporBiodataAksi
+  siswa: number | null
+  peringatan: string[]
+  galat: string | null
+  /** field -> [nilai lama, nilai baru] */
+  perubahan: Record<string, [unknown, unknown]>
+  nilai: Record<string, unknown>
+}
+export interface ImporBiodataHasil {
+  disimpan: boolean
+  ringkasan: Record<ImporBiodataAksi | "peringatan", number>
+  kelas: { kelas: string; jumlah: number; kelompok: number | null }[]
+  baris: ImporBiodataBaris[]
+}
 export type DiskonKategori = "PG" | "SIPG" | "SIB" | "SIKBR"
 export type BiayaMasukField = "uang_masuk" | "uang_pengembangan" | "uang_kegiatan" | "uang_seragam"
 export type SiswaInput = Omit<Siswa, "id" | "biaya_masuk">
