@@ -53,6 +53,16 @@ Verifikasi: tes `operations/test_biaya_masuk.py` (7 tes); 13 skenario API di DB 
 
 **Sebelum rilis:** cek read-only produksi berapa siswa yang biaya masuknya sudah tertagih di tagihan Juli 2026 (mereka tidak perlu diisi lagi), bersama cek tanggal periode 2026/2027.
 
+## Cek read-only produksi — 28/10/2026 (persiapan rilis Batch 1–3)
+
+Sesi `default_transaction_read_only = on`; tidak ada perubahan.
+
+- Produksi = `main` `cec1df7`; branch kerja 7 commit di depan, 0 di belakang. Migrasi produksi di `operations.0015`; rilis menerapkan `0016` dan `0017`.
+- Container backend/caddy/db berjalan, db healthy; disk 7% terpakai. Backup terakhir `backups/db-20261027T210503Z.dump` (hanya di VPS, belum ada salinan luar).
+- Dampak migrasi: `0016` mengubah 1 dari 34 pegawai (`status_aktif=false`) menjadi `nonaktif`; `0017` memberi 7 tagihan jenis Bulanan, tidak ada tagihan dihapus atau kunci ganda.
+- Biaya masuk: belum ada komponen Uang Masuk/Pengembangan/Kegiatan/Seragam/Komite/Portofolio yang tertagih sejak Agustus 2025, jadi ke-32 siswa aktif bisa diisi biaya masuknya tanpa bentrok.
+- **Periode `2026/2027` di produksi juga tersimpan 30/06/2026 – 29/06/2027.** Penyebab: form periode lama (sebelum revamp `bf1a06a`) mengirim tanggal lewat konversi UTC; form sekarang sudah memakai `formatLocalDate`. Koreksi data perlu persetujuan terpisah. Cek lanjutan (jurnal bertanggal 30/06/2026, tautan `fiscal_period`, anggaran, saldo awal) belum jalan karena SSH putus.
+
 ## Temuan saat verifikasi
 
 - Periode `2026/2027` di DB demo lokal tersimpan 30/06/2026 – 29/06/2027 (bukan 01/07 – 30/06). Kemungkinan pergeseran zona waktu saat seed/impor. Perlu dicek di produksi sebelum filter Periode dipakai sebagai acuan.
