@@ -130,7 +130,17 @@ Hasil 28/10 17:34–17:35 UTC: `backups/db-20261028T173437Z-before-batch45.dump`
 - Backend baru aktif ±17:41 UTC: schema produksi memuat `/api/v1/siswa/impor-biodata/`.
 - Worker berganti ke bundle `index-B5KPjw6I.js` ±17:42 UTC (sebelumnya `index-BO5I_TBs.js`). Bundle memuat "Impor biodata", "Nama panggilan", "Belum diisi", "Lihat siswa", dan path `impor-biodata`.
 - Cek dari luar: `/login` 200; API tanpa token 401 lewat Worker dan origin.
-- Belum: cek read-only pasca-rilis di web console (migrasi `0018`, kolom 3, jumlah data tetap) dan smoke test per role.
+- Cek read-only pasca-rilis (web console, ±17:58 UTC):
+  - SHA backend dan frontend `0f0bebc`
+  - backend Up 20 menit, db healthy, disk 8%
+  - dump deploy `db-20261028T174003Z.dump` (249.159 byte)
+  - migrasi `0018_siswa_data_diri`, kolom 0018 = 3
+  - 32 siswa aktif, SPP 0 = 0, biodata terisi sama seperti sebelum rilis
+  - 7 kelompok, 7 tagihan bulanan, 7 jurnal DRAFT/PENDING, periode 2026/2027 OPEN
+
+  Tidak ada data yang berubah.
+- Log poller sempat mencatat `curl: (22) … 502` sebelum `Deploy frontend`. Itu dari cek schema saat backend baru restart; curl mengulang (`--retry 10`) sampai berhasil, karena `backend_sha` tersimpan dan tahap frontend berjalan. Tidak perlu tindakan.
+- Belum: smoke test per role oleh pengguna.
 
 ## 4. Impor biodata (setelah rilis, oleh Staf TU)
 
