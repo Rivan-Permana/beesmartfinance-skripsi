@@ -61,7 +61,7 @@ Sesi `default_transaction_read_only = on`; tidak ada perubahan.
 - Container backend/caddy/db berjalan, db healthy; disk 7% terpakai. Backup terakhir `backups/db-20261027T210503Z.dump` (hanya di VPS, belum ada salinan luar).
 - Dampak migrasi: `0016` mengubah 1 dari 34 pegawai (`status_aktif=false`) menjadi `nonaktif`; `0017` memberi 7 tagihan jenis Bulanan, tidak ada tagihan dihapus atau kunci ganda.
 - Biaya masuk: belum ada komponen Uang Masuk/Pengembangan/Kegiatan/Seragam/Komite/Portofolio yang tertagih sejak Agustus 2025, jadi ke-32 siswa aktif bisa diisi biaya masuknya tanpa bentrok.
-- **Periode `2026/2027` di produksi juga tersimpan 30/06/2026 – 29/06/2027.** Penyebab: form periode lama (sebelum revamp `bf1a06a`) mengirim tanggal lewat konversi UTC; form sekarang sudah memakai `formatLocalDate`. Koreksi data perlu persetujuan terpisah. Cek lanjutan (jurnal bertanggal 30/06/2026, tautan `fiscal_period`, anggaran, saldo awal) belum jalan karena SSH putus.
+- **Periode `2026/2027` di produksi juga tersimpan 30/06/2026 – 29/06/2027.** Penyebab: form periode lama (sebelum revamp `bf1a06a`) mengirim tanggal lewat konversi UTC; form sekarang sudah memakai `formatLocalDate`. Koreksi data perlu persetujuan terpisah. Cek lanjutan (lewat web console hPanel, sesi read-only, karena SSH dari WARP Singapura timeout di IPv4 walau VPS tidak memblokir): periode `id=1` OPEN, tanpa trigger; jurnal bertanggal 28/09–03/11/2026, tidak ada di 30/06/2026 atau sesudah 29/06/2027; 2 jurnal tertaut `fiscal_period=1` (16 lainnya kosong); 2 anggaran dan 33 siswa tanpa periode; tidak ada saldo awal. Jadi koreksi tanggal ke 01/07/2026 – 30/06/2027 tidak memindahkan data apa pun antarperiode.
 
 ## Temuan saat verifikasi
 
