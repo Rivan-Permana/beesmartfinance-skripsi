@@ -187,6 +187,31 @@ Hasil 28/10 17:34–17:35 UTC: `backups/db-20261028T173437Z-before-batch45.dump`
 7. Isi SPP semua siswa bertanda **Belum diisi** sebelum tagihan November dibuat.
 8. Ubah akses spreadsheet biodata menjadi **Dibatasi**.
 
+### Hasil impor biodata — 28 Oktober 2026 (±18:35 UTC)
+
+Impor disimpan dari sesi Staf TU di browser bawaan oleh pengguna, sebelum pratinjau sempat dicocokkan Claude. Hasilnya diperiksa sesudahnya lewat API dengan sesi yang sama (hanya baca):
+
+- **Total siswa:** 108 (sebelumnya 32), semuanya aktif.
+  - 104 baris sheet tersimpan: 76 siswa baru (SPP Rp 0, bertanda "Belum diisi") dan 28 siswa lama diperbarui.
+  - 4 siswa lama tidak ada di sheet dan tidak berubah: 2 di PG Lebah 2 dan 2 tanpa kelompok. Kemiripan nama dengan siswa baru paling tinggi 0,33 (satu kata sama), jadi tidak ada indikasi siswa dobel.
+- **Per kelompok (sama dengan jumlah per kelas di sheet):**
+  - PG: Kepompong 3, Lebah 1 10, Lebah 2 8 (+2 lama)
+  - TKA: Bu Desi 10, Bu Indri 10, Bu Ita 11, Bu Mei 11
+  - TKB: Bu Cita 10, Bu Dini 11, Bu Latifah 9, Bu Okta 11
+
+  Tidak ada siswa pindah lintas jenjang. PG lama tetap PG, dan 7 siswa Bu Indri lama tetap di Bu Indri.
+- **Biodata:**
+  - 104 siswa punya JK, tempat lahir, dan tanggal lahir.
+  - 104 alamat terisi; 90 diawali/memuat `Jl.` dan 68 memuat `RT xxx/RW xxx`.
+  - 208 nomor HP: semua angka dan diawali 0; 1 nomor panjangnya janggal (sudah ditandai saat pratinjau).
+- **Tagihan:** tetap 7. Impor tidak membuat tagihan.
+
+Tindak lanjut:
+1. Isi SPP 76 siswa baru sebelum tagihan November.
+2. Konfirmasi ke sekolah status 4 siswa lama yang tidak ada di sheet.
+3. Periksa 2 nomor HP yang ditandai.
+4. Ubah akses spreadsheet menjadi Dibatasi.
+
 ## Rollback
 
 - **Kode:**
