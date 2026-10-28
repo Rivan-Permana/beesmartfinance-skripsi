@@ -35,7 +35,7 @@ Pengeluaran tanpa approval Kepsek sudah berlaku sebelumnya (Keuangan "Catat ke b
 
 Verifikasi: tes matriks akses `operations/test_role_access.py`; 27 skenario API di DB UAT (kasbon, gaji, absensi Guru, kegiatan + PJ, draf jurnal TU, status Cuti, akses baca); migrasi `0016` diterapkan, dibalik, dan diterapkan ulang di UAT (backup `~/Backups/beesmartfinance/bee_uat_browser_20261020-20261028-052134-before-0016.dump`). Data uji UAT: kegiatan dan jurnal berawalan `UAT-B2`, plus satu kasbon (draf pencairan) dan satu slip gaji November 2026 untuk pegawai pertama.
 
-**Belum:** `db_lebah_madu` lokal masih di `0015`, sehingga server demo :8000 dengan kode branch ini gagal pada endpoint pegawai sampai migrasi `0016` dijalankan (perlu izin + backup).
+**Lokal:** `db_lebah_madu` sudah dimigrasi ke `0016` (28/10, backup `~/Backups/beesmartfinance/db_lebah_madu-20261028-070659-before-0016.dump`); 36 pegawai berstatus aktif.
 
 ## Batch 3 — Data Siswa (tier 3, perlu desain)
 
