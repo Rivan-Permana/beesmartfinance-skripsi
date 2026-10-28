@@ -124,6 +124,14 @@ Hasil 28/10 17:34–17:35 UTC: `backups/db-20261028T173437Z-before-batch45.dump`
    - **Keuangan:** Data siswa masih menampilkan SPP dan biaya masuk.
    - **Kepsek:** Beranda normal.
 
+### Hasil rilis — 28 Oktober 2026
+
+- PR #23 di-merge ke `main` pukul 17:37 UTC (`0f0bebc`), atas keputusan rilis pengguna, setelah cek read-only dan backup `before-batch45`.
+- Backend baru aktif ±17:41 UTC: schema produksi memuat `/api/v1/siswa/impor-biodata/`.
+- Worker berganti ke bundle `index-B5KPjw6I.js` ±17:42 UTC (sebelumnya `index-BO5I_TBs.js`). Bundle memuat "Impor biodata", "Nama panggilan", "Belum diisi", "Lihat siswa", dan path `impor-biodata`.
+- Cek dari luar: `/login` 200; API tanpa token 401 lewat Worker dan origin.
+- Belum: cek read-only pasca-rilis di web console (migrasi `0018`, kolom 3, jumlah data tetap) dan smoke test per role.
+
 ## 4. Impor biodata (setelah rilis, oleh Staf TU)
 
 1. Buat backup lagi persis sebelum impor (blok bagian 2, ganti akhiran `before-batch45` menjadi `before-impor-biodata`).
