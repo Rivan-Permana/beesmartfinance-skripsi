@@ -79,7 +79,7 @@ def _sudah_ditagih_bulanan(siswa, kode, bulan, tahun):
     return None
 
 
-def sinkron_tagihan_biaya_masuk(siswa, user=None, today=None):
+def sinkron_tagihan_biaya_masuk(siswa, user=None, today=None, diskon_berubah=False):
     """Buat/perbarui tagihan biaya masuk dari isian siswa. Komponen yang sudah dibayar dikunci."""
     from operations.models import Tagihan, TagihanDetail
     from operations.services.billing import perbarui_status_tagihan
@@ -113,6 +113,11 @@ def sinkron_tagihan_biaya_masuk(siswa, user=None, today=None):
             line = baru.pop(detail.komponen, None)
             terbayar = detail.total_terbayar
             if terbayar > 0 and (line is None or line["nominal"] != detail.nominal):
+                if diskon_berubah:
+                    raise ValueError(
+                        f"Diskon tidak bisa diubah karena {labels.get(detail.komponen, detail.komponen)} sudah ada penerimaan "
+                        "dan diskon ikut memotong komponen itu. Minta Keuangan membatalkan penerimaan itu dulu bila diskon memang perlu diubah."
+                    )
                 raise ValueError(f"{labels.get(detail.komponen, detail.komponen)} sudah ada penerimaan; nominalnya tidak bisa diubah.")
             if line is None:
                 if detail.alokasi.exists():

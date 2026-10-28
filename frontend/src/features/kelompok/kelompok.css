@@ -41,6 +41,9 @@
 .kelompok-table th { background: var(--bee-color-surface-subtle); color: var(--app-text-muted); font-size: var(--bee-type-caption); font-weight: 500; text-align: start; }
 .kelompok-table th,.kelompok-table td { padding: var(--bee-space-4) var(--bee-space-5); border-bottom: 1px solid var(--app-border); vertical-align: middle; }
 .kelompok-table strong { font-weight: 600; }
+.kelompok-link { color: var(--app-text); font-weight: 600; text-decoration: underline; text-decoration-color: var(--app-border); text-underline-offset: 3px; overflow-wrap: anywhere; }
+.kelompok-link:hover { color: var(--bee-color-brand); text-decoration-color: currentColor; }
+.kelompok-link:focus-visible { outline: 2px solid var(--bee-color-brand); outline-offset: 2px; border-radius: 2px; }
 .kelompok-table small { display: block; color: var(--app-text-muted); font-size: var(--bee-type-caption); margin-top: var(--bee-space-1); }
 .kelompok-table .kelompok-number { text-align: end; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .kelompok-table .kelompok-actions { text-align: end; width: 250px; }
@@ -74,6 +77,7 @@
   .kelompok-cards { display: block; }
   .kelompok-cards li { padding: var(--bee-space-4) var(--bee-space-5); border-bottom: 1px solid var(--app-border); }
   .kelompok-cards li > div:first-child { display: grid; gap: var(--bee-space-1); }
+  .kelompok-cards .kelompok-link { display: inline-flex; align-items: center; min-height: 44px; justify-self: start; }
   .kelompok-cards li > div:first-child span { color: var(--app-text-muted); font-size: var(--bee-type-caption); }
   .kelompok-cards li > p { margin: var(--bee-space-4) 0; color: var(--app-text-muted); }
   .kelompok-cards li > p strong { color: var(--app-text); font-variant-numeric: tabular-nums; }

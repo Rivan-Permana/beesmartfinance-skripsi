@@ -13,7 +13,7 @@ import SearchField from "@/shared/components/SearchField.vue"
 import { useTableSearch } from "@/shared/composables/useTableSearch"
 import { formatRp } from "@/core/format"
 import type { Kelompok, Siswa, SiswaStatus } from "@/types/api"
-import { biayaMasukState, canReceiveBiayaMasuk, kelompokLabel, SISWA_STATUS, statusOptions } from "./presentation"
+import { biayaMasukState, canReceiveBiayaMasuk, identitasSiswa, kelompokLabel, SISWA_STATUS, sppBelumDiisi, statusOptions } from "./presentation"
 
 const props = defineProps<{
   rows: Siswa[]
@@ -23,11 +23,14 @@ const props = defineProps<{
   groupError?: boolean
   /** Keuangan melihat data siswa tanpa mengubahnya. */
   readonly?: boolean
+  /** Filter kelompok awal, mis. dari klik nama kelompok di menu Kelompok. */
+  initialGroup?: number | null
 }>()
-const emit = defineEmits<{ create: []; edit: [row: Siswa]; remove: [row: Siswa]; receive: [row: Siswa]; retry: []; manageGroups: [] }>()
+const emit = defineEmits<{ create: []; edit: [row: Siswa]; remove: [row: Siswa]; receive: [row: Siswa]; retry: []; manageGroups: []; import: [] }>()
 const status = ref<SiswaStatus | null>(null)
 const group = ref<number | "unassigned" | null>(null)
 const first = ref(0)
+watch(() => props.initialGroup, (value) => { if (value != null) group.value = value }, { immediate: true })
 const groupMap = computed(() => new Map(props.kelompok.map((item) => [item.id, kelompokLabel(item)])))
 const groupOptions = computed(() => [
   { label: "Belum dikelompokkan", value: "unassigned" },
@@ -37,7 +40,7 @@ function groupName(row: Siswa) {
   return row.kelompok == null ? "Belum dikelompokkan" : groupMap.value.get(row.kelompok) ?? "Nama kelompok belum dimuat"
 }
 const { query, filtered: searched } = useTableSearch(() => props.rows, (row) => [
-  row.nis, row.nama, SISWA_STATUS[row.status].label, groupName(row), formatRp(row.spp_nominal),
+  row.nis, row.nama, row.nama_panggilan, SISWA_STATUS[row.status].label, groupName(row), formatRp(row.spp_nominal),
 ])
 const filtered = computed(() => searched.value.filter((row) =>
   (!status.value || row.status === status.value)
@@ -53,10 +56,10 @@ function reset() { query.value = ""; status.value = null; group.value = null }
   <section class="siswa-directory" aria-label="Direktori siswa" :aria-busy="loading">
     <div class="directory-heading">
       <div><h2>Daftar siswa <span v-if="!loading && !error">{{ rows.length }}</span></h2><p>Profil, kelompok belajar, SPP bulanan, dan biaya masuk.</p></div>
-      <Button v-if="!readonly" label="Kelola kelompok" severity="secondary" text @click="emit('manageGroups')"><template #icon><Icon name="squares-four" /></template></Button>
+      <div v-if="!readonly" class="directory-heading-actions"><Button label="Impor biodata" severity="secondary" text @click="emit('import')"><template #icon><Icon name="file-arrow-up" /></template></Button><Button label="Kelola kelompok" severity="secondary" text @click="emit('manageGroups')"><template #icon><Icon name="squares-four" /></template></Button></div>
     </div>
     <div class="directory-toolbar">
-      <div class="directory-field directory-search"><label for="siswa-search">Cari siswa</label><SearchField input-id="siswa-search" v-model="query" placeholder="Nama, NIS, atau kelompok" hint="Cari nama, NIS, kelompok, status, atau nominal SPP" /></div>
+      <div class="directory-field directory-search"><label for="siswa-search">Cari siswa</label><SearchField input-id="siswa-search" v-model="query" placeholder="Nama, panggilan, NIS, atau kelompok" hint="Cari nama, nama panggilan, NIS, kelompok, status, atau nominal SPP" /></div>
       <div class="directory-field"><label for="siswa-group-filter">Kelompok</label><Select :key="(groupError) ? 'locked' : 'editable'" input-id="siswa-group-filter" v-model="group" :options="groupOptions" option-label="label" option-value="value" placeholder="Semua" show-clear filter :disabled="groupError" empty-filter-message="Kelompok tidak ditemukan"><template #filtericon><Icon name="magnifying-glass" /></template><template #dropdownicon><Icon name="caret-down" /></template><template #clearicon="slotProps"><SelectClearButton v-bind="slotProps" /></template></Select></div>
       <div class="directory-field"><label for="siswa-status-filter">Status siswa</label><Select input-id="siswa-status-filter" v-model="status" :options="statusOptions" option-label="label" option-value="value" placeholder="Semua" show-clear><template #dropdownicon><Icon name="caret-down" /></template><template #clearicon="slotProps"><SelectClearButton v-bind="slotProps" /></template></Select></div>
     </div>
@@ -75,17 +78,17 @@ function reset() { query.value = ""; status.value = null; group.value = null }
     </div>
     <template v-else-if="!error">
       <DataTable class="directory-desktop" :value="pageRows" data-key="id" :table-style="{ minWidth: '880px' }" :pt="{ tableContainer: { tabindex: 0, role: 'region', 'aria-label': 'Tabel data siswa' } }">
-        <Column header="Siswa"><template #body="{ data }"><strong v-if="readonly" class="directory-name">{{ data.nama }}</strong><button v-else class="directory-name" :aria-label="`Ubah data ${data.nama}`" @click="emit('edit', data)">{{ data.nama }}</button><small class="directory-secondary">{{ data.nis ? `NIS ${data.nis}` : 'NIS belum diisi' }}</small></template></Column>
+        <Column header="Siswa"><template #body="{ data }"><strong v-if="readonly" class="directory-name">{{ data.nama }}</strong><button v-else class="directory-name" :aria-label="`Ubah data ${data.nama}`" @click="emit('edit', data)">{{ data.nama }}</button><small class="directory-secondary">{{ identitasSiswa(data) }}</small></template></Column>
         <Column header="Kelompok"><template #body="{ data }"><span :class="{ 'directory-muted': data.kelompok == null }">{{ groupName(data) }}</span></template></Column>
         <Column header="Status"><template #body="{ data }"><Tag :value="SISWA_STATUS[data.status as SiswaStatus].label" :severity="SISWA_STATUS[data.status as SiswaStatus].severity" /></template></Column>
-        <Column header="SPP per bulan" header-class="bee-numeric" body-class="bee-numeric"><template #body="{ data }">{{ formatRp(data.spp_nominal) }}</template></Column>
+        <Column header="SPP per bulan" header-class="bee-numeric" body-class="bee-numeric"><template #body="{ data }"><Tag v-if="sppBelumDiisi(data)" value="Belum diisi" severity="warn" /><template v-else>{{ formatRp(data.spp_nominal) }}</template></template></Column>
         <Column header="Biaya masuk"><template #body="{ data }"><template v-if="biayaMasukState(data)"><Tag :value="biayaMasukState(data)!.label" :severity="biayaMasukState(data)!.severity" /><small class="directory-secondary tabular-nums">{{ canReceiveBiayaMasuk(data) ? `Sisa ${formatRp(data.biaya_masuk.sisa)}` : formatRp(data.biaya_masuk.total) }}</small></template><span v-else class="directory-muted">Tidak ada</span></template></Column>
         <Column v-if="!readonly" header="Tindakan" header-class="directory-actions-column" body-class="directory-actions-column"><template #body="{ data }"><div class="bee-actions"><Button v-if="canReceiveBiayaMasuk(data)" label="Catat penerimaan" severity="secondary" :aria-label="`Catat penerimaan biaya masuk ${data.nama}`" @click="emit('receive', data)" /><Button severity="secondary" text :aria-label="`Ubah ${data.nama}`" @click="emit('edit', data)"><template #icon><Icon name="pencil-simple" /></template></Button><Button severity="secondary" text :aria-label="`Hapus ${data.nama}`" @click="emit('remove', data)"><template #icon><Icon name="trash" /></template></Button></div></template></Column>
       </DataTable>
       <ul class="directory-mobile" aria-label="Data siswa">
         <li v-for="row in pageRows" :key="row.id">
-          <div class="mobile-record-heading"><div><strong v-if="readonly" class="directory-name">{{ row.nama }}</strong><button v-else class="directory-name" :aria-label="`Ubah data ${row.nama}`" @click="emit('edit', row)">{{ row.nama }}</button><small class="directory-secondary">{{ row.nis ? `NIS ${row.nis}` : 'NIS belum diisi' }}</small></div><Tag :value="SISWA_STATUS[row.status].label" :severity="SISWA_STATUS[row.status].severity" /></div>
-          <dl><div><dt>Kelompok</dt><dd>{{ groupName(row) }}</dd></div><div><dt>SPP per bulan</dt><dd class="tabular-nums">{{ formatRp(row.spp_nominal) }}</dd></div><div v-if="row.biaya_masuk"><dt>Biaya masuk</dt><dd><Tag :value="biayaMasukState(row)!.label" :severity="biayaMasukState(row)!.severity" /> <span class="tabular-nums">{{ canReceiveBiayaMasuk(row) ? `sisa ${formatRp(row.biaya_masuk.sisa)}` : formatRp(row.biaya_masuk.total) }}</span></dd></div></dl>
+          <div class="mobile-record-heading"><div><strong v-if="readonly" class="directory-name">{{ row.nama }}</strong><button v-else class="directory-name" :aria-label="`Ubah data ${row.nama}`" @click="emit('edit', row)">{{ row.nama }}</button><small class="directory-secondary">{{ identitasSiswa(row) }}</small></div><Tag :value="SISWA_STATUS[row.status].label" :severity="SISWA_STATUS[row.status].severity" /></div>
+          <dl><div><dt>Kelompok</dt><dd>{{ groupName(row) }}</dd></div><div><dt>SPP per bulan</dt><dd class="tabular-nums"><Tag v-if="sppBelumDiisi(row)" value="Belum diisi" severity="warn" /><template v-else>{{ formatRp(row.spp_nominal) }}</template></dd></div><div v-if="row.biaya_masuk"><dt>Biaya masuk</dt><dd><Tag :value="biayaMasukState(row)!.label" :severity="biayaMasukState(row)!.severity" /> <span class="tabular-nums">{{ canReceiveBiayaMasuk(row) ? `sisa ${formatRp(row.biaya_masuk.sisa)}` : formatRp(row.biaya_masuk.total) }}</span></dd></div></dl>
           <Button v-if="!readonly && canReceiveBiayaMasuk(row)" class="mobile-receive" label="Catat penerimaan" severity="secondary" fluid :aria-label="`Catat penerimaan biaya masuk ${row.nama}`" @click="emit('receive', row)"><template #icon><Icon name="money" /></template></Button>
           <div v-if="!readonly" class="mobile-record-actions"><Button label="Ubah data" severity="secondary" text :aria-label="`Ubah ${row.nama}`" @click="emit('edit', row)"><template #icon><Icon name="pencil-simple" /></template></Button><Button severity="secondary" text :aria-label="`Hapus ${row.nama}`" @click="emit('remove', row)"><template #icon><Icon name="trash" /></template></Button></div>
         </li>
@@ -99,6 +102,7 @@ function reset() { query.value = ""; status.value = null; group.value = null }
 <style scoped>
 .siswa-directory { background: var(--app-surface); border: 1px solid var(--app-border); border-radius: var(--bee-radius-panel); overflow: clip; }
 .directory-heading { display: flex; align-items: center; justify-content: space-between; gap: var(--bee-space-4); padding: var(--bee-space-5); }
+.directory-heading-actions { display: flex; flex-wrap: wrap; gap: var(--bee-space-1); }
 .directory-heading h2 { font-size: var(--bee-type-section); font-weight: 600; line-height: 1.3; display: flex; align-items: center; gap: var(--bee-space-3); }
 .directory-heading h2 span { font-size: var(--bee-type-ui); font-weight: 500; color: var(--bee-color-muted); background: var(--bee-color-neutral-tint); padding: 2px 8px; border-radius: var(--bee-radius-status); }
 .directory-heading p { margin: var(--bee-space-1) 0 0; color: var(--app-text-muted); }
@@ -119,7 +123,7 @@ function reset() { query.value = ""; status.value = null; group.value = null }
 .directory-loading { display: flex; gap: var(--bee-space-3); align-items: center; justify-content: center; min-height: 240px; color: var(--app-text-muted); }
 .directory-mobile { display: none; }
 @media (max-width: 767px) {
-  .directory-heading { padding: var(--bee-space-4); align-items: flex-start; flex-direction: column; gap: var(--bee-space-2); }.directory-heading > .p-button { padding-inline: 0; }
+  .directory-heading { padding: var(--bee-space-4); align-items: flex-start; flex-direction: column; gap: var(--bee-space-2); }.directory-heading-actions { margin-inline-start: calc(-1 * var(--bee-space-3)); }
   .directory-toolbar { padding-inline: var(--bee-space-4); gap: var(--bee-space-3); }.directory-search { flex-basis: 100%; }.directory-field:not(.directory-search) { flex-basis: calc(50% - 6px); }
   .directory-results { padding-inline: var(--bee-space-4); }.directory-results .p-button { padding-inline: var(--bee-space-2); font-size: var(--bee-type-caption); }
   .directory-desktop { display: none; }.directory-mobile { display: block; list-style: none; margin: 0; padding: 0; }.directory-mobile li { padding: var(--bee-space-4); border-top: 1px solid var(--app-border); }

@@ -3,7 +3,7 @@
 import django_filters
 from django.db.models import Prefetch
 from drf_spectacular.utils import OpenApiParameter, extend_schema
-from rest_framework import viewsets
+from rest_framework import parsers, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
@@ -13,11 +13,14 @@ from accounts.permissions import ADMINISTRATION, FINANCE, TEACHER, role_permissi
 from operations.models import Jenjang, KehadiranSiswa, Kelompok, Siswa, Tagihan
 from operations.serializers import (
     BiayaMasukDefaultSerializer,
+    ImporBiodataHasilSerializer,
+    ImporBiodataInputSerializer,
     JenjangSerializer,
     KehadiranSiswaSerializer,
     KelompokSerializer,
     SiswaSerializer,
 )
+from operations.services import impor_biodata
 from operations.services.biaya_masuk import default_biaya_masuk
 
 
@@ -91,9 +94,54 @@ class SiswaViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"], url_path="biaya-masuk-default")
     def biaya_masuk_default(self, request):
         """Nominal daftar harga untuk mengisi awal form biaya masuk."""
-        kelompok = Kelompok.objects.select_related("jenjang").filter(pk=request.query_params.get("kelompok") or None).first()
+        kelompok_id = request.query_params.get("kelompok", "")
+        if not kelompok_id.isdigit():
+            raise ValidationError({"kelompok": "Pilih kelompok yang valid."})
+        kelompok = Kelompok.objects.select_related("jenjang").filter(pk=int(kelompok_id)).first()
         tipe_tp = "lama" if request.query_params.get("tipe_tp") == "lama" else "baru"
         return Response(BiayaMasukDefaultSerializer(default_biaya_masuk(kelompok, tipe_tp)).data)
+
+    @extend_schema(request={"multipart/form-data": ImporBiodataInputSerializer}, responses=ImporBiodataHasilSerializer)
+    @action(detail=False, methods=["post"], url_path="impor-biodata", parser_classes=[parsers.MultiPartParser])
+    def impor_biodata(self, request):
+        """Pratinjau (simpan=false) atau simpan biodata dari CSV rekap kelas. Data keuangan tidak disentuh."""
+        data = ImporBiodataInputSerializer(data=request.data)
+        data.is_valid(raise_exception=True)
+        kelas_map = data.validated_data.get("kelas_map") or {}
+        if not isinstance(kelas_map, dict):
+            raise ValidationError({"kelas_map": "Format pemetaan kelas tidak valid."})
+        kelompok_ids = set(Kelompok.objects.values_list("pk", flat=True))
+        for kelas, kelompok in kelas_map.items():
+            if kelompok is not None and kelompok not in kelompok_ids:
+                raise ValidationError({"kelas_map": f"Kelompok untuk kelas {kelas} tidak ditemukan."})
+        try:
+            mentah = impor_biodata.parse_csv(data.validated_data["berkas"])
+        except impor_biodata.ImporBiodataError as exc:
+            raise ValidationError({"berkas": str(exc)})
+
+        kelompok_list = list(Kelompok.objects.order_by("-pk"))
+        kelas_info = {}
+        for row in mentah:
+            kelas_info.setdefault(row["kelas"], 0)
+            kelas_info[row["kelas"]] += 1
+        kelas = []
+        for nama_kelas, jumlah in kelas_info.items():
+            if nama_kelas in kelas_map:
+                pilihan = kelas_map[nama_kelas]
+            else:
+                kunci = impor_biodata.kunci_nama(nama_kelas)
+                pilihan = next((k.pk for k in kelompok_list if kunci and impor_biodata.kunci_nama(k.nama).startswith(kunci)), None)
+            kelas.append({"kelas": nama_kelas, "jumlah": jumlah, "kelompok": pilihan})
+
+        hasil = impor_biodata.susun_impor(mentah, {k["kelas"]: k["kelompok"] for k in kelas}, Siswa.objects.all())
+        disimpan = data.validated_data["simpan"]
+        if disimpan:
+            impor_biodata.terapkan_impor(hasil, user=request.user)
+        for item in hasil:
+            item.pop("_nilai")
+        return Response(ImporBiodataHasilSerializer({
+            "disimpan": disimpan, "ringkasan": impor_biodata.ringkas(hasil), "kelas": kelas, "baris": hasil,
+        }).data)
 
 
 class KehadiranSiswaViewSet(viewsets.ModelViewSet):

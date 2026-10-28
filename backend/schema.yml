@@ -4202,6 +4202,28 @@ paths:
               schema:
                 $ref: '#/components/schemas/BiayaMasukDefault'
           description: ''
+  /api/v1/siswa/impor-biodata/:
+    post:
+      operationId: v1_siswa_impor_biodata_create
+      description: Pratinjau (simpan=false) atau simpan biodata dari CSV rekap kelas.
+        Data keuangan tidak disentuh.
+      tags:
+      - v1
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ImporBiodataInput'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImporBiodataHasil'
+          description: ''
   /api/v1/sub-golongan/:
     get:
       operationId: v1_sub_golongan_list
@@ -4782,6 +4804,18 @@ components:
       - id
       - pegawai
       - tanggal
+    AksiEnum:
+      enum:
+      - baru
+      - ubah
+      - sama
+      - galat
+      type: string
+      description: |-
+        * `baru` - baru
+        * `ubah` - ubah
+        * `sama` - sama
+        * `galat` - galat
     AlokasiPembayaranInput:
       type: object
       properties:
@@ -5018,6 +5052,9 @@ components:
       - status
       - tagihan
       - total
+    BlankEnum:
+      enum:
+      - ''
     DiskonKategoriEnum:
       enum:
       - PG
@@ -5171,6 +5208,112 @@ components:
       - total_bruto
       - total_netto
       - total_potongan
+    ImporBiodataBaris:
+      type: object
+      properties:
+        baris:
+          type: integer
+        kelas:
+          type: string
+        nama:
+          type: string
+        aksi:
+          $ref: '#/components/schemas/AksiEnum'
+        siswa:
+          type: integer
+          nullable: true
+        peringatan:
+          type: array
+          items:
+            type: string
+        galat:
+          type: string
+          nullable: true
+        perubahan:
+          type: object
+          additionalProperties:
+            type: array
+            items: {}
+            nullable: true
+        nilai:
+          type: object
+          additionalProperties: {}
+      required:
+      - aksi
+      - baris
+      - galat
+      - kelas
+      - nama
+      - nilai
+      - peringatan
+      - perubahan
+      - siswa
+    ImporBiodataHasil:
+      type: object
+      properties:
+        disimpan:
+          type: boolean
+        ringkasan:
+          $ref: '#/components/schemas/ImporBiodataRingkasan'
+        kelas:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImporBiodataKelas'
+        baris:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImporBiodataBaris'
+      required:
+      - baris
+      - disimpan
+      - kelas
+      - ringkasan
+    ImporBiodataInput:
+      type: object
+      properties:
+        berkas:
+          type: string
+          format: uri
+        kelas_map:
+          description: '{nilai Kelas di CSV: id kelompok atau null}'
+        simpan:
+          type: boolean
+          default: false
+      required:
+      - berkas
+    ImporBiodataKelas:
+      type: object
+      properties:
+        kelas:
+          type: string
+        jumlah:
+          type: integer
+        kelompok:
+          type: integer
+          nullable: true
+      required:
+      - jumlah
+      - kelas
+      - kelompok
+    ImporBiodataRingkasan:
+      type: object
+      properties:
+        baru:
+          type: integer
+        ubah:
+          type: integer
+        sama:
+          type: integer
+        galat:
+          type: integer
+        peringatan:
+          type: integer
+      required:
+      - baru
+      - galat
+      - peringatan
+      - sama
+      - ubah
     JenisEnum:
       enum:
       - BULANAN
@@ -5179,6 +5322,14 @@ components:
       description: |-
         * `BULANAN` - Bulanan
         * `BIAYA_MASUK` - Biaya masuk
+    JenisKelaminEnum:
+      enum:
+      - L
+      - P
+      type: string
+      description: |-
+        * `L` - Laki-laki
+        * `P` - Perempuan
     Jenjang:
       type: object
       properties:
@@ -5463,6 +5614,9 @@ components:
       - id
       - kode_sub
       - nama_sub
+    NullEnum:
+      enum:
+      - null
     PaginatedAbsenPegawaiList:
       type: object
       required:
@@ -6511,9 +6665,23 @@ components:
         nama:
           type: string
           maxLength: 100
+        nama_panggilan:
+          type: string
+          nullable: true
+          maxLength: 50
+        jenis_kelamin:
+          nullable: true
+          oneOf:
+          - $ref: '#/components/schemas/JenisKelaminEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+          - $ref: '#/components/schemas/NullEnum'
         kelompok:
           type: integer
           nullable: true
+        tempat_lahir:
+          type: string
+          nullable: true
+          maxLength: 100
         tanggal_lahir:
           type: string
           format: date
@@ -7019,9 +7187,23 @@ components:
         nama:
           type: string
           maxLength: 100
+        nama_panggilan:
+          type: string
+          nullable: true
+          maxLength: 50
+        jenis_kelamin:
+          nullable: true
+          oneOf:
+          - $ref: '#/components/schemas/JenisKelaminEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+          - $ref: '#/components/schemas/NullEnum'
         kelompok:
           type: integer
           nullable: true
+        tempat_lahir:
+          type: string
+          nullable: true
+          maxLength: 100
         tanggal_lahir:
           type: string
           format: date

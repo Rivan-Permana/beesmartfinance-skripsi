@@ -1212,6 +1212,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/siswa/impor-biodata/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Pratinjau (simpan=false) atau simpan biodata dari CSV rekap kelas. Data keuangan tidak disentuh. */
+        post: operations["v1_siswa_impor_biodata_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/sub-golongan/": {
         parameters: {
             query?: never;
@@ -1410,6 +1427,14 @@ export interface components {
             terlambat?: number;
             pegawai: number;
         };
+        /**
+         * @description * `baru` - baru
+         *     * `ubah` - ubah
+         *     * `sama` - sama
+         *     * `galat` - galat
+         * @enum {string}
+         */
+        AksiEnum: "baru" | "ubah" | "sama" | "galat";
         AlokasiPembayaranInput: {
             detail: number;
             /** Format: decimal */
@@ -1499,6 +1524,8 @@ export interface components {
             /** Format: decimal */
             sisa: string | null;
         };
+        /** @enum {unknown} */
+        BlankEnum: "";
         /**
          * @description * `PG` - PG
          *     * `SIPG` - SIPG
@@ -1563,12 +1590,59 @@ export interface components {
             /** Format: uuid */
             readonly jurnal: string | null;
         };
+        ImporBiodataBaris: {
+            baris: number;
+            kelas: string;
+            nama: string;
+            aksi: components["schemas"]["AksiEnum"];
+            siswa: number | null;
+            peringatan: string[];
+            galat: string | null;
+            perubahan: {
+                [key: string]: unknown[] | null;
+            };
+            nilai: {
+                [key: string]: unknown;
+            };
+        };
+        ImporBiodataHasil: {
+            disimpan: boolean;
+            ringkasan: components["schemas"]["ImporBiodataRingkasan"];
+            kelas: components["schemas"]["ImporBiodataKelas"][];
+            baris: components["schemas"]["ImporBiodataBaris"][];
+        };
+        ImporBiodataInput: {
+            /** Format: uri */
+            berkas: string;
+            /** @description {nilai Kelas di CSV: id kelompok atau null} */
+            kelas_map?: unknown;
+            /** @default false */
+            simpan: boolean;
+        };
+        ImporBiodataKelas: {
+            kelas: string;
+            jumlah: number;
+            kelompok: number | null;
+        };
+        ImporBiodataRingkasan: {
+            baru: number;
+            ubah: number;
+            sama: number;
+            galat: number;
+            peringatan: number;
+        };
         /**
          * @description * `BULANAN` - Bulanan
          *     * `BIAYA_MASUK` - Biaya masuk
          * @enum {string}
          */
         JenisEnum: "BULANAN" | "BIAYA_MASUK";
+        /**
+         * @description * `L` - Laki-laki
+         *     * `P` - Perempuan
+         * @enum {string}
+         */
+        JenisKelaminEnum: "L" | "P";
         Jenjang: {
             readonly id: number;
             kode: string;
@@ -1688,6 +1762,8 @@ export interface components {
             kode_sub: string;
             nama_sub: string;
         };
+        /** @enum {unknown} */
+        NullEnum: null;
         PaginatedAbsenPegawaiList: {
             /** @example 123 */
             count: number;
@@ -2249,7 +2325,10 @@ export interface components {
             readonly id?: number;
             nis?: string | null;
             nama?: string;
+            nama_panggilan?: string | null;
+            jenis_kelamin?: (components["schemas"]["JenisKelaminEnum"] | components["schemas"]["BlankEnum"] | components["schemas"]["NullEnum"]) | null;
             kelompok?: number | null;
+            tempat_lahir?: string | null;
             /** Format: date */
             tanggal_lahir?: string | null;
             alamat?: string | null;
@@ -2437,7 +2516,10 @@ export interface components {
             readonly id: number;
             nis?: string | null;
             nama: string;
+            nama_panggilan?: string | null;
+            jenis_kelamin?: (components["schemas"]["JenisKelaminEnum"] | components["schemas"]["BlankEnum"] | components["schemas"]["NullEnum"]) | null;
             kelompok?: number | null;
+            tempat_lahir?: string | null;
             /** Format: date */
             tanggal_lahir?: string | null;
             alamat?: string | null;
@@ -6416,6 +6498,29 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BiayaMasukDefault"];
+                };
+            };
+        };
+    };
+    v1_siswa_impor_biodata_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["ImporBiodataInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImporBiodataHasil"];
                 };
             };
         };

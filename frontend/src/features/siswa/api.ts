@@ -1,5 +1,5 @@
 import { api } from "@/core/api"
-import type { BiayaMasukField, Paginated, Siswa, SiswaInput } from "@/types/api"
+import type { BiayaMasukField, ImporBiodataHasil, Paginated, Siswa, SiswaInput } from "@/types/api"
 
 export const siswaApi = {
   list: (params?: Record<string, unknown>) =>
@@ -22,6 +22,14 @@ export const siswaApi = {
   update: (id: number, payload: Partial<SiswaInput>) =>
     api.put<Siswa>(`/siswa/${id}/`, payload).then((r) => r.data),
   remove: (id: number) => api.delete(`/siswa/${id}/`),
+  /** Pratinjau (simpan=false) atau simpan biodata dari CSV rekap kelas. */
+  imporBiodata(berkas: File, kelasMap: Record<string, number | null> | null, simpan: boolean) {
+    const fd = new FormData()
+    fd.append("berkas", berkas)
+    fd.append("simpan", simpan ? "true" : "false")
+    if (kelasMap) fd.append("kelas_map", JSON.stringify(kelasMap))
+    return api.post<ImporBiodataHasil>("/siswa/impor-biodata/", fd).then((r) => r.data)
+  },
   /** Nominal daftar harga sesuai jenjang kelompok, untuk mengisi awal biaya masuk. */
   biayaMasukDefault: (kelompok: number) =>
     api.get<Record<BiayaMasukField, string | null>>("/siswa/biaya-masuk-default/", { params: { kelompok } }).then((r) => r.data),

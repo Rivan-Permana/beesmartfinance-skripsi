@@ -3,7 +3,7 @@ import Button from "primevue/button"
 import { useConfirm } from "primevue/useconfirm"
 import { useToast } from "primevue/usetoast"
 import { computed, onMounted, ref } from "vue"
-import { useRouter } from "vue-router"
+import { useRoute, useRouter } from "vue-router"
 import { kelompokApi } from "@/features/absensi/api"
 import { siswaApi } from "./api"
 import { friendlyError, notifyError, notifySuccess } from "@/core/errors"
@@ -11,16 +11,19 @@ import Icon from "@/shared/components/PhosphorIcon.vue"
 import PageLayout from "@/shared/components/PageLayout.vue"
 import SiswaDirectory from "./SiswaDirectory.vue"
 import SiswaFormDialog from "./SiswaFormDialog.vue"
+import SiswaImportDialog from "./SiswaImportDialog.vue"
 import TagihanPaymentDialog from "@/features/tagihan/TagihanPaymentDialog.vue"
 import { tagihanApi } from "@/features/tagihan/api"
 import { paymentFormFor, paymentPayload, paymentValid, type TagihanPaymentForm } from "@/features/tagihan/payment"
 import { coaApi } from "@/features/jurnal/api"
-import type { Coa, Kelompok, Siswa, SiswaInput, Tagihan } from "@/types/api"
+import type { Coa, ImporBiodataHasil, Kelompok, Siswa, SiswaInput, Tagihan } from "@/types/api"
 import { useAuthStore } from '@/stores/auth'
 
 const toast = useToast()
 const confirm = useConfirm()
 const router = useRouter()
+const route = useRoute()
+const initialGroup = computed(() => /^\d+$/.test(String(route.query.kelompok ?? "")) ? Number(route.query.kelompok) : null)
 const rows = ref<Siswa[]>([])
 const kelompokList = ref<Kelompok[]>([])
 const loading = ref(false)
@@ -30,6 +33,12 @@ const dialog = ref(false)
 const editing = ref<Siswa | null>(null)
 const saving = ref(false)
 const saveError = ref("")
+const importDialog = ref(false)
+async function imported(result: ImporBiodataHasil) {
+  const { baru, ubah, galat } = result.ringkasan
+  notifySuccess(toast, `Biodata diimpor: ${baru} siswa baru, ${ubah} diperbarui${galat ? `, ${galat} baris dilewati` : ""}`)
+  await load()
+}
 
 async function load() {
   loading.value = true
@@ -134,7 +143,8 @@ const canWrite = computed(() => useAuthStore().hasRole(['Administration']))
 <template>
   <PageLayout title="Data siswa" :subtitle="canWrite?'Kelola profil dan administrasi siswa PG/TK.':'Lihat profil dan tarif siswa PG/TK. Perubahan data dilakukan Staf TU.'" :surface="false">
     <template v-if="canWrite" #actions><Button label="Tambah siswa" @click="openCreate"><template #icon><Icon name="plus" /></template></Button></template>
-    <SiswaDirectory :rows="rows" :kelompok="kelompokList" :loading="loading" :error="loadError" :group-error="groupError" :readonly="!canWrite" @create="openCreate" @edit="openEdit" @remove="confirmDelete" @receive="openReceive" @retry="load" @manage-groups="router.push('/kelompok')" />
+    <SiswaDirectory :rows="rows" :initial-group="initialGroup" :kelompok="kelompokList" :loading="loading" :error="loadError" :group-error="groupError" :readonly="!canWrite" @create="openCreate" @edit="openEdit" @remove="confirmDelete" @receive="openReceive" @retry="load" @manage-groups="router.push('/kelompok')" @import="importDialog = true" />
+    <SiswaImportDialog v-if="canWrite" v-model="importDialog" :kelompok="kelompokList" @saved="imported" />
     <TagihanPaymentDialog v-if="canWrite" v-model="receiveDialog" v-model:form="receiveForm" :target="receiveTarget" :student-name="receiveStudent" :accounts="kasOptions" :saving="receiveSaving" :error="receiveError" @save="saveReceive" @reload-accounts="loadAccounts" />
     <SiswaFormDialog v-model="dialog" :student="editing" :kelompok="kelompokList" :saving="saving" :error="saveError" :group-error="groupError" @save="save" />
   </PageLayout>

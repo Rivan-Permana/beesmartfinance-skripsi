@@ -19,7 +19,7 @@ import { armadaApi, pendaftaranJemputanApi } from '@/features/jemputan/api';
 import KateringView from './KateringView.vue';
 import JemputanView from '@/features/jemputan/JemputanView.vue';
 const global = { plugins: [[PrimeVue, { unstyled: true, locale: primevueLocale }], ToastService, ConfirmationService] };
-const student: Siswa = { id: 1, nama: 'Alya', nis: 'LM-1', kelompok: 1, status: 'aktif', spp_nominal: '0', nama_ayah: '', kontak_ayah: '', nama_ibu: '', kontak_ibu: '', alamat: 'Jalan Melati', tanggal_lahir: null, periode: 1, diskon_kategori: [], diskon_nominal: '0', uang_masuk: null, uang_kegiatan: null, uang_pengembangan: null, uang_seragam: null, biaya_masuk: null };
+const student: Siswa = { id: 1, nama: 'Alya', nis: 'LM-1', kelompok: 1, status: 'aktif', spp_nominal: '0', nama_ayah: '', kontak_ayah: '', nama_ibu: '', kontak_ibu: '', alamat: 'Jalan Melati', tanggal_lahir: null, nama_panggilan: null, jenis_kelamin: null, tempat_lahir: null, periode: 1, diskon_kategori: [], diskon_nominal: '0', uang_masuk: null, uang_kegiatan: null, uang_pengembangan: null, uang_seragam: null, biaya_masuk: null };
 const record: KehadiranSiswa = { id: 1, siswa: 1, tanggal: '2026-10-15', status: 'hadir', ikut_katering: true, jemput_datang: true, jemput_pulang: true };
 const button = (view: ReturnType<typeof mount>, label: string) => view.findAll('button').find(row => row.text().trim() === label)!;
 const number = (view: ReturnType<typeof mount>, id: string) => view.findAllComponents(InputNumber).find(row => row.props('inputId') === id)!;
