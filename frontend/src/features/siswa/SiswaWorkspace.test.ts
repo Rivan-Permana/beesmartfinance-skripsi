@@ -11,12 +11,34 @@ const student: Siswa = {
   id: 1, nama: "Alya", nis: "LM-001", kelompok: 1, status: "aktif", spp_nominal: "750000.25",
   nama_ayah: "Kontak privat", kontak_ayah: "0811111111", nama_ibu: "", kontak_ibu: "",
   alamat: "Alamat privat", tanggal_lahir: "2020-01-01", periode: 1,
+  nama_panggilan: null, jenis_kelamin: null, tempat_lahir: null,
   diskon_kategori: [], diskon_nominal: "0.00", uang_masuk: null, uang_kegiatan: null,
   uang_pengembangan: null, uang_seragam: null, biaya_masuk: null,
 }
 const global = { plugins: [[PrimeVue, { unstyled: true, locale: primevueLocale }]] }
 
 describe("student workspace", () => {
+  it("keeps personal details and the birth date as a local calendar date", async () => {
+    const view = mount(SiswaFormDialog, { global, props: { modelValue: true, student: { ...student, nama_panggilan: "Alya", jenis_kelamin: "P", tempat_lahir: "Bandung" }, kelompok: [] } })
+    await nextTick()
+    expect(view.get('#siswa-nickname').element).toHaveProperty('value', 'Alya')
+    expect(view.get('#siswa-birthplace').element).toHaveProperty('value', 'Bandung')
+    await view.get('#siswa-nickname').setValue("  Lya ")
+    await view.get('#siswa-birthplace').setValue(" ")
+    await view.get('form').trigger('submit')
+    expect(view.emitted('save')?.[0]?.[0]).toMatchObject({ nama_panggilan: "Lya", jenis_kelamin: "P", tempat_lahir: null, tanggal_lahir: "2020-01-01" })
+    view.unmount()
+  })
+  it("starts filtered to the group opened from the Kelompok menu and shows nickname and gender", async () => {
+    const rows = [{ ...student, nama_panggilan: "Alya", jenis_kelamin: "P" as const }, { ...student, id: 2, nama: "Bima", kelompok: 2 }]
+    const view = mount(SiswaDirectory, { global, props: { rows, initialGroup: 2, kelompok: [{ id: 1, nama: "Melati", jenjang: 1 }, { id: 2, nama: "Mawar", jenjang: 1 }] } })
+    expect(view.get('.directory-results').text()).toContain("1–1 dari 1 siswa yang cocok")
+    expect(view.text()).toContain("Bima")
+    expect(view.text()).not.toContain("Alya")
+    await view.get('.directory-results button').trigger('click')
+    expect(view.text()).toContain("Panggilan Alya · Perempuan · NIS LM-001")
+    view.unmount()
+  })
   it("clears a selected group without opening the dropdown or changing other fields, and hides clear while saving", async () => {
     const view = mount(SiswaFormDialog, { global, attachTo: document.body, props: { modelValue: true, student, kelompok: [{ id: 1, nama: 'Melati', jenjang: 1 }] } })
     await nextTick()

@@ -32,6 +32,7 @@ const recordInfo: Pick<Siswa, "nama" | "nis" | "kelompok" | "status" | "spp_nomi
 const samples: Siswa[] = recordInfo.map((record, i) => ({
   ...record, id: i + 1, tanggal_lahir: null, periode: null, alamat: "",
   nama_ayah: "", kontak_ayah: "", nama_ibu: "", kontak_ibu: "",
+  nama_panggilan: null, jenis_kelamin: null, tempat_lahir: null,
   diskon_kategori: [], diskon_nominal: "0.00", uang_masuk: null, uang_kegiatan: null,
   uang_pengembangan: null, uang_seragam: null, biaya_masuk: null,
 }))

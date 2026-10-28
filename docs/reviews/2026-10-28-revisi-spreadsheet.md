@@ -66,3 +66,21 @@ Sesi `default_transaction_read_only = on`; tidak ada perubahan.
 ## Temuan saat verifikasi
 
 - Periode `2026/2027` di DB demo lokal tersimpan 30/06/2026 – 29/06/2027 (bukan 01/07 – 30/06). Kemungkinan pergeseran zona waktu saat seed/impor. Perlu dicek di produksi sebelum filter Periode dipakai sebagai acuan.
+
+## Batch 4 — masukan WA Staf TU + keputusan review (tier 3) — selesai di branch kerja
+
+Sumber: 4 screenshot WA dari Staf TU (Bu Fitri). Screenshot diambil dari **versi sebelum rilis 28/10** (tab "Menu Mingguan" minggu 19–23/10, kolom "Harga / bulan"), jadi dua masukan sudah terpenuhi di produksi. Disetujui pengguna: opsi 1 untuk Kelompok, migrasi `0018`, keputusan review 3a dan 3b ya, 3c dan 3d ditunda.
+
+| Masukan / keputusan | Hasil |
+|---|---|
+| Gbr 1 · Data Siswa berisi data diri lengkap | Kolom baru **Nama panggilan, Jenis kelamin (L/P), Tempat lahir** (migrasi `operations.0018_siswa_data_diri`, tiga kolom boleh kosong, tanpa ubah data). Form disusun: NIS, status, nama lengkap, panggilan, jenis kelamin, tempat/tanggal lahir (tanggal lahir kini bisa diisi; sebelumnya tidak ada di form), kelompok, SPP; lalu alamat dan orang tua. Daftar siswa menampilkan "Panggilan · Laki-laki/Perempuan · NIS"; pencarian ikut nama panggilan. |
+| Gbr 2 · Kelompok bisa diklik untuk cek nama | Nama kelompok (tabel dan kartu ponsel) membuka Data Siswa yang sudah terfilter kelompok itu (`/siswa?kelompok=<id>`); nama yang salah bisa langsung diubah. |
+| Gbr 3 · Menu katering per bulan | Sudah ada sejak Batch 1 (tab **Menu bulanan**). Tidak ada perubahan. |
+| Gbr 4 · Jemputan per hari, beda per anak, kadang antar saja | Sudah begitu sejak revamp: tarif per siswa per perjalanan, datang/pulang dicentang terpisah di absensi. Katering juga dicentang per hari, tapi tarifnya satu untuk semua anak. Tidak ada perubahan; perlu konfirmasi apakah katering juga perlu tarif per anak. |
+| 3a · Guru tidak melihat nominal | `SiswaSerializer` menghapus SPP, biaya masuk, diskon, dan ringkasan biaya masuk dari respons untuk pengguna di luar Staf TU/Keuangan/Kepsek. Absensi Guru tidak memakai field itu. |
+| 3b · Pesan ubah diskon | Bila diskon diubah setelah ada penerimaan: "Diskon tidak bisa diubah karena Uang Masuk sudah ada penerimaan dan diskon ikut memotong komponen itu. Minta Keuangan membatalkan penerimaan itu dulu bila diskon memang perlu diubah." |
+| 3c, 3d | Ditunda (laporan diskon per kategori; biaya masuk kedua). |
+
+Verifikasi: backend 149 tes OK (3 tes baru di `operations/test_biaya_masuk.py`); `makemigrations --check` bersih; frontend 33 berkas / 143 tes (2 tes baru di `SiswaWorkspace.test.ts`); `vue-tsc` + build bersih (peringatan chunk >500 kB tetap). Migrasi `0018`: backup `~/Backups/beesmartfinance/*-20261028-125413-before-0018.dump`; UAT diterapkan, dibalik, diterapkan ulang; lokal diterapkan. 9 skenario API UAT: TU ubah data diri 200, jenis kelamin salah 400, ubah diskon setelah penerimaan 400 dengan pesan baru, Guru GET daftar/detail tanpa field nominal, Guru PATCH 403, Keuangan tetap melihat nominal, Guru absensi 200. Data uji UAT: siswa Bima Sakti diberi panggilan "Bima", L, tempat lahir `UAT-B4 Bandung`, tanggal lahir 01/07/2021. Cek DOM lokal (Staf TU): klik "PG Merah" membuka `/siswa?kelompok=1` dengan filter terisi; form siswa tanpa overflow di desktop dan 375 px (satu kolom); tautan kelompok di kartu ponsel tinggi 44 px; halaman tanpa scroll horizontal.
+
+Rilis: ikut rilis berikutnya bersama perbaikan 400 `siswa/biaya-masuk-default`; rilis menjalankan migrasi `0018`.

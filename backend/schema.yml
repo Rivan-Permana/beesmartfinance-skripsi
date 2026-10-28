@@ -5018,6 +5018,9 @@ components:
       - status
       - tagihan
       - total
+    BlankEnum:
+      enum:
+      - ''
     DiskonKategoriEnum:
       enum:
       - PG
@@ -5179,6 +5182,14 @@ components:
       description: |-
         * `BULANAN` - Bulanan
         * `BIAYA_MASUK` - Biaya masuk
+    JenisKelaminEnum:
+      enum:
+      - L
+      - P
+      type: string
+      description: |-
+        * `L` - Laki-laki
+        * `P` - Perempuan
     Jenjang:
       type: object
       properties:
@@ -5463,6 +5474,9 @@ components:
       - id
       - kode_sub
       - nama_sub
+    NullEnum:
+      enum:
+      - null
     PaginatedAbsenPegawaiList:
       type: object
       required:
@@ -6511,9 +6525,23 @@ components:
         nama:
           type: string
           maxLength: 100
+        nama_panggilan:
+          type: string
+          nullable: true
+          maxLength: 50
+        jenis_kelamin:
+          nullable: true
+          oneOf:
+          - $ref: '#/components/schemas/JenisKelaminEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+          - $ref: '#/components/schemas/NullEnum'
         kelompok:
           type: integer
           nullable: true
+        tempat_lahir:
+          type: string
+          nullable: true
+          maxLength: 100
         tanggal_lahir:
           type: string
           format: date
@@ -7019,9 +7047,23 @@ components:
         nama:
           type: string
           maxLength: 100
+        nama_panggilan:
+          type: string
+          nullable: true
+          maxLength: 50
+        jenis_kelamin:
+          nullable: true
+          oneOf:
+          - $ref: '#/components/schemas/JenisKelaminEnum'
+          - $ref: '#/components/schemas/BlankEnum'
+          - $ref: '#/components/schemas/NullEnum'
         kelompok:
           type: integer
           nullable: true
+        tempat_lahir:
+          type: string
+          nullable: true
+          maxLength: 100
         tanggal_lahir:
           type: string
           format: date

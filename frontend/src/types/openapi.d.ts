@@ -1499,6 +1499,8 @@ export interface components {
             /** Format: decimal */
             sisa: string | null;
         };
+        /** @enum {unknown} */
+        BlankEnum: "";
         /**
          * @description * `PG` - PG
          *     * `SIPG` - SIPG
@@ -1569,6 +1571,12 @@ export interface components {
          * @enum {string}
          */
         JenisEnum: "BULANAN" | "BIAYA_MASUK";
+        /**
+         * @description * `L` - Laki-laki
+         *     * `P` - Perempuan
+         * @enum {string}
+         */
+        JenisKelaminEnum: "L" | "P";
         Jenjang: {
             readonly id: number;
             kode: string;
@@ -1688,6 +1696,8 @@ export interface components {
             kode_sub: string;
             nama_sub: string;
         };
+        /** @enum {unknown} */
+        NullEnum: null;
         PaginatedAbsenPegawaiList: {
             /** @example 123 */
             count: number;
@@ -2249,7 +2259,10 @@ export interface components {
             readonly id?: number;
             nis?: string | null;
             nama?: string;
+            nama_panggilan?: string | null;
+            jenis_kelamin?: (components["schemas"]["JenisKelaminEnum"] | components["schemas"]["BlankEnum"] | components["schemas"]["NullEnum"]) | null;
             kelompok?: number | null;
+            tempat_lahir?: string | null;
             /** Format: date */
             tanggal_lahir?: string | null;
             alamat?: string | null;
@@ -2437,7 +2450,10 @@ export interface components {
             readonly id: number;
             nis?: string | null;
             nama: string;
+            nama_panggilan?: string | null;
+            jenis_kelamin?: (components["schemas"]["JenisKelaminEnum"] | components["schemas"]["BlankEnum"] | components["schemas"]["NullEnum"]) | null;
             kelompok?: number | null;
+            tempat_lahir?: string | null;
             /** Format: date */
             tanggal_lahir?: string | null;
             alamat?: string | null;

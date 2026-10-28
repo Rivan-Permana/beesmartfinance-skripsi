@@ -35,7 +35,10 @@ export interface Siswa {
   id: number
   nis: string | null
   nama: string
+  nama_panggilan: string | null
+  jenis_kelamin: JenisKelamin | null
   kelompok: number | null
+  tempat_lahir: string | null
   tanggal_lahir: string | null
   alamat: string | null
   nama_ayah: string | null
@@ -55,6 +58,7 @@ export interface Siswa {
   biaya_masuk: { tagihan: number; status: TagihanStatus; total: string; sisa: string | null } | null
 }
 
+export type JenisKelamin = "L" | "P"
 export type DiskonKategori = "PG" | "SIPG" | "SIB" | "SIKBR"
 export type BiayaMasukField = "uang_masuk" | "uang_pengembangan" | "uang_kegiatan" | "uang_seragam"
 export type SiswaInput = Omit<Siswa, "id" | "biaya_masuk">

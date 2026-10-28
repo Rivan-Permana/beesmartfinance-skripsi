@@ -13,7 +13,7 @@ import SearchField from "@/shared/components/SearchField.vue"
 import { useTableSearch } from "@/shared/composables/useTableSearch"
 import { formatRp } from "@/core/format"
 import type { Kelompok, Siswa, SiswaStatus } from "@/types/api"
-import { biayaMasukState, canReceiveBiayaMasuk, kelompokLabel, SISWA_STATUS, statusOptions } from "./presentation"
+import { biayaMasukState, canReceiveBiayaMasuk, identitasSiswa, kelompokLabel, SISWA_STATUS, statusOptions } from "./presentation"
 
 const props = defineProps<{
   rows: Siswa[]
@@ -23,11 +23,14 @@ const props = defineProps<{
   groupError?: boolean
   /** Keuangan melihat data siswa tanpa mengubahnya. */
   readonly?: boolean
+  /** Filter kelompok awal, mis. dari klik nama kelompok di menu Kelompok. */
+  initialGroup?: number | null
 }>()
 const emit = defineEmits<{ create: []; edit: [row: Siswa]; remove: [row: Siswa]; receive: [row: Siswa]; retry: []; manageGroups: [] }>()
 const status = ref<SiswaStatus | null>(null)
 const group = ref<number | "unassigned" | null>(null)
 const first = ref(0)
+watch(() => props.initialGroup, (value) => { if (value != null) group.value = value }, { immediate: true })
 const groupMap = computed(() => new Map(props.kelompok.map((item) => [item.id, kelompokLabel(item)])))
 const groupOptions = computed(() => [
   { label: "Belum dikelompokkan", value: "unassigned" },
@@ -37,7 +40,7 @@ function groupName(row: Siswa) {
   return row.kelompok == null ? "Belum dikelompokkan" : groupMap.value.get(row.kelompok) ?? "Nama kelompok belum dimuat"
 }
 const { query, filtered: searched } = useTableSearch(() => props.rows, (row) => [
-  row.nis, row.nama, SISWA_STATUS[row.status].label, groupName(row), formatRp(row.spp_nominal),
+  row.nis, row.nama, row.nama_panggilan, SISWA_STATUS[row.status].label, groupName(row), formatRp(row.spp_nominal),
 ])
 const filtered = computed(() => searched.value.filter((row) =>
   (!status.value || row.status === status.value)
@@ -56,7 +59,7 @@ function reset() { query.value = ""; status.value = null; group.value = null }
       <Button v-if="!readonly" label="Kelola kelompok" severity="secondary" text @click="emit('manageGroups')"><template #icon><Icon name="squares-four" /></template></Button>
     </div>
     <div class="directory-toolbar">
-      <div class="directory-field directory-search"><label for="siswa-search">Cari siswa</label><SearchField input-id="siswa-search" v-model="query" placeholder="Nama, NIS, atau kelompok" hint="Cari nama, NIS, kelompok, status, atau nominal SPP" /></div>
+      <div class="directory-field directory-search"><label for="siswa-search">Cari siswa</label><SearchField input-id="siswa-search" v-model="query" placeholder="Nama, panggilan, NIS, atau kelompok" hint="Cari nama, nama panggilan, NIS, kelompok, status, atau nominal SPP" /></div>
       <div class="directory-field"><label for="siswa-group-filter">Kelompok</label><Select :key="(groupError) ? 'locked' : 'editable'" input-id="siswa-group-filter" v-model="group" :options="groupOptions" option-label="label" option-value="value" placeholder="Semua" show-clear filter :disabled="groupError" empty-filter-message="Kelompok tidak ditemukan"><template #filtericon><Icon name="magnifying-glass" /></template><template #dropdownicon><Icon name="caret-down" /></template><template #clearicon="slotProps"><SelectClearButton v-bind="slotProps" /></template></Select></div>
       <div class="directory-field"><label for="siswa-status-filter">Status siswa</label><Select input-id="siswa-status-filter" v-model="status" :options="statusOptions" option-label="label" option-value="value" placeholder="Semua" show-clear><template #dropdownicon><Icon name="caret-down" /></template><template #clearicon="slotProps"><SelectClearButton v-bind="slotProps" /></template></Select></div>
     </div>
@@ -75,7 +78,7 @@ function reset() { query.value = ""; status.value = null; group.value = null }
     </div>
     <template v-else-if="!error">
       <DataTable class="directory-desktop" :value="pageRows" data-key="id" :table-style="{ minWidth: '880px' }" :pt="{ tableContainer: { tabindex: 0, role: 'region', 'aria-label': 'Tabel data siswa' } }">
-        <Column header="Siswa"><template #body="{ data }"><strong v-if="readonly" class="directory-name">{{ data.nama }}</strong><button v-else class="directory-name" :aria-label="`Ubah data ${data.nama}`" @click="emit('edit', data)">{{ data.nama }}</button><small class="directory-secondary">{{ data.nis ? `NIS ${data.nis}` : 'NIS belum diisi' }}</small></template></Column>
+        <Column header="Siswa"><template #body="{ data }"><strong v-if="readonly" class="directory-name">{{ data.nama }}</strong><button v-else class="directory-name" :aria-label="`Ubah data ${data.nama}`" @click="emit('edit', data)">{{ data.nama }}</button><small class="directory-secondary">{{ identitasSiswa(data) }}</small></template></Column>
         <Column header="Kelompok"><template #body="{ data }"><span :class="{ 'directory-muted': data.kelompok == null }">{{ groupName(data) }}</span></template></Column>
         <Column header="Status"><template #body="{ data }"><Tag :value="SISWA_STATUS[data.status as SiswaStatus].label" :severity="SISWA_STATUS[data.status as SiswaStatus].severity" /></template></Column>
         <Column header="SPP per bulan" header-class="bee-numeric" body-class="bee-numeric"><template #body="{ data }">{{ formatRp(data.spp_nominal) }}</template></Column>
@@ -84,7 +87,7 @@ function reset() { query.value = ""; status.value = null; group.value = null }
       </DataTable>
       <ul class="directory-mobile" aria-label="Data siswa">
         <li v-for="row in pageRows" :key="row.id">
-          <div class="mobile-record-heading"><div><strong v-if="readonly" class="directory-name">{{ row.nama }}</strong><button v-else class="directory-name" :aria-label="`Ubah data ${row.nama}`" @click="emit('edit', row)">{{ row.nama }}</button><small class="directory-secondary">{{ row.nis ? `NIS ${row.nis}` : 'NIS belum diisi' }}</small></div><Tag :value="SISWA_STATUS[row.status].label" :severity="SISWA_STATUS[row.status].severity" /></div>
+          <div class="mobile-record-heading"><div><strong v-if="readonly" class="directory-name">{{ row.nama }}</strong><button v-else class="directory-name" :aria-label="`Ubah data ${row.nama}`" @click="emit('edit', row)">{{ row.nama }}</button><small class="directory-secondary">{{ identitasSiswa(row) }}</small></div><Tag :value="SISWA_STATUS[row.status].label" :severity="SISWA_STATUS[row.status].severity" /></div>
           <dl><div><dt>Kelompok</dt><dd>{{ groupName(row) }}</dd></div><div><dt>SPP per bulan</dt><dd class="tabular-nums">{{ formatRp(row.spp_nominal) }}</dd></div><div v-if="row.biaya_masuk"><dt>Biaya masuk</dt><dd><Tag :value="biayaMasukState(row)!.label" :severity="biayaMasukState(row)!.severity" /> <span class="tabular-nums">{{ canReceiveBiayaMasuk(row) ? `sisa ${formatRp(row.biaya_masuk.sisa)}` : formatRp(row.biaya_masuk.total) }}</span></dd></div></dl>
           <Button v-if="!readonly && canReceiveBiayaMasuk(row)" class="mobile-receive" label="Catat penerimaan" severity="secondary" fluid :aria-label="`Catat penerimaan biaya masuk ${row.nama}`" @click="emit('receive', row)"><template #icon><Icon name="money" /></template></Button>
           <div v-if="!readonly" class="mobile-record-actions"><Button label="Ubah data" severity="secondary" text :aria-label="`Ubah ${row.nama}`" @click="emit('edit', row)"><template #icon><Icon name="pencil-simple" /></template></Button><Button severity="secondary" text :aria-label="`Hapus ${row.nama}`" @click="emit('remove', row)"><template #icon><Icon name="trash" /></template></Button></div>

@@ -3,6 +3,7 @@ import SelectClearButton from "@/shared/components/SelectClearButton.vue"
 import { computed, nextTick, reactive, ref, watch } from "vue"
 import Button from "primevue/button"
 import Checkbox from "primevue/checkbox"
+import DatePicker from "primevue/datepicker"
 import Dialog from "primevue/dialog"
 import InputNumber from "primevue/inputnumber"
 import InputText from "primevue/inputtext"
@@ -10,10 +11,10 @@ import Message from "primevue/message"
 import Select from "primevue/select"
 import Textarea from "primevue/textarea"
 import Icon from "@/shared/components/PhosphorIcon.vue"
-import { formatRp } from "@/core/format"
+import { calendarTextMatches, formatLocalDate, formatRp } from "@/core/format"
 import type { BiayaMasukField, Kelompok, Siswa, SiswaInput } from "@/types/api"
 import { siswaApi } from "./api"
-import { BIAYA_MASUK_FIELDS, biayaMasukBruto, DISKON_KATEGORI, kelompokLabel, statusOptions } from "./presentation"
+import { BIAYA_MASUK_FIELDS, biayaMasukBruto, DISKON_KATEGORI, jenisKelaminOptions, kelompokLabel, statusOptions } from "./presentation"
 
 const props = defineProps<{ student: Siswa | null; kelompok: Kelompok[]; saving?: boolean; error?: string; groupError?: boolean }>()
 const visible = defineModel<boolean>({ default: false })
@@ -53,6 +54,10 @@ async function fillFromPriceList() {
     loadingDefaults.value = false
   }
 }
+const birthDate = ref<Date | null>(null)
+const badBirthDate = ref(false)
+function checkBirthDate(event: Event) { badBirthDate.value = !calendarTextMatches((event.target as HTMLInputElement).value, birthDate.value) }
+const birthDateInvalid = computed(() => badBirthDate.value || (birthDate.value != null && birthDate.value > new Date()))
 const nameInvalid = computed(() => !form.nama?.trim())
 const sppInvalid = computed(() => !form.spp_nominal || !Number.isFinite(Number(form.spp_nominal)) || Number(form.spp_nominal) < 0)
 const groupOptions = computed(() => {
@@ -64,8 +69,12 @@ const groupOptions = computed(() => {
 watch(visible, (open) => {
   if (!open) return
   attempted.value = false
+  badBirthDate.value = false
+  birthDate.value = props.student?.tanggal_lahir ? new Date(props.student.tanggal_lahir + "T12:00:00") : null
   Object.assign(form, {
     nis: props.student?.nis ?? "", nama: props.student?.nama ?? "", status: props.student?.status ?? "aktif",
+    nama_panggilan: props.student?.nama_panggilan ?? "", jenis_kelamin: props.student?.jenis_kelamin ?? null,
+    tempat_lahir: props.student?.tempat_lahir ?? "",
     spp_nominal: props.student?.spp_nominal ?? "0.00", kelompok: props.student?.kelompok ?? null,
     nama_ayah: props.student?.nama_ayah ?? "", kontak_ayah: props.student?.kontak_ayah ?? "",
     nama_ibu: props.student?.nama_ibu ?? "", kontak_ibu: props.student?.kontak_ibu ?? "", alamat: props.student?.alamat ?? "",
@@ -79,27 +88,35 @@ watch(() => props.error, async (message) => { if (message) { await nextTick(); e
 async function submit() {
   if (props.saving) return
   attempted.value = true
-  if (nameInvalid.value || sppInvalid.value || diskonInvalid.value) {
+  if (nameInvalid.value || sppInvalid.value || diskonInvalid.value || birthDateInvalid.value) {
     await nextTick()
     formElement.value?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus()
     return
   }
-  emit("save", { ...form, nama: form.nama!.trim(), nis: form.nis?.trim() || null })
+  emit("save", {
+    ...form, nama: form.nama!.trim(), nis: form.nis?.trim() || null,
+    nama_panggilan: form.nama_panggilan?.trim() || null, tempat_lahir: form.tempat_lahir?.trim() || null,
+    tanggal_lahir: birthDate.value ? formatLocalDate(birthDate.value) : null,
+  })
 }
 </script>
 
 <template>
   <Dialog v-model:visible="visible" :header="student ? 'Ubah data siswa' : 'Tambah siswa'" modal :draggable="false" :closable="!saving" :close-on-escape="!saving" class="siswa-form-dialog" :style="{ width: '640px' }" :close-button-props="{ severity: 'secondary', text: true, 'aria-label': 'Tutup form siswa' }">
     <template #closeicon><Icon name="x" /></template>
-    <p class="siswa-form-intro">{{ student ? 'Perbarui profil dan tarif SPP siswa. Perubahan tidak mengubah tagihan yang sudah dibuat.' : 'Isi data utama siswa. Kontak orang tua dapat dilengkapi kemudian.' }}</p>
+    <p class="siswa-form-intro">{{ student ? 'Perbarui profil dan tarif SPP siswa. Perubahan tidak mengubah tagihan yang sudah dibuat.' : 'Isi data utama siswa. Data diri lain dan kontak orang tua dapat dilengkapi kemudian.' }}</p>
     <div v-if="error" ref="errorElement" tabindex="-1" class="siswa-save-error"><Message severity="error" :closable="false"><template #icon><Icon name="warning-circle" /></template>{{ error }} Input tetap tersimpan di form ini.</Message></div>
     <form id="siswa-form" ref="formElement" novalidate :aria-busy="saving" @submit.prevent="submit">
       <fieldset :disabled="saving" class="siswa-form-section">
         <legend>Data siswa</legend>
         <div class="siswa-fields">
-          <div class="siswa-field siswa-field-full"><label for="siswa-name">Nama lengkap <span>(wajib)</span></label><InputText id="siswa-name" v-model="form.nama" autofocus required maxlength="100" :invalid="attempted && nameInvalid" :aria-invalid="attempted && nameInvalid" :aria-describedby="attempted && nameInvalid ? 'siswa-name-error' : undefined" fluid /><small v-if="attempted && nameInvalid" id="siswa-name-error" class="siswa-field-error">Isi nama lengkap siswa.</small></div>
           <div class="siswa-field"><label for="siswa-nis">Nomor induk siswa <span>(NIS)</span></label><InputText id="siswa-nis" v-model="form.nis as string" maxlength="20" aria-describedby="siswa-nis-help" fluid /><small id="siswa-nis-help">Boleh dikosongkan jika belum tersedia.</small></div>
           <div class="siswa-field"><label for="siswa-status">Status siswa</label><Select :key="(saving) ? 'locked' : 'editable'" input-id="siswa-status" v-model="form.status" :disabled="saving" :options="statusOptions" option-label="label" option-value="value" fluid><template #dropdownicon><Icon name="caret-down" /></template></Select></div>
+          <div class="siswa-field siswa-field-full"><label for="siswa-name">Nama lengkap <span>(wajib)</span></label><InputText id="siswa-name" v-model="form.nama" autofocus required maxlength="100" :invalid="attempted && nameInvalid" :aria-invalid="attempted && nameInvalid" :aria-describedby="attempted && nameInvalid ? 'siswa-name-error' : undefined" fluid /><small v-if="attempted && nameInvalid" id="siswa-name-error" class="siswa-field-error">Isi nama lengkap siswa.</small></div>
+          <div class="siswa-field"><label for="siswa-nickname">Nama panggilan</label><InputText id="siswa-nickname" v-model="form.nama_panggilan as string" maxlength="50" fluid /></div>
+          <div class="siswa-field"><label for="siswa-gender">Jenis kelamin</label><Select :key="(saving) ? 'locked' : 'editable'" input-id="siswa-gender" v-model="form.jenis_kelamin" :disabled="saving" :options="jenisKelaminOptions" option-label="label" option-value="value" placeholder="Pilih" show-clear fluid><template #dropdownicon><Icon name="caret-down" /></template><template #clearicon="slotProps"><SelectClearButton v-bind="slotProps" /></template></Select></div>
+          <div class="siswa-field"><label for="siswa-birthplace">Tempat lahir</label><InputText id="siswa-birthplace" v-model="form.tempat_lahir as string" maxlength="100" fluid /></div>
+          <div class="siswa-field"><label for="siswa-birthdate">Tanggal lahir</label><DatePicker :key="(saving) ? 'locked' : 'editable'" input-id="siswa-birthdate" v-model="birthDate" date-format="dd/mm/yy" :max-date="new Date()" :disabled="saving" @input="checkBirthDate" @update:model-value="badBirthDate = false" :invalid="attempted && birthDateInvalid" :input-props="{ 'aria-invalid': attempted && birthDateInvalid, 'aria-describedby': attempted && birthDateInvalid ? 'siswa-birthdate-error' : 'siswa-birthdate-help' }" fluid><template #previcon><Icon name="caret-left" /></template><template #nexticon><Icon name="caret-right" /></template></DatePicker><small v-if="attempted && birthDateInvalid" id="siswa-birthdate-error" class="siswa-field-error">Periksa atau pilih ulang tanggal lahir.</small><small v-else id="siswa-birthdate-help">Format hh/bb/tttt.</small></div>
           <div class="siswa-field"><label for="siswa-kelompok">Kelompok belajar</label><Select :key="(groupError || saving) ? 'locked' : 'editable'" input-id="siswa-kelompok" v-model="form.kelompok" :options="groupOptions" option-label="label" option-value="value" placeholder="Belum dikelompokkan" show-clear filter :disabled="groupError || saving" empty-filter-message="Kelompok tidak ditemukan" aria-describedby="siswa-group-help" fluid><template #filtericon><Icon name="magnifying-glass" /></template><template #dropdownicon><Icon name="caret-down" /></template><template #clearicon="slotProps"><SelectClearButton v-bind="slotProps" /></template></Select><small id="siswa-group-help">{{ groupError ? 'Pilihan kelompok belum tersedia. Kelompok siswa saat ini tetap dipertahankan.' : 'Pilih sesuai kelompok belajar siswa.' }}</small></div>
           <div class="siswa-field"><label for="siswa-spp">SPP per bulan <span>(Rp)</span></label><InputNumber input-id="siswa-spp" v-model="spp" locale="id-ID" :min="0" :max-fraction-digits="2" :invalid="attempted && sppInvalid" :input-props="{ 'aria-invalid': attempted && sppInvalid, 'aria-describedby': attempted && sppInvalid ? 'siswa-spp-error' : 'siswa-spp-help' }" fluid /><small v-if="attempted && sppInvalid" id="siswa-spp-error" class="siswa-field-error">Isi nominal nol atau lebih besar.</small><small v-else id="siswa-spp-help">Tarif siswa, bukan pembayaran yang diterima.</small></div>
         </div>
@@ -123,13 +140,13 @@ async function submit() {
         <small v-if="student?.biaya_masuk" class="siswa-section-help">Komponen yang sudah ada penerimaannya tidak bisa diubah nominalnya.</small>
       </fieldset>
       <fieldset :disabled="saving" class="siswa-form-section">
-        <legend>Kontak orang tua <span>Opsional</span></legend>
+        <legend>Alamat dan orang tua <span>Opsional</span></legend>
         <div class="siswa-fields">
+          <div class="siswa-field siswa-field-full"><label for="siswa-address">Alamat</label><Textarea id="siswa-address" v-model="form.alamat as string" rows="2" fluid /></div>
           <div class="siswa-field"><label for="siswa-father">Nama ayah</label><InputText id="siswa-father" v-model="form.nama_ayah as string" maxlength="100" fluid /></div>
           <div class="siswa-field"><label for="siswa-father-phone">Nomor telepon ayah</label><InputText id="siswa-father-phone" v-model="form.kontak_ayah as string" type="tel" maxlength="20" fluid /></div>
           <div class="siswa-field"><label for="siswa-mother">Nama ibu</label><InputText id="siswa-mother" v-model="form.nama_ibu as string" maxlength="100" fluid /></div>
           <div class="siswa-field"><label for="siswa-mother-phone">Nomor telepon ibu</label><InputText id="siswa-mother-phone" v-model="form.kontak_ibu as string" type="tel" maxlength="20" fluid /></div>
-          <div class="siswa-field siswa-field-full"><label for="siswa-address">Alamat</label><Textarea id="siswa-address" v-model="form.alamat as string" rows="2" fluid /></div>
         </div>
       </fieldset>
     </form>

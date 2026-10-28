@@ -3,7 +3,7 @@ import Button from "primevue/button"
 import { useConfirm } from "primevue/useconfirm"
 import { useToast } from "primevue/usetoast"
 import { computed, onMounted, ref } from "vue"
-import { useRouter } from "vue-router"
+import { useRoute, useRouter } from "vue-router"
 import { kelompokApi } from "@/features/absensi/api"
 import { siswaApi } from "./api"
 import { friendlyError, notifyError, notifySuccess } from "@/core/errors"
@@ -21,6 +21,8 @@ import { useAuthStore } from '@/stores/auth'
 const toast = useToast()
 const confirm = useConfirm()
 const router = useRouter()
+const route = useRoute()
+const initialGroup = computed(() => /^\d+$/.test(String(route.query.kelompok ?? "")) ? Number(route.query.kelompok) : null)
 const rows = ref<Siswa[]>([])
 const kelompokList = ref<Kelompok[]>([])
 const loading = ref(false)
@@ -134,7 +136,7 @@ const canWrite = computed(() => useAuthStore().hasRole(['Administration']))
 <template>
   <PageLayout title="Data siswa" :subtitle="canWrite?'Kelola profil dan administrasi siswa PG/TK.':'Lihat profil dan tarif siswa PG/TK. Perubahan data dilakukan Staf TU.'" :surface="false">
     <template v-if="canWrite" #actions><Button label="Tambah siswa" @click="openCreate"><template #icon><Icon name="plus" /></template></Button></template>
-    <SiswaDirectory :rows="rows" :kelompok="kelompokList" :loading="loading" :error="loadError" :group-error="groupError" :readonly="!canWrite" @create="openCreate" @edit="openEdit" @remove="confirmDelete" @receive="openReceive" @retry="load" @manage-groups="router.push('/kelompok')" />
+    <SiswaDirectory :rows="rows" :initial-group="initialGroup" :kelompok="kelompokList" :loading="loading" :error="loadError" :group-error="groupError" :readonly="!canWrite" @create="openCreate" @edit="openEdit" @remove="confirmDelete" @receive="openReceive" @retry="load" @manage-groups="router.push('/kelompok')" />
     <TagihanPaymentDialog v-if="canWrite" v-model="receiveDialog" v-model:form="receiveForm" :target="receiveTarget" :student-name="receiveStudent" :accounts="kasOptions" :saving="receiveSaving" :error="receiveError" @save="saveReceive" @reload-accounts="loadAccounts" />
     <SiswaFormDialog v-model="dialog" :student="editing" :kelompok="kelompokList" :saving="saving" :error="saveError" :group-error="groupError" @save="save" />
   </PageLayout>

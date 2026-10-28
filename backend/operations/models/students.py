@@ -29,9 +29,12 @@ class Siswa(SoftDeleteModel, TimeStampedModel):
     ]
     nis = models.CharField(max_length=20, unique=True, blank=True, null=True)
     nama = models.CharField(max_length=100)
+    nama_panggilan = models.CharField(max_length=50, blank=True, null=True)
+    jenis_kelamin = models.CharField(max_length=1, choices=[("L", "Laki-laki"), ("P", "Perempuan")], blank=True, null=True)
     kelompok = models.ForeignKey(
         Kelompok, on_delete=models.SET_NULL, blank=True, null=True, related_name="siswa"
     )
+    tempat_lahir = models.CharField(max_length=100, blank=True, null=True)
     tanggal_lahir = models.DateField(blank=True, null=True)
     alamat = models.TextField(blank=True, null=True)
     nama_ayah = models.CharField(max_length=100, blank=True, null=True)

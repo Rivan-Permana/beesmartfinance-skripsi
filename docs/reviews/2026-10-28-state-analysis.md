@@ -9,13 +9,13 @@ Menggantikan versi pagi dokumen ini (snapshot setelah rilis revamp PR #21) dan [
   - migrasi `operations.0016_pegawai_status` dan `0017_biaya_masuk_siswa` (05:00:22 UTC)
   - backend aktif 05:00:54 UTC; Worker Cloudflare bundle `index-BO5I_TBs.js` aktif 05:01:55 UTC
 - **Sebelum rilis, data periode produksi dikoreksi** (disetujui pengguna, dijalankan pengguna lewat web console): `ms_periode_akuntansi id=1` 2026/2027 dari 30/06/2026–29/06/2027 menjadi **01/07/2026–30/06/2027**. Backup `backups/db-20261028T045714Z-before-periode-fix.dump`. Penyebab: form periode versi lama mengirim tanggal lewat konversi UTC; form sekarang memakai `formatLocalDate`. Tidak ada data yang pindah periode.
-- **Branch kerja `codex/auto-deploy-fe-be`** sudah di-merge ke `main`; setelahnya hanya ada commit dokumen dan satu perbaikan kecil (endpoint `siswa/biaya-masuk-default` kini 400, bukan 500, untuk `kelompok` tidak valid). Perbaikan itu **belum di produksi**; ikut rilis berikutnya. Jalankan `git fetch && git merge origin/main` sebelum pekerjaan baru.
+- **Branch kerja `codex/auto-deploy-fe-be`** sudah di-merge ke `main` dan `origin/main` sudah di-merge balik (`43926cb`). Belum di produksi: perbaikan 400 `siswa/biaya-masuk-default` dan **Batch 4** (masukan WA Staf TU + keputusan review 3a/3b, migrasi `operations.0018_siswa_data_diri`; rincian di [revisi spreadsheet](./2026-10-28-revisi-spreadsheet.md#batch-4--masukan-wa-staf-tu--keputusan-review-tier-3--selesai-di-branch-kerja)). Rilis berikutnya menjalankan `0018`. Jalankan `git fetch && git merge origin/main` sebelum pekerjaan baru.
 - **Untracked:** ~200 path sengaja tidak di-commit (gambar audit, PDF, katalog agen, `.claude/` termasuk `launch.json` dengan konfigurasi `backend-uat`/`frontend-uat`, `scripts/uat_walkthrough.py` berisi password demo, folder cache `.vite/` di root). Jangan `git clean`.
 - **Stash di `main`:** `stash@{0}` "periode close-by-kepsek + jurnal Rincian" dibiarkan; kemungkinan bentrok bila di-pop.
 - **Server lokal:** Django `127.0.0.1:8000` + Vite `localhost:5173` dari `.claude/launch.json` (aplikasi desktop kadang mematikannya di akhir giliran; nyalakan lagi dengan preview `backend`/`frontend`). UAT (:8001/:5175) mati.
 - **Database:**
-  - Lokal `db_lebah_madu`: di `0017`, periode 2026/2027 sudah dikoreksi. Backup sebelum tiap perubahan ada di `~/Backups/beesmartfinance/` (`…before-0016`, `…before-0017`, `…before-periode-fix`).
-  - UAT `bee_uat_browser_20261020`: di `0017` (0017 sudah diterapkan, dibalik, diterapkan ulang). Tidak punya periode 2026/2027, hanya dua periode uji CLOSED. Data uji: `UAT-`, `KW-`, `GJ-…-R1`, `UAT-B2` (kegiatan, jurnal, kasbon, slip November), `UAT-B3` (siswa Bima Sakti: tagihan biaya masuk dengan diskon SIB, tiga penerimaan, satu masih jurnal DRAFT; tagihan bulanan Oktober 2026).
+  - Lokal `db_lebah_madu`: di `0018` (backup `…before-0018`), periode 2026/2027 sudah dikoreksi. Backup sebelum tiap perubahan ada di `~/Backups/beesmartfinance/` (`…before-0016`, `…before-0017`, `…before-periode-fix`).
+  - UAT `bee_uat_browser_20261020`: di `0018` (0017 dan 0018 masing-masing diterapkan, dibalik, diterapkan ulang). Tidak punya periode 2026/2027, hanya dua periode uji CLOSED. Data uji: `UAT-`, `KW-`, `GJ-…-R1`, `UAT-B2` (kegiatan, jurnal, kasbon, slip November), `UAT-B3` (siswa Bima Sakti: tagihan biaya masuk dengan diskon SIB, tiga penerimaan, satu masih jurnal DRAFT; tagihan bulanan Oktober 2026).
 - **Akses VPS:**
   - SSH `root@187.77.126.25` dengan `~/.ssh/beesmartfinance_hostinger`, host key `SHA256:1e+IUd0Yb5upPGxv4u/Pe7R7MiErTTmV4Wn4LiYmVdw`, wajib VPN.
   - **Sejak ~10:30 WIB SSH timeout** dari WARP (egress `104.28.245.124`, colo SIN): port 22 dan 443 ke IPv4 VPS sama-sama timeout. VPS tidak memblokir (fail2ban kosong, iptables/nft tanpa IP itu, ufw inactive; firewall dan anti-DDoS Hostinger kosong). IPv4 lain lewat WARP normal. Situs produksi menjawab lewat IPv6.
@@ -41,7 +41,7 @@ Diperiksa ulang: model/migrasi `0016`–`0017`, service `operations/services/bia
 1. **Diperbaiki (belum di produksi):** `GET /siswa/biaya-masuk-default/?kelompok=abc` menghasilkan 500. Kini 400 dengan pesan; ada tes regresi. Frontend selalu mengirim id angka, jadi dampak produksi kecil.
 2. **Terkonfirmasi aman:** tagihan manual ganda untuk siswa/bulan yang sama tetap ditolak 400 walau `unique_together` diganti constraint bersyarat (`is_deleted=False`); efek sampingnya, tagihan yang sudah dibatalkan kini bisa dibuat ulang untuk periode yang sama (sebelumnya IntegrityError).
 3. **Terkonfirmasi aman:** menu Tagihan menyembunyikan Ubah/Batalkan untuk tagihan Biaya masuk; API juga menolak ubah. Total tagihan tidak bisa turun di bawah yang sudah dibayar karena komponen berpenerimaan terkunci.
-4. **Catatan desain (perlu keputusan, bukan bug):**
+4. **Catatan desain** (keputusan 28/10 sore: Guru tidak lagi menerima nominal dan pesan diskon diperjelas di Batch 4; laporan diskon per kategori dan biaya masuk kedua ditunda):
    - Guru bisa membaca `GET /siswa/` (dipakai absensi), sehingga ikut menerima nominal SPP, biaya masuk, dan diskon. Sudah begitu untuk SPP sebelum Batch 3.
    - Mengubah diskon setelah ada penerimaan menghasilkan pesan "Uang Masuk sudah ada penerimaan…", bukan pesan tentang diskon. Benar secara aturan, kurang jelas bagi pengguna.
    - Satu siswa hanya punya satu tagihan Biaya masuk. Daftar ulang tahun berikutnya tetap lewat tagihan Juli dari daftar harga; belum ada UI untuk biaya masuk kedua.
@@ -57,7 +57,8 @@ Diperiksa ulang: model/migrasi `0016`–`0017`, service `operations/services/bia
 6. **VPS: 12 update Ubuntu tertunda** (terlihat saat login web console). Jadwalkan terpisah, mungkin butuh restart.
 7. **Teknis kecil:** bundle frontend utama >500 kB; peringatan drf-spectacular `TarifKateringView` dan enum `status` di schema; poller VPS bergantung pada koneksi GitHub yang pernah putus-sambung.
 8. **Belum diuji:** Safari/iPad, pembaca layar, zoom 200%, printer fisik, tampilan Tunggakan/Laporan untuk tagihan Biaya masuk di browser (di API diperlakukan seperti tagihan biasa).
-9. **Spreadsheet:** baris "Ya, dijemput" → "Ya" dianggap selesai karena teks itu tidak ada di versi sekarang; dibuka lagi hanya bila sekolah masih melihatnya.
+9. **Batch 4 menunggu rilis;** konfirmasi ke sekolah: apakah katering perlu tarif per anak (jemputan sudah per anak), dan minta Staf TU memuat ulang halaman (Ctrl+Shift+R) karena screenshot WA masih dari versi lama.
+10. **Spreadsheet:** baris "Ya, dijemput" → "Ya" dianggap selesai karena teks itu tidak ada di versi sekarang; dibuka lagi hanya bila sekolah masih melihatnya.
 
 ## Batas wajib untuk sesi berikutnya
 

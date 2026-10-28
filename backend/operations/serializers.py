@@ -4,6 +4,8 @@ from django.db import transaction
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
+from accounts.permissions import ADMINISTRATION, FINANCE, PRINCIPAL, _in_groups
+
 from .models import (
     AbsenPegawai,
     ArmadaJemputan,
@@ -278,12 +280,27 @@ class SiswaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Siswa
         fields = [
-            "id", "nis", "nama", "kelompok", "tanggal_lahir", "alamat",
+            "id", "nis", "nama", "nama_panggilan", "jenis_kelamin", "kelompok",
+            "tempat_lahir", "tanggal_lahir", "alamat",
             "nama_ayah", "kontak_ayah", "nama_ibu", "kontak_ibu",
             "spp_nominal", "status", "periode",
             "diskon_kategori", "diskon_nominal",
             "uang_masuk", "uang_kegiatan", "uang_pengembangan", "uang_seragam", "biaya_masuk",
         ]
+
+    # Guru membaca daftar siswa untuk absensi; nominal biaya hanya untuk TU, Keuangan, Kepsek.
+    NOMINAL_FIELDS = (
+        "spp_nominal", "diskon_kategori", "diskon_nominal",
+        "uang_masuk", "uang_kegiatan", "uang_pengembangan", "uang_seragam", "biaya_masuk",
+    )
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        request = self.context.get("request")
+        if request is not None and not _in_groups(request.user, (ADMINISTRATION, FINANCE, PRINCIPAL)):
+            for field in self.NOMINAL_FIELDS:
+                data.pop(field, None)
+        return data
 
     def validate_diskon_kategori(self, value):
         if len(set(value)) != len(value):
@@ -300,14 +317,14 @@ class SiswaSerializer(serializers.ModelSerializer):
         t = tagihan[0]
         return BiayaMasukRingkasSerializer({"tagihan": t.pk, "status": t.status, "total": t.total, "sisa": t.sisa_tagihan}).data
 
-    def _simpan(self, save):
+    def _simpan(self, save, diskon_berubah=False):
         from operations.services.biaya_masuk import sinkron_tagihan_biaya_masuk
 
         request = self.context.get("request")
         try:
             with transaction.atomic():
                 siswa = save()
-                sinkron_tagihan_biaya_masuk(siswa, user=getattr(request, "user", None))
+                sinkron_tagihan_biaya_masuk(siswa, user=getattr(request, "user", None), diskon_berubah=diskon_berubah)
         except ValueError as exc:
             raise serializers.ValidationError({"biaya_masuk": str(exc)})
         siswa.__dict__.pop("tagihan_biaya_masuk", None)
@@ -317,7 +334,11 @@ class SiswaSerializer(serializers.ModelSerializer):
         return self._simpan(lambda: super(SiswaSerializer, self).create(validated_data))
 
     def update(self, instance, validated_data):
-        return self._simpan(lambda: super(SiswaSerializer, self).update(instance, validated_data))
+        diskon_berubah = any(
+            field in validated_data and validated_data[field] != getattr(instance, field)
+            for field in ("diskon_nominal", "diskon_kategori")
+        )
+        return self._simpan(lambda: super(SiswaSerializer, self).update(instance, validated_data), diskon_berubah)
 
 
 class TagihanDetailSerializer(serializers.ModelSerializer):

@@ -10,6 +10,7 @@ from django.contrib.auth.models import Group
 from rest_framework.test import APITestCase
 
 from operations.models import Jenjang, Kelompok, MsPostingRule, PembayaranTagihan, Siswa, Tagihan
+from operations.serializers import SiswaSerializer
 from operations.services.billing import build_tagihan_komponen, generate_tagihan
 from operations.services.tp_templates import ensure_tp_templates
 from operations.test_tp_batch import _coa
@@ -133,3 +134,47 @@ class BiayaMasukTests(APITestCase):
         self.client.force_authenticate(self.users["Finance"])
         self.assertEqual(self.client.get("/api/v1/siswa/").status_code, 200)
 
+
+    def test_ubah_diskon_setelah_penerimaan_pesannya_menyebut_diskon(self):
+        siswa_id = self.client.post("/api/v1/siswa/", self.payload(diskon_nominal="0"), format="json").data["id"]
+        tagihan = self.tagihan(siswa_id)
+        uang_masuk = tagihan.detail.get(komponen="UANG_MASUK")
+        bayar = self.client.post(f"/api/v1/tagihan/{tagihan.pk}/bayar/", {
+            "tanggal": "2026-10-28", "no_bukti": "BM-D1", "nominal": "1000000", "akun_kas": "1101",
+            "request_id": str(uuid.uuid4()), "alokasi": [{"detail": uang_masuk.pk, "nominal": "1000000"}],
+        }, format="json")
+        self.assertEqual(bayar.status_code, 200, bayar.data)
+        res = self.client.patch(f"/api/v1/siswa/{siswa_id}/", {"diskon_nominal": "500000"}, format="json")
+        self.assertEqual(res.status_code, 400)
+        self.assertIn("Diskon tidak bisa diubah karena Uang Masuk sudah ada penerimaan", res.data["biaya_masuk"])
+        self.assertEqual(Siswa.objects.get(pk=siswa_id).diskon_nominal, Decimal("0"))
+
+    def test_data_diri_siswa_tersimpan(self):
+        res = self.client.post("/api/v1/siswa/", self.payload(
+            nama_panggilan="Ayu", jenis_kelamin="P", tempat_lahir="Bandung", tanggal_lahir="2021-03-04",
+        ), format="json")
+        self.assertEqual(res.status_code, 201, res.data)
+        self.assertEqual((res.data["nama_panggilan"], res.data["jenis_kelamin"], res.data["tempat_lahir"]), ("Ayu", "P", "Bandung"))
+        salah = self.client.post("/api/v1/siswa/", self.payload(nama="Budi", jenis_kelamin="X"), format="json")
+        self.assertEqual(salah.status_code, 400)
+        self.assertIn("jenis_kelamin", salah.data)
+
+    def test_guru_tidak_menerima_nominal_biaya_siswa(self):
+        siswa_id = self.client.post("/api/v1/siswa/", self.payload(), format="json").data["id"]
+        guru = get_user_model().objects.create_user("bm-guru")
+        guru.groups.add(Group.objects.get(name="TeacherInCharge"))
+        self.client.force_authenticate(guru)
+        res = self.client.get("/api/v1/siswa/")
+        self.assertEqual(res.status_code, 200)
+        rows = res.data["results"] if isinstance(res.data, dict) else res.data
+        row = next(r for r in rows if r["id"] == siswa_id)
+        self.assertEqual(row["nama"], "Ayu")
+        self.assertEqual(row["kelompok"], self.kelompok.pk)
+        for field in SiswaSerializer.NOMINAL_FIELDS:
+            self.assertNotIn(field, row)
+        self.assertNotIn("spp_nominal", self.client.get(f"/api/v1/siswa/{siswa_id}/").data)
+        for role in ("Administration", "Finance"):
+            self.client.force_authenticate(self.users[role])
+            data = self.client.get(f"/api/v1/siswa/{siswa_id}/").data
+            self.assertEqual(data["spp_nominal"], "500000.00")
+            self.assertIsNotNone(data["biaya_masuk"])
