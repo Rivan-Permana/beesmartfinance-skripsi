@@ -126,6 +126,7 @@ class BiayaMasukTests(APITestCase):
         default = self.client.get(f"/api/v1/siswa/biaya-masuk-default/?kelompok={self.kelompok.pk}&tipe_tp=baru")
         self.assertEqual(default.status_code, 200)
         self.assertEqual(default.data["uang_masuk"], "3200000.00")
+        self.assertEqual(self.client.get("/api/v1/siswa/biaya-masuk-default/?kelompok=abc").status_code, 400)
         for role in ("Finance", "SchoolPrincipal"):
             self.client.force_authenticate(self.users[role])
             self.assertEqual(self.client.post("/api/v1/siswa/", self.payload(), format="json").status_code, 403)

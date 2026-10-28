@@ -51,7 +51,7 @@ Disetujui pengguna dengan opsi A dan keputusan 1–6 sesuai rekomendasi. Rilis m
 
 Verifikasi: tes `operations/test_biaya_masuk.py` (7 tes); 13 skenario API di DB UAT (backup `~/Backups/beesmartfinance/bee_uat_browser_20261020-20261028-101907-before-0017.dump`; `0017` diterapkan, dibalik, diterapkan ulang); penerimaan sebagian lewat UI; cek DOM desktop dan 375 px. Lokal: `db_lebah_madu` dimigrasi ke `0017` (backup `~/Backups/beesmartfinance/db_lebah_madu-20261028-102237-before-0017.dump`). Data uji UAT: siswa Bima Sakti dengan tagihan biaya masuk (diskon SIB, tiga penerimaan berawalan `UAT-B3`) dan tagihan bulanan Oktober 2026.
 
-**Sebelum rilis:** cek read-only produksi berapa siswa yang biaya masuknya sudah tertagih di tagihan Juli 2026 (mereka tidak perlu diisi lagi), bersama cek tanggal periode 2026/2027.
+**Cek sebelum rilis (selesai):** tidak ada siswa yang biaya masuknya sudah tertagih sejak Agustus 2025, jadi semua siswa aktif bisa diisi; periode 2026/2027 sudah dikoreksi.
 
 ## Cek read-only produksi — 28/10/2026 (persiapan rilis Batch 1–3)
 

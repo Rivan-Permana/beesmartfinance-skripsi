@@ -91,7 +91,10 @@ class SiswaViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=["get"], url_path="biaya-masuk-default")
     def biaya_masuk_default(self, request):
         """Nominal daftar harga untuk mengisi awal form biaya masuk."""
-        kelompok = Kelompok.objects.select_related("jenjang").filter(pk=request.query_params.get("kelompok") or None).first()
+        kelompok_id = request.query_params.get("kelompok", "")
+        if not kelompok_id.isdigit():
+            raise ValidationError({"kelompok": "Pilih kelompok yang valid."})
+        kelompok = Kelompok.objects.select_related("jenjang").filter(pk=int(kelompok_id)).first()
         tipe_tp = "lama" if request.query_params.get("tipe_tp") == "lama" else "baru"
         return Response(BiayaMasukDefaultSerializer(default_biaya_masuk(kelompok, tipe_tp)).data)
 
