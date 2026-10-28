@@ -97,6 +97,8 @@ docker compose --env-file .env.vps -f docker-compose.production.yml exec -T db \
 
 Diharapkan: ukuran file mirip dump sebelumnya (28/10: ±248 KB) dan jumlah `TABLE DATA` sekitar 50. Kalau ukurannya 0 atau perintah gagal, jangan merge.
 
+Hasil 28/10 17:34–17:35 UTC: `backups/db-20261028T173437Z-before-batch45.dump` dan `…T173528Z-before-batch45.dump` (blok dijalankan dua kali). Keduanya 249.159 byte dengan 50 `TABLE DATA`, isinya setara. Titik pulih rilis: `db-20261028T173437Z-before-batch45.dump`.
+
 ## 3. Rilis
 
 1. Merge PR `codex/auto-deploy-fe-be` → `main` di GitHub. Hanya kamu yang melakukan ini, sebagai keputusan rilis.
