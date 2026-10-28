@@ -2,7 +2,7 @@
 
 Sumber: spreadsheet revisi per role dari pengguna (Google Sheets, 1 tab, 37 baris). Proyek tidak lagi terikat skripsi, jadi keputusan desain cukup mengikuti kebutuhan sekolah.
 
-Status: **Batch 1, 2, dan 3 selesai** di branch `codex/auto-deploy-fe-be` (belum di `main`/produksi). Rilis sekaligus setelah cek read-only produksi.
+Status: **Batch 1–3 dirilis ke produksi 28/10/2026** lewat PR #22 (merge `23895b4`, 04:59 UTC). Deploy otomatis: backup `backups/db-20261028T050005Z.dump`, migrasi `operations.0016`/`0017` (05:00:22 UTC), backend aktif 05:00:54, Worker (`index-BO5I_TBs.js`) aktif 05:01:55. Cek pasca-rilis (read-only via web console): container running, pegawai 33 aktif + 1 nonaktif, 7 tagihan Bulanan, 18 jurnal dan 33 siswa sama dengan sebelum rilis, periode 2026/2027 01/07/2026 – 30/06/2027. Smoke test login per role dilakukan pengguna.
 
 ## Batch 1 — selesai
 
