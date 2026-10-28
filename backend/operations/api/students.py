@@ -1,6 +1,8 @@
 """API domain siswa."""
 
 import django_filters
+from django.db.models import Prefetch
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
@@ -8,13 +10,15 @@ from rest_framework.response import Response
 
 from accounts.permissions import ADMINISTRATION, FINANCE, TEACHER, role_permission
 
-from operations.models import Jenjang, KehadiranSiswa, Kelompok, Siswa
+from operations.models import Jenjang, KehadiranSiswa, Kelompok, Siswa, Tagihan
 from operations.serializers import (
+    BiayaMasukDefaultSerializer,
     JenjangSerializer,
     KehadiranSiswaSerializer,
     KelompokSerializer,
     SiswaSerializer,
 )
+from operations.services.biaya_masuk import default_biaya_masuk
 
 
 class KehadiranSiswaFilter(django_filters.FilterSet):
@@ -68,11 +72,28 @@ class KelompokViewSet(viewsets.ModelViewSet):
 
 
 class SiswaViewSet(viewsets.ModelViewSet):
-    queryset = Siswa.objects.all().order_by("nama")
+    queryset = Siswa.objects.prefetch_related(
+        Prefetch(
+            "tagihan",
+            queryset=Tagihan.objects.filter(jenis="BIAYA_MASUK").prefetch_related("pembayaran").order_by("-pk"),
+            to_attr="tagihan_biaya_masuk",
+        )
+    ).order_by("nama")
     serializer_class = SiswaSerializer
     permission_classes = [role_permission(read=(ADMINISTRATION, TEACHER, FINANCE), write=(ADMINISTRATION,))]
     filterset_fields = ["status", "kelompok"]
     search_fields = ["nis", "nama"]
+
+    @extend_schema(
+        parameters=[OpenApiParameter("kelompok", int), OpenApiParameter("tipe_tp", str)],
+        responses=BiayaMasukDefaultSerializer,
+    )
+    @action(detail=False, methods=["get"], url_path="biaya-masuk-default")
+    def biaya_masuk_default(self, request):
+        """Nominal daftar harga untuk mengisi awal form biaya masuk."""
+        kelompok = Kelompok.objects.select_related("jenjang").filter(pk=request.query_params.get("kelompok") or None).first()
+        tipe_tp = "lama" if request.query_params.get("tipe_tp") == "lama" else "baru"
+        return Response(BiayaMasukDefaultSerializer(default_biaya_masuk(kelompok, tipe_tp)).data)
 
 
 class KehadiranSiswaViewSet(viewsets.ModelViewSet):

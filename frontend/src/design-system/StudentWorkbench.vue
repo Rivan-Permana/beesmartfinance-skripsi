@@ -32,6 +32,8 @@ const recordInfo: Pick<Siswa, "nama" | "nis" | "kelompok" | "status" | "spp_nomi
 const samples: Siswa[] = recordInfo.map((record, i) => ({
   ...record, id: i + 1, tanggal_lahir: null, periode: null, alamat: "",
   nama_ayah: "", kontak_ayah: "", nama_ibu: "", kontak_ibu: "",
+  diskon_kategori: [], diskon_nominal: "0.00", uang_masuk: null, uang_kegiatan: null,
+  uang_pengembangan: null, uang_seragam: null, biaya_masuk: null,
 }))
 const rows = ref<Siswa[]>(structuredClone(samples))
 const editing = ref<Siswa | null>(null)

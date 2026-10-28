@@ -19,7 +19,7 @@ import AbsensiSiswaView from './AbsensiSiswaView.vue';
 import RekapSiswaView from './RekapSiswaView.vue';
 import { attendanceFromRecord } from './presentation';
 const global = { plugins: [[PrimeVue, { unstyled: true, locale: primevueLocale }]] };
-const students: Siswa[] = Array.from({ length: 3 }, (_, i) => ({ id: i + 1, nama: ['Alya', 'Bima', 'Citra'][i]!, nis: `LM-0${i + 1}`, kelompok: 1, status: 'aktif', spp_nominal: '0', nama_ayah: '', kontak_ayah: '', nama_ibu: '', kontak_ibu: '', alamat: '', tanggal_lahir: null, periode: 1 }));
+const students: Siswa[] = Array.from({ length: 3 }, (_, i) => ({ id: i + 1, nama: ['Alya', 'Bima', 'Citra'][i]!, nis: `LM-0${i + 1}`, kelompok: 1, status: 'aktif', spp_nominal: '0', nama_ayah: '', kontak_ayah: '', nama_ibu: '', kontak_ibu: '', alamat: '', tanggal_lahir: null, periode: 1, diskon_kategori: [], diskon_nominal: '0', uang_masuk: null, uang_kegiatan: null, uang_pengembangan: null, uang_seragam: null, biaya_masuk: null }));
 const record: KehadiranSiswa = { id: 71, siswa: 1, tanggal: '2026-10-15', status: 'hadir', ikut_katering: false, jemput_datang: false, jemput_pulang: false };
 const button = (view: ReturnType<typeof mount>, label: string) => view.findAll('button').find(item => item.text().trim() === label)!;
 const select = (view: ReturnType<typeof mount>, id: string) => view.findAllComponents(Select).find(item => item.props('inputId') === id)!;

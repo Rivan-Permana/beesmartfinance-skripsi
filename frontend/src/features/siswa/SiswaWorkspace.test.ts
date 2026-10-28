@@ -11,6 +11,8 @@ const student: Siswa = {
   id: 1, nama: "Alya", nis: "LM-001", kelompok: 1, status: "aktif", spp_nominal: "750000.25",
   nama_ayah: "Kontak privat", kontak_ayah: "0811111111", nama_ibu: "", kontak_ibu: "",
   alamat: "Alamat privat", tanggal_lahir: "2020-01-01", periode: 1,
+  diskon_kategori: [], diskon_nominal: "0.00", uang_masuk: null, uang_kegiatan: null,
+  uang_pengembangan: null, uang_seragam: null, biaya_masuk: null,
 }
 const global = { plugins: [[PrimeVue, { unstyled: true, locale: primevueLocale }]] }
 
@@ -69,5 +71,36 @@ describe("student workspace", () => {
     await view.get('form').trigger('submit')
     expect(view.emitted('save')).toHaveLength(1)
     view.unmount()
+  })
+  it("keeps entry fees and discount in the payload and blocks a discount above the total", async () => {
+    const view = mount(SiswaFormDialog, { global, props: { modelValue: true, student: { ...student, uang_masuk: "3200000.00", uang_seragam: "400000.00", diskon_kategori: ["SIB"], diskon_nominal: "500000.00" }, kelompok: [] } })
+    await nextTick()
+    expect(view.get('.siswa-fee-total').text()).toContain("3.100.000")
+    expect((view.get('#diskon-SIB').element as HTMLInputElement).checked).toBe(true)
+    await view.get('#diskon-PG').setValue(true)
+    await view.get('form').trigger('submit')
+    expect(view.emitted('save')?.[0]?.[0]).toMatchObject({ uang_masuk: "3200000.00", uang_seragam: "400000.00", uang_kegiatan: null, diskon_nominal: "500000.00", diskon_kategori: ["SIB", "PG"] })
+    await view.setProps({ student: { ...student, uang_masuk: "100000.00", diskon_nominal: "500000.00" }, modelValue: false })
+    await view.setProps({ modelValue: true })
+    await view.get('form').trigger('submit')
+    expect(view.emitted('save')).toHaveLength(1)
+    expect(view.get('#siswa-diskon').attributes('aria-invalid')).toBe('true')
+    view.unmount()
+  })
+  it("shows entry-fee status and offers receipt only while a balance remains", async () => {
+    const rows: Siswa[] = [
+      { ...student, id: 1, nama: "Belum", biaya_masuk: { tagihan: 9, status: "SEBAGIAN", total: "3000000.00", sisa: "1000000.00" } },
+      { ...student, id: 2, nama: "Lunas", biaya_masuk: { tagihan: 10, status: "LUNAS", total: "3000000.00", sisa: "0.00" } },
+    ]
+    const view = mount(SiswaDirectory, { global, props: { rows, kelompok: [] } })
+    const buttons = view.findAll('.directory-desktop button[aria-label^="Catat penerimaan"]')
+    expect(buttons).toHaveLength(1)
+    expect(view.get('.directory-desktop').text()).toContain("Sisa Rp")
+    await buttons[0]!.trigger('click')
+    expect(view.emitted('receive')?.[0]?.[0]).toMatchObject({ id: 1 })
+    const readonly = mount(SiswaDirectory, { global, props: { rows, kelompok: [], readonly: true } })
+    expect(readonly.findAll('button[aria-label^="Catat penerimaan"]')).toHaveLength(0)
+    expect(readonly.text()).toContain("Sebagian")
+    view.unmount(); readonly.unmount()
   })
 })

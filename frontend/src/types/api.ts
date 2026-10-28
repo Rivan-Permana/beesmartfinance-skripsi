@@ -45,9 +45,19 @@ export interface Siswa {
   spp_nominal: string
   status: SiswaStatus
   periode: number | null
+  diskon_kategori: DiskonKategori[]
+  diskon_nominal: string
+  uang_masuk: string | null
+  uang_kegiatan: string | null
+  uang_pengembangan: string | null
+  uang_seragam: string | null
+  /** Ringkasan tagihan biaya masuk; null bila belum ada isian biaya masuk. */
+  biaya_masuk: { tagihan: number; status: TagihanStatus; total: string; sisa: string | null } | null
 }
 
-export type SiswaInput = Omit<Siswa, "id">
+export type DiskonKategori = "PG" | "SIPG" | "SIB" | "SIKBR"
+export type BiayaMasukField = "uang_masuk" | "uang_pengembangan" | "uang_kegiatan" | "uang_seragam"
+export type SiswaInput = Omit<Siswa, "id" | "biaya_masuk">
 
 export type PendaftaranSiswaStatus = "TRIAL" | "REGISTERED" | "BATAL"
 
@@ -222,12 +232,15 @@ export interface TagihanDetail {
   total_terbayar?: string
 }
 
+export type TagihanJenis = "BULANAN" | "BIAYA_MASUK"
+
 export interface Tagihan {
   id: number
   siswa: number
   siswa_nama?: string
   periode_bulan: number
   periode_tahun: number
+  jenis?: TagihanJenis
   total: string
   status: TagihanStatus
   jurnal: string | null

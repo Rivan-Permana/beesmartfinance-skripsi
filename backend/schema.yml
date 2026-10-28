@@ -4178,6 +4178,30 @@ paths:
       responses:
         '204':
           description: No response body
+  /api/v1/siswa/biaya-masuk-default/:
+    get:
+      operationId: v1_siswa_biaya_masuk_default_retrieve
+      description: Nominal daftar harga untuk mengisi awal form biaya masuk.
+      parameters:
+      - in: query
+        name: kelompok
+        schema:
+          type: integer
+      - in: query
+        name: tipe_tp
+        schema:
+          type: string
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BiayaMasukDefault'
+          description: ''
   /api/v1/sub-golongan/:
     get:
       operationId: v1_sub_golongan_list
@@ -4945,6 +4969,67 @@ components:
       - jurnal_id
       - pembayaran
       - tagihan
+    BiayaMasukDefault:
+      type: object
+      properties:
+        uang_masuk:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+          nullable: true
+        uang_pengembangan:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+          nullable: true
+        uang_kegiatan:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+          nullable: true
+        uang_seragam:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+          nullable: true
+      required:
+      - uang_kegiatan
+      - uang_masuk
+      - uang_pengembangan
+      - uang_seragam
+    BiayaMasukRingkas:
+      type: object
+      properties:
+        tagihan:
+          type: integer
+        status:
+          type: string
+        total:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+        sisa:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+          nullable: true
+      required:
+      - sisa
+      - status
+      - tagihan
+      - total
+    DiskonKategoriEnum:
+      enum:
+      - PG
+      - SIPG
+      - SIB
+      - SIKBR
+      type: string
+      description: |-
+        * `PG` - PG
+        * `SIPG` - SIPG
+        * `SIB` - SIB
+        * `SIKBR` - SIKBR
     FinalisasiPendaftaranInput:
       type: object
       properties:
@@ -5086,6 +5171,14 @@ components:
       - total_bruto
       - total_netto
       - total_potongan
+    JenisEnum:
+      enum:
+      - BULANAN
+      - BIAYA_MASUK
+      type: string
+      description: |-
+        * `BULANAN` - Bulanan
+        * `BIAYA_MASUK` - Biaya masuk
     Jenjang:
       type: object
       properties:
@@ -6453,6 +6546,39 @@ components:
         periode:
           type: integer
           nullable: true
+        diskon_kategori:
+          type: array
+          items:
+            $ref: '#/components/schemas/DiskonKategoriEnum'
+        diskon_nominal:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+        uang_masuk:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+          nullable: true
+        uang_kegiatan:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+          nullable: true
+        uang_pengembangan:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+          nullable: true
+        uang_seragam:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+          nullable: true
+        biaya_masuk:
+          allOf:
+          - $ref: '#/components/schemas/BiayaMasukRingkas'
+          nullable: true
+          readOnly: true
     PatchedTagihan:
       type: object
       properties:
@@ -6472,6 +6598,10 @@ components:
           type: integer
           maximum: 2147483647
           minimum: 0
+        jenis:
+          allOf:
+          - $ref: '#/components/schemas/JenisEnum'
+          readOnly: true
         total:
           type: string
           format: decimal
@@ -6924,7 +7054,41 @@ components:
         periode:
           type: integer
           nullable: true
+        diskon_kategori:
+          type: array
+          items:
+            $ref: '#/components/schemas/DiskonKategoriEnum'
+        diskon_nominal:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+        uang_masuk:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+          nullable: true
+        uang_kegiatan:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+          nullable: true
+        uang_pengembangan:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+          nullable: true
+        uang_seragam:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+          nullable: true
+        biaya_masuk:
+          allOf:
+          - $ref: '#/components/schemas/BiayaMasukRingkas'
+          nullable: true
+          readOnly: true
       required:
+      - biaya_masuk
       - id
       - nama
     SiswaStatusEnum:
@@ -6962,6 +7126,10 @@ components:
           type: integer
           maximum: 2147483647
           minimum: 0
+        jenis:
+          allOf:
+          - $ref: '#/components/schemas/JenisEnum'
+          readOnly: true
         total:
           type: string
           format: decimal
@@ -7003,6 +7171,7 @@ components:
       required:
       - detail
       - id
+      - jenis
       - jurnal
       - pembayaran
       - periode_bulan

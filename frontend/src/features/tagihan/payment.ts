@@ -1,4 +1,5 @@
 import { formatLocalDate } from "@/core/format"
+import type { Tagihan } from "@/types/api"
 
 export interface TagihanPaymentForm {
   tanggal: Date
@@ -22,5 +23,16 @@ export function paymentPayload(form: TagihanPaymentForm) {
     no_bukti: form.no_bukti.trim(), akun_kas: form.akun_kas, request_id: form.request_id,
     nominal: paymentTotal(form).toFixed(2),
     alokasi: form.alokasi.filter(line => line.nominal > 0).map(line => ({detail:line.detail,nominal:line.nominal.toFixed(2)})),
+  }
+}
+
+/** Form kosong untuk satu tagihan: hanya komponen yang masih bersisa. */
+export function paymentFormFor(tagihan: Tagihan, akunKas = ""): TagihanPaymentForm {
+  return {
+    tanggal: new Date(), no_bukti: "", akun_kas: akunKas, request_id: crypto.randomUUID(),
+    alokasi: tagihan.detail.filter((d) => d.id && Number(d.nominal) > Number(d.total_terbayar ?? 0)).map((d) => ({
+      detail: d.id!, label: d.keterangan || d.komponen, nominal: 0,
+      sisa: Number(d.nominal) - Number(d.total_terbayar ?? 0),
+    })),
   }
 }

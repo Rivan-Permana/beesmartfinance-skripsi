@@ -1195,6 +1195,23 @@ export interface paths {
         patch: operations["v1_siswa_partial_update"];
         trace?: never;
     };
+    "/api/v1/siswa/biaya-masuk-default/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Nominal daftar harga untuk mengisi awal form biaya masuk. */
+        get: operations["v1_siswa_biaya_masuk_default_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/sub-golongan/": {
         parameters: {
             query?: never;
@@ -1464,6 +1481,32 @@ export interface components {
             /** Format: uuid */
             jurnal_id: string;
         };
+        BiayaMasukDefault: {
+            /** Format: decimal */
+            uang_masuk: string | null;
+            /** Format: decimal */
+            uang_pengembangan: string | null;
+            /** Format: decimal */
+            uang_kegiatan: string | null;
+            /** Format: decimal */
+            uang_seragam: string | null;
+        };
+        BiayaMasukRingkas: {
+            tagihan: number;
+            status: string;
+            /** Format: decimal */
+            total: string;
+            /** Format: decimal */
+            sisa: string | null;
+        };
+        /**
+         * @description * `PG` - PG
+         *     * `SIPG` - SIPG
+         *     * `SIB` - SIB
+         *     * `SIKBR` - SIKBR
+         * @enum {string}
+         */
+        DiskonKategoriEnum: "PG" | "SIPG" | "SIB" | "SIKBR";
         FinalisasiPendaftaranInput: {
             /** Format: decimal */
             spp_nominal: string;
@@ -1520,6 +1563,12 @@ export interface components {
             /** Format: uuid */
             readonly jurnal: string | null;
         };
+        /**
+         * @description * `BULANAN` - Bulanan
+         *     * `BIAYA_MASUK` - Biaya masuk
+         * @enum {string}
+         */
+        JenisEnum: "BULANAN" | "BIAYA_MASUK";
         Jenjang: {
             readonly id: number;
             kode: string;
@@ -2212,6 +2261,18 @@ export interface components {
             spp_nominal?: string;
             status?: components["schemas"]["SiswaStatusEnum"];
             periode?: number | null;
+            diskon_kategori?: components["schemas"]["DiskonKategoriEnum"][];
+            /** Format: decimal */
+            diskon_nominal?: string;
+            /** Format: decimal */
+            uang_masuk?: string | null;
+            /** Format: decimal */
+            uang_kegiatan?: string | null;
+            /** Format: decimal */
+            uang_pengembangan?: string | null;
+            /** Format: decimal */
+            uang_seragam?: string | null;
+            readonly biaya_masuk?: components["schemas"]["BiayaMasukRingkas"] | null;
         };
         PatchedTagihan: {
             readonly id?: number;
@@ -2219,6 +2280,7 @@ export interface components {
             readonly siswa_nama?: string;
             periode_bulan?: number;
             periode_tahun?: number;
+            readonly jenis?: components["schemas"]["JenisEnum"];
             /** Format: decimal */
             readonly total?: string;
             readonly status?: components["schemas"]["TagihanStatusEnum"];
@@ -2387,6 +2449,18 @@ export interface components {
             spp_nominal?: string;
             status?: components["schemas"]["SiswaStatusEnum"];
             periode?: number | null;
+            diskon_kategori?: components["schemas"]["DiskonKategoriEnum"][];
+            /** Format: decimal */
+            diskon_nominal?: string;
+            /** Format: decimal */
+            uang_masuk?: string | null;
+            /** Format: decimal */
+            uang_kegiatan?: string | null;
+            /** Format: decimal */
+            uang_pengembangan?: string | null;
+            /** Format: decimal */
+            uang_seragam?: string | null;
+            readonly biaya_masuk: components["schemas"]["BiayaMasukRingkas"] | null;
         };
         /**
          * @description * `aktif` - Aktif
@@ -2404,6 +2478,7 @@ export interface components {
             readonly siswa_nama: string;
             periode_bulan: number;
             periode_tahun: number;
+            readonly jenis: components["schemas"]["JenisEnum"];
             /** Format: decimal */
             readonly total: string;
             readonly status: components["schemas"]["TagihanStatusEnum"];
@@ -6319,6 +6394,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Siswa"];
+                };
+            };
+        };
+    };
+    v1_siswa_biaya_masuk_default_retrieve: {
+        parameters: {
+            query?: {
+                kelompok?: number;
+                tipe_tp?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BiayaMasukDefault"];
                 };
             };
         };

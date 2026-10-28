@@ -35,6 +35,7 @@ class Tagihan(SoftDeleteModel, TimeStampedModel):
     STATUS = [
         ("BELUM", "Belum Lunas"), ("SEBAGIAN", "Sebagian"), ("LUNAS", "Lunas"),
     ]
+    JENIS = [("BULANAN", "Bulanan"), ("BIAYA_MASUK", "Biaya masuk")]
     siswa = models.ForeignKey(
         "operations.Siswa", on_delete=models.PROTECT, related_name="tagihan"
     )
@@ -42,6 +43,7 @@ class Tagihan(SoftDeleteModel, TimeStampedModel):
     periode_tahun = models.PositiveIntegerField()
     total = models.DecimalField(max_digits=18, decimal_places=2, default=0)
     status = models.CharField(max_length=10, choices=STATUS, default="BELUM")
+    jenis = models.CharField(max_length=12, choices=JENIS, default="BULANAN")
     perlu_rekonsiliasi = models.BooleanField(default=False)
     # tautan ke jurnal core setelah dibayar (sub-ledger <-> general ledger)
     jurnal = models.ForeignKey(
@@ -52,7 +54,13 @@ class Tagihan(SoftDeleteModel, TimeStampedModel):
     history = HistoricalRecords()
 
     class Meta:
-        unique_together = ("siswa", "periode_bulan", "periode_tahun")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["siswa", "periode_bulan", "periode_tahun", "jenis"],
+                condition=models.Q(is_deleted=False),
+                name="tagihan_siswa_periode_jenis_unik",
+            ),
+        ]
 
     def __str__(self):
         return f"Tagihan {self.siswa} {self.periode_bulan}/{self.periode_tahun}"

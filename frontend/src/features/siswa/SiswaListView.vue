@@ -11,7 +11,11 @@ import Icon from "@/shared/components/PhosphorIcon.vue"
 import PageLayout from "@/shared/components/PageLayout.vue"
 import SiswaDirectory from "./SiswaDirectory.vue"
 import SiswaFormDialog from "./SiswaFormDialog.vue"
-import type { Kelompok, Siswa, SiswaInput } from "@/types/api"
+import TagihanPaymentDialog from "@/features/tagihan/TagihanPaymentDialog.vue"
+import { tagihanApi } from "@/features/tagihan/api"
+import { paymentFormFor, paymentPayload, paymentValid, type TagihanPaymentForm } from "@/features/tagihan/payment"
+import { coaApi } from "@/features/jurnal/api"
+import type { Coa, Kelompok, Siswa, SiswaInput, Tagihan } from "@/types/api"
 import { useAuthStore } from '@/stores/auth'
 
 const toast = useToast()
@@ -79,6 +83,50 @@ function confirmDelete(row: Siswa) {
     },
   })
 }
+const receiveDialog = ref(false)
+const receiveTarget = ref<Tagihan | null>(null)
+const receiveStudent = ref("")
+const receiveForm = ref<TagihanPaymentForm>({ tanggal: new Date(), no_bukti: "", akun_kas: "", request_id: "", alokasi: [] })
+const receiveSaving = ref(false)
+const receiveError = ref("")
+const kasOptions = ref<Coa[]>([])
+async function loadAccounts() {
+  try {
+    const coa = await coaApi.list()
+    kasOptions.value = coa.filter((c) => c.is_active && ["111", "112", "1011", "1101", "1102"].includes(c.kode_akun))
+  } catch (e) {
+    notifyError(toast, e, "Akun penerimaan belum berhasil dimuat.")
+  }
+}
+async function openReceive(row: Siswa) {
+  if (!row.biaya_masuk) return
+  try {
+    const [tagihan] = await Promise.all([tagihanApi.get(row.biaya_masuk.tagihan), kasOptions.value.length ? null : loadAccounts()])
+    receiveTarget.value = tagihan
+    receiveStudent.value = row.nama
+    receiveError.value = ""
+    receiveForm.value = paymentFormFor(tagihan, kasOptions.value[0]?.kode_akun ?? "")
+    receiveDialog.value = true
+  } catch (e) {
+    notifyError(toast, e, "Rincian biaya masuk belum berhasil dimuat.")
+  }
+}
+async function saveReceive() {
+  if (!receiveTarget.value || !paymentValid(receiveForm.value) || receiveSaving.value) return
+  receiveSaving.value = true
+  receiveError.value = ""
+  try {
+    const res = await tagihanApi.bayar(receiveTarget.value.id, paymentPayload(receiveForm.value))
+    notifySuccess(toast, "Penerimaan biaya masuk tersimpan", res)
+    receiveDialog.value = false
+    await load()
+  } catch (e) {
+    const error = friendlyError(e, "Penerimaan belum berhasil disimpan.")
+    receiveError.value = [error.summary, error.detail].filter(Boolean).join(". ")
+  } finally {
+    receiveSaving.value = false
+  }
+}
 onMounted(load)
 const canWrite = computed(() => useAuthStore().hasRole(['Administration']))
 </script>
@@ -86,7 +134,8 @@ const canWrite = computed(() => useAuthStore().hasRole(['Administration']))
 <template>
   <PageLayout title="Data siswa" :subtitle="canWrite?'Kelola profil dan administrasi siswa PG/TK.':'Lihat profil dan tarif siswa PG/TK. Perubahan data dilakukan Staf TU.'" :surface="false">
     <template v-if="canWrite" #actions><Button label="Tambah siswa" @click="openCreate"><template #icon><Icon name="plus" /></template></Button></template>
-    <SiswaDirectory :rows="rows" :kelompok="kelompokList" :loading="loading" :error="loadError" :group-error="groupError" :readonly="!canWrite" @create="openCreate" @edit="openEdit" @remove="confirmDelete" @retry="load" @manage-groups="router.push('/kelompok')" />
+    <SiswaDirectory :rows="rows" :kelompok="kelompokList" :loading="loading" :error="loadError" :group-error="groupError" :readonly="!canWrite" @create="openCreate" @edit="openEdit" @remove="confirmDelete" @receive="openReceive" @retry="load" @manage-groups="router.push('/kelompok')" />
+    <TagihanPaymentDialog v-if="canWrite" v-model="receiveDialog" v-model:form="receiveForm" :target="receiveTarget" :student-name="receiveStudent" :accounts="kasOptions" :saving="receiveSaving" :error="receiveError" @save="saveReceive" @reload-accounts="loadAccounts" />
     <SiswaFormDialog v-model="dialog" :student="editing" :kelompok="kelompokList" :saving="saving" :error="saveError" :group-error="groupError" @save="save" />
   </PageLayout>
 </template>

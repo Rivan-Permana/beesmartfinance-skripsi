@@ -199,7 +199,7 @@ def generate_tagihan(siswa, periode_bulan, periode_tahun, tarif_katering=Decimal
     from operations.models import Tagihan, TagihanDetail
 
     if Tagihan.objects.filter(
-        siswa=siswa, periode_bulan=periode_bulan, periode_tahun=periode_tahun
+        siswa=siswa, periode_bulan=periode_bulan, periode_tahun=periode_tahun, jenis="BULANAN",
     ).exists():
         raise ValueError("Tagihan periode ini sudah ada untuk siswa tersebut.")
 
@@ -255,6 +255,7 @@ def preview_batch_tagihan(
             siswa=siswa,
             periode_bulan=periode_bulan,
             periode_tahun=periode_tahun,
+            jenis="BULANAN",
         ).exists():
             skipped.append({"siswa": siswa.id, "nama": siswa.nama, "reason": "sudah ada tagihan"})
             continue
@@ -285,6 +286,7 @@ def generate_batch_tagihan(
             siswa=siswa,
             periode_bulan=periode_bulan,
             periode_tahun=periode_tahun,
+            jenis="BULANAN",
         ).exists():
             skipped.append({"siswa": siswa.id, "nama": siswa.nama, "reason": "sudah ada tagihan"})
             continue

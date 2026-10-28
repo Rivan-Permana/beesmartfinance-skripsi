@@ -2,7 +2,7 @@
 
 Sumber: spreadsheet revisi per role dari pengguna (Google Sheets, 1 tab, 37 baris). Proyek tidak lagi terikat skripsi, jadi keputusan desain cukup mengikuti kebutuhan sekolah.
 
-Status: **Batch 1 dan 2 selesai** di branch `codex/auto-deploy-fe-be` (belum di `main`/produksi). Batch 3 menunggu desain.
+Status: **Batch 1, 2, dan 3 selesai** di branch `codex/auto-deploy-fe-be` (belum di `main`/produksi). Rilis sekaligus setelah cek read-only produksi.
 
 ## Batch 1 — selesai
 
@@ -37,11 +37,21 @@ Verifikasi: tes matriks akses `operations/test_role_access.py`; 27 skenario API 
 
 **Lokal:** `db_lebah_madu` sudah dimigrasi ke `0016` (28/10, backup `~/Backups/beesmartfinance/db_lebah_madu-20261028-070659-before-0016.dump`); 36 pegawai berstatus aktif.
 
-## Batch 3 — Data Siswa (tier 3, perlu desain)
+## Batch 3 — Data Siswa: biaya masuk dan diskon (tier 3) — selesai di branch kerja
 
-- Checklist diskon PG/SIPG/SIB/SIKBR + nominal diskon manual.
-- Input manual Uang Masuk, Uang Kegiatan, Uang Pengembangan, Uang Seragam.
-- Aksi "Catat Penerimaan" dengan pembayaran sebagian per komponen, terhubung ke tagihan.
+Disetujui pengguna dengan opsi A dan keputusan 1–6 sesuai rekomendasi. Rilis menjalankan migrasi `operations.0017`.
+
+| Bagian | Perubahan |
+|---|---|
+| Form Data Siswa | Bagian **Biaya masuk**: Uang Masuk, Uang Pengembangan, Uang Kegiatan, Uang Seragam (input manual, tombol "Isi dari daftar harga" sesuai jenjang); checklist status diskon PG/SIPG/SIB/SIKBR (label, boleh lebih dari satu) + jumlah diskon manual. Ringkasan total, diskon, dan yang ditagihkan. |
+| Tagihan | Simpan siswa membuat/memperbarui satu tagihan jenis **Biaya masuk** (`Tagihan.jenis`). Diskon dicatat netto, memotong Uang Masuk → Pengembangan → Kegiatan → Seragam, tercatat di keterangan baris. Tagihan biaya masuk tampil di menu Tagihan ("Biaya masuk · Bulan Tahun") dan hanya diubah lewat Data Siswa. |
+| Daftar siswa | Kolom status biaya masuk (Belum dibayar / Sebagian / Lunas + sisa) dan aksi **Catat penerimaan** untuk Staf TU, memakai dialog pembayaran sebagian per komponen yang sama dengan menu Tagihan. Jurnal penerimaan DRAFT, dicatat ke buku besar oleh Keuangan. |
+| Aturan | Komponen yang sudah ada penerimaannya terkunci nominalnya. Komponen yang sudah ditagih di tagihan bulanan 12 bulan terakhir ditolak (mencegah tagihan ganda); sebaliknya tagihan Juli dari daftar harga melewati komponen yang sudah ada di biaya masuk. Iuran Komite dan Portofolio tetap dari daftar harga. |
+| Skema (`0017`) | Kolom `diskon_kategori`, `diskon_nominal`, `uang_masuk`, `uang_kegiatan`, `uang_pengembangan`, `uang_seragam` di siswa; `Tagihan.jenis` (BULANAN/BIAYA_MASUK); unik tagihan per siswa + bulan + tahun + jenis, hanya untuk tagihan yang tidak dihapus. Balik migrasi menolak jalan bila masih ada tagihan biaya masuk. |
+
+Verifikasi: tes `operations/test_biaya_masuk.py` (7 tes); 13 skenario API di DB UAT (backup `~/Backups/beesmartfinance/bee_uat_browser_20261020-20261028-101907-before-0017.dump`; `0017` diterapkan, dibalik, diterapkan ulang); penerimaan sebagian lewat UI; cek DOM desktop dan 375 px. Lokal: `db_lebah_madu` dimigrasi ke `0017` (backup `~/Backups/beesmartfinance/db_lebah_madu-20261028-102237-before-0017.dump`). Data uji UAT: siswa Bima Sakti dengan tagihan biaya masuk (diskon SIB, tiga penerimaan berawalan `UAT-B3`) dan tagihan bulanan Oktober 2026.
+
+**Sebelum rilis:** cek read-only produksi berapa siswa yang biaya masuknya sudah tertagih di tagihan Juli 2026 (mereka tidak perlu diisi lagi), bersama cek tanggal periode 2026/2027.
 
 ## Temuan saat verifikasi
 

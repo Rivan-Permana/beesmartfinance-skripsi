@@ -31,7 +31,7 @@ const statusOptions = [
 ]
 function studentName(row: Tagihan) { return row.siswa_nama || props.names.get(row.siswa) || "Nama siswa belum dimuat" }
 function periodKey(row: Tagihan) { return `${row.periode_tahun}-${String(row.periode_bulan).padStart(2, "0")}` }
-const periodOptions = computed(() => Array.from(new Map(props.rows.map(row => [periodKey(row), { value: periodKey(row), label: tagihanPeriod(row) }])).values()).sort((a, b) => b.value.localeCompare(a.value)))
+const periodOptions = computed(() => Array.from(new Map(props.rows.map(row => [periodKey(row), { value: periodKey(row), label: tagihanPeriod({ periode_bulan: row.periode_bulan, periode_tahun: row.periode_tahun }) }])).values()).sort((a, b) => b.value.localeCompare(a.value)))
 const { query, filtered: searched } = useTableSearch(() => props.rows, row => [studentName(row), tagihanPeriod(row), tagihanState(row).label, formatRp(row.total)])
 const filtered = computed(() => searched.value.filter(row => (!period.value || periodKey(row) === period.value)
   && (!status.value || (status.value === "reconcile" ? perluDicocokkan(row) : !perluDicocokkan(row) && row.status === status.value))))
