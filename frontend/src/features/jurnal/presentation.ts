@@ -56,14 +56,15 @@ export function journalPayload(form: JournalForm): JurnalInput {
     detail: form.detail.map(line => ({ kode_akun: line.kode_akun!, debit: line.debit.toFixed(2), kredit: line.kredit.toFixed(2) })) }
 }
 export type JournalAction = "edit" | "remove" | "submit" | "approve" | "reject" | "catat" | "cancel" | "cancelDraft" | "void"
-export interface JournalAccess { finance: boolean; principal: boolean; userId?: number }
+/** drafter: Staf TU yang menyiapkan draf untuk dicatat Keuangan. */
+export interface JournalAccess { finance: boolean; principal: boolean; drafter?: boolean; userId?: number }
 export const journalActionLabels: Record<JournalAction, string> = {
   edit: "Ubah draf", remove: "Hapus draf", submit: "Ajukan persetujuan", approve: "Setujui dan catat", reject: "Tolak pengajuan", catat: "Catat ke buku besar", cancel: "Batalkan penerimaan", cancelDraft: "Batalkan draf", void: "Buat jurnal pembalik",
 }
 export function journalActions(row: Jurnal, access: JournalAccess): JournalAction[] {
   if (row.is_deleted) return []
   const actions: JournalAction[] = []
-  if (access.finance && row.status === "DRAFT" && row.tipe_sumber === "MANUAL") actions.push("edit", "remove")
+  if (row.status === "DRAFT" && row.tipe_sumber === "MANUAL" && (access.finance || access.drafter && access.userId !== undefined && row.created_by === access.userId)) actions.push("edit", "remove")
   if (access.finance && !row.perlu_rekonsiliasi) {
     if (row.status === "DRAFT" && !row.can_finance_post) actions.push("submit")
     if (["DRAFT", "PENDING"].includes(row.status) && row.can_finance_post) actions.push("catat")

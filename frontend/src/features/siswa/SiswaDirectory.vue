@@ -13,7 +13,7 @@ import SearchField from "@/shared/components/SearchField.vue"
 import { useTableSearch } from "@/shared/composables/useTableSearch"
 import { formatRp } from "@/core/format"
 import type { Kelompok, Siswa, SiswaStatus } from "@/types/api"
-import { kelompokLabel, SISWA_STATUS, statusOptions } from "./presentation"
+import { biayaMasukState, canReceiveBiayaMasuk, kelompokLabel, SISWA_STATUS, statusOptions } from "./presentation"
 
 const props = defineProps<{
   rows: Siswa[]
@@ -21,8 +21,10 @@ const props = defineProps<{
   loading?: boolean
   error?: string
   groupError?: boolean
+  /** Keuangan melihat data siswa tanpa mengubahnya. */
+  readonly?: boolean
 }>()
-const emit = defineEmits<{ create: []; edit: [row: Siswa]; remove: [row: Siswa]; retry: []; manageGroups: [] }>()
+const emit = defineEmits<{ create: []; edit: [row: Siswa]; remove: [row: Siswa]; receive: [row: Siswa]; retry: []; manageGroups: [] }>()
 const status = ref<SiswaStatus | null>(null)
 const group = ref<number | "unassigned" | null>(null)
 const first = ref(0)
@@ -50,8 +52,8 @@ function reset() { query.value = ""; status.value = null; group.value = null }
 <template>
   <section class="siswa-directory" aria-label="Direktori siswa" :aria-busy="loading">
     <div class="directory-heading">
-      <div><h2>Daftar siswa <span v-if="!loading && !error">{{ rows.length }}</span></h2><p>Profil, kelompok belajar, dan SPP bulanan.</p></div>
-      <Button label="Kelola kelompok" severity="secondary" text @click="emit('manageGroups')"><template #icon><Icon name="squares-four" /></template></Button>
+      <div><h2>Daftar siswa <span v-if="!loading && !error">{{ rows.length }}</span></h2><p>Profil, kelompok belajar, SPP bulanan, dan biaya masuk.</p></div>
+      <Button v-if="!readonly" label="Kelola kelompok" severity="secondary" text @click="emit('manageGroups')"><template #icon><Icon name="squares-four" /></template></Button>
     </div>
     <div class="directory-toolbar">
       <div class="directory-field directory-search"><label for="siswa-search">Cari siswa</label><SearchField input-id="siswa-search" v-model="query" placeholder="Nama, NIS, atau kelompok" hint="Cari nama, NIS, kelompok, status, atau nominal SPP" /></div>
@@ -69,26 +71,28 @@ function reset() { query.value = ""; status.value = null; group.value = null }
       <Icon :name="hasFilter ? 'magnifying-glass' : 'student'" />
       <h3>{{ hasFilter ? 'Tidak ada siswa yang cocok' : 'Mulai dari data siswa' }}</h3>
       <p>{{ hasFilter ? 'Coba kata kunci lain atau hapus filter yang dipilih.' : 'Tambahkan siswa untuk mulai mengelola profil, kelompok, dan administrasinya.' }}</p>
-      <Button :label="hasFilter ? 'Hapus filter' : 'Tambah siswa'" severity="secondary" @click="hasFilter ? reset() : emit('create')" />
+      <Button v-if="hasFilter || !readonly" :label="hasFilter ? 'Hapus filter' : 'Tambah siswa'" severity="secondary" @click="hasFilter ? reset() : emit('create')" />
     </div>
     <template v-else-if="!error">
-      <DataTable class="directory-desktop" :value="pageRows" data-key="id" :table-style="{ minWidth: '720px' }" :pt="{ tableContainer: { tabindex: 0, role: 'region', 'aria-label': 'Tabel data siswa' } }">
-        <Column header="Siswa"><template #body="{ data }"><button class="directory-name" :aria-label="`Ubah data ${data.nama}`" @click="emit('edit', data)">{{ data.nama }}</button><small class="directory-secondary">{{ data.nis ? `NIS ${data.nis}` : 'NIS belum diisi' }}</small></template></Column>
+      <DataTable class="directory-desktop" :value="pageRows" data-key="id" :table-style="{ minWidth: '880px' }" :pt="{ tableContainer: { tabindex: 0, role: 'region', 'aria-label': 'Tabel data siswa' } }">
+        <Column header="Siswa"><template #body="{ data }"><strong v-if="readonly" class="directory-name">{{ data.nama }}</strong><button v-else class="directory-name" :aria-label="`Ubah data ${data.nama}`" @click="emit('edit', data)">{{ data.nama }}</button><small class="directory-secondary">{{ data.nis ? `NIS ${data.nis}` : 'NIS belum diisi' }}</small></template></Column>
         <Column header="Kelompok"><template #body="{ data }"><span :class="{ 'directory-muted': data.kelompok == null }">{{ groupName(data) }}</span></template></Column>
         <Column header="Status"><template #body="{ data }"><Tag :value="SISWA_STATUS[data.status as SiswaStatus].label" :severity="SISWA_STATUS[data.status as SiswaStatus].severity" /></template></Column>
         <Column header="SPP per bulan" header-class="bee-numeric" body-class="bee-numeric"><template #body="{ data }">{{ formatRp(data.spp_nominal) }}</template></Column>
-        <Column header="Tindakan" header-class="directory-actions-column" body-class="directory-actions-column"><template #body="{ data }"><div class="bee-actions"><Button severity="secondary" text :aria-label="`Ubah ${data.nama}`" @click="emit('edit', data)"><template #icon><Icon name="pencil-simple" /></template></Button><Button severity="secondary" text :aria-label="`Hapus ${data.nama}`" @click="emit('remove', data)"><template #icon><Icon name="trash" /></template></Button></div></template></Column>
+        <Column header="Biaya masuk"><template #body="{ data }"><template v-if="biayaMasukState(data)"><Tag :value="biayaMasukState(data)!.label" :severity="biayaMasukState(data)!.severity" /><small class="directory-secondary tabular-nums">{{ canReceiveBiayaMasuk(data) ? `Sisa ${formatRp(data.biaya_masuk.sisa)}` : formatRp(data.biaya_masuk.total) }}</small></template><span v-else class="directory-muted">Tidak ada</span></template></Column>
+        <Column v-if="!readonly" header="Tindakan" header-class="directory-actions-column" body-class="directory-actions-column"><template #body="{ data }"><div class="bee-actions"><Button v-if="canReceiveBiayaMasuk(data)" label="Catat penerimaan" severity="secondary" :aria-label="`Catat penerimaan biaya masuk ${data.nama}`" @click="emit('receive', data)" /><Button severity="secondary" text :aria-label="`Ubah ${data.nama}`" @click="emit('edit', data)"><template #icon><Icon name="pencil-simple" /></template></Button><Button severity="secondary" text :aria-label="`Hapus ${data.nama}`" @click="emit('remove', data)"><template #icon><Icon name="trash" /></template></Button></div></template></Column>
       </DataTable>
       <ul class="directory-mobile" aria-label="Data siswa">
         <li v-for="row in pageRows" :key="row.id">
-          <div class="mobile-record-heading"><div><button class="directory-name" :aria-label="`Ubah data ${row.nama}`" @click="emit('edit', row)">{{ row.nama }}</button><small class="directory-secondary">{{ row.nis ? `NIS ${row.nis}` : 'NIS belum diisi' }}</small></div><Tag :value="SISWA_STATUS[row.status].label" :severity="SISWA_STATUS[row.status].severity" /></div>
-          <dl><div><dt>Kelompok</dt><dd>{{ groupName(row) }}</dd></div><div><dt>SPP per bulan</dt><dd class="tabular-nums">{{ formatRp(row.spp_nominal) }}</dd></div></dl>
-          <div class="mobile-record-actions"><Button label="Ubah data" severity="secondary" text :aria-label="`Ubah ${row.nama}`" @click="emit('edit', row)"><template #icon><Icon name="pencil-simple" /></template></Button><Button severity="secondary" text :aria-label="`Hapus ${row.nama}`" @click="emit('remove', row)"><template #icon><Icon name="trash" /></template></Button></div>
+          <div class="mobile-record-heading"><div><strong v-if="readonly" class="directory-name">{{ row.nama }}</strong><button v-else class="directory-name" :aria-label="`Ubah data ${row.nama}`" @click="emit('edit', row)">{{ row.nama }}</button><small class="directory-secondary">{{ row.nis ? `NIS ${row.nis}` : 'NIS belum diisi' }}</small></div><Tag :value="SISWA_STATUS[row.status].label" :severity="SISWA_STATUS[row.status].severity" /></div>
+          <dl><div><dt>Kelompok</dt><dd>{{ groupName(row) }}</dd></div><div><dt>SPP per bulan</dt><dd class="tabular-nums">{{ formatRp(row.spp_nominal) }}</dd></div><div v-if="row.biaya_masuk"><dt>Biaya masuk</dt><dd><Tag :value="biayaMasukState(row)!.label" :severity="biayaMasukState(row)!.severity" /> <span class="tabular-nums">{{ canReceiveBiayaMasuk(row) ? `sisa ${formatRp(row.biaya_masuk.sisa)}` : formatRp(row.biaya_masuk.total) }}</span></dd></div></dl>
+          <Button v-if="!readonly && canReceiveBiayaMasuk(row)" class="mobile-receive" label="Catat penerimaan" severity="secondary" fluid :aria-label="`Catat penerimaan biaya masuk ${row.nama}`" @click="emit('receive', row)"><template #icon><Icon name="money" /></template></Button>
+          <div v-if="!readonly" class="mobile-record-actions"><Button label="Ubah data" severity="secondary" text :aria-label="`Ubah ${row.nama}`" @click="emit('edit', row)"><template #icon><Icon name="pencil-simple" /></template></Button><Button severity="secondary" text :aria-label="`Hapus ${row.nama}`" @click="emit('remove', row)"><template #icon><Icon name="trash" /></template></Button></div>
         </li>
       </ul>
       <BeePaginator v-if="filtered.length > 10" v-model:first="first" :rows="10" :total-records="filtered.length" />
     </template>
-    <div class="directory-footnote"><Icon name="info" /><span>SPP di sini adalah tarif bulanan siswa. Status pembayaran tersedia pada menu Tagihan.</span></div>
+    <div class="directory-footnote"><Icon name="info" /><span>SPP di sini adalah tarif bulanan siswa. Penerimaan biaya masuk tersimpan sebagai draf jurnal dan dicatat ke buku besar oleh Keuangan; riwayatnya ada di menu Tagihan.</span></div>
   </section>
 </template>
 
@@ -108,7 +112,7 @@ function reset() { query.value = ""; status.value = null; group.value = null }
 .directory-name { border: 0; padding: 0; background: transparent; color: var(--app-text); cursor: pointer; font: inherit; font-weight: 500; text-align: left; overflow-wrap: anywhere; }
 .directory-name:hover { color: var(--bee-color-brand); text-decoration: underline; text-underline-offset: 3px; }
 .directory-secondary { display: block; font-size: var(--bee-type-caption); color: var(--app-text-muted); margin-top: var(--bee-space-1); }.directory-muted { color: var(--app-text-muted); }
-:deep(.directory-actions-column) { width: 144px; min-width: 144px; text-align: end; }
+:deep(.directory-actions-column) { width: 144px; min-width: 144px; text-align: end; white-space: nowrap; }
 :deep(th.directory-actions-column .p-datatable-column-header-content) { justify-content: flex-end; }:deep(.p-datatable-tbody > tr > td) { height: var(--bee-size-row-multiline); padding-block: var(--bee-space-3); }
 .directory-footnote { display: flex; align-items: flex-start; gap: var(--bee-space-2); padding: var(--bee-space-4) var(--bee-space-5); border-top: 1px solid var(--app-border); color: var(--app-text-muted); font-size: var(--bee-type-caption); }.directory-footnote .bee-icon { width: 16px; height: 16px; margin-top: 2px; }
 .directory-empty { display: grid; justify-items: center; text-align: center; padding: var(--bee-space-7) var(--bee-space-5); }.directory-empty > .bee-icon { width: 32px; height: 32px; color: var(--bee-color-muted); margin-bottom: var(--bee-space-4); }.directory-empty h3 { font-size: var(--bee-type-section); font-weight: 500; }.directory-empty p { max-width: 45ch; color: var(--app-text-muted); margin: var(--bee-space-2) 0 var(--bee-space-5); }
@@ -121,6 +125,7 @@ function reset() { query.value = ""; status.value = null; group.value = null }
   .directory-desktop { display: none; }.directory-mobile { display: block; list-style: none; margin: 0; padding: 0; }.directory-mobile li { padding: var(--bee-space-4); border-top: 1px solid var(--app-border); }
   .mobile-record-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--bee-space-3); }.mobile-record-heading > div { min-width: 0; }.mobile-record-heading .p-tag { flex-shrink: 0; }
   .directory-mobile dl { margin: var(--bee-space-4) 0 var(--bee-space-2); display: grid; gap: var(--bee-space-2); }.directory-mobile dl > div { display: flex; align-items: baseline; justify-content: space-between; gap: var(--bee-space-3); }.directory-mobile dt { color: var(--app-text-muted); font-size: var(--bee-type-caption); flex-shrink: 0; }.directory-mobile dd { margin: 0; text-align: right; overflow-wrap: anywhere; }
+  .mobile-receive { margin-bottom: var(--bee-space-2); min-height: 44px; }
   .mobile-record-actions { display: flex; justify-content: space-between; }.mobile-record-actions > .p-button:first-child { padding-left: 0; }
   .directory-footnote { padding: var(--bee-space-4); }
 }

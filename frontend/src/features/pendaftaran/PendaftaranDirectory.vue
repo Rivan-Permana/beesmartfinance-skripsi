@@ -5,16 +5,23 @@ import Button from 'primevue/button';
 import Tag from 'primevue/tag';
 import Icon from '@/shared/components/PhosphorIcon.vue';
 import type { PendaftaranSiswa } from '@/types/api';
-import { dateLabel, money, statusLabels, statusSeverity } from './presentation';
+import { dateLabel, editable, money, statusLabels, statusSeverity } from './presentation';
 const props = defineProps<{
     rows: PendaftaranSiswa[];
     names: Map<number, string>;
     loading: boolean;
     error: string;
     filtered: boolean;
+    readonly?: boolean;
 }>();
 const emit = defineEmits<{
     detail: [
+        row: PendaftaranSiswa
+    ];
+    edit: [
+        row: PendaftaranSiswa
+    ];
+    remove: [
         row: PendaftaranSiswa
     ];
     retry: [
@@ -76,10 +83,16 @@ function level(row: PendaftaranSiswa) {
           <td class="numeric">{{ row.perlu_rekonsiliasi?'Belum diketahui':money(row.total_biaya) }}</td>
           <td class="numeric">{{ row.perlu_rekonsiliasi?'Belum diketahui':money(row.total_terbayar) }}</td>
           <td class="numeric">{{ row.perlu_rekonsiliasi?'Belum diketahui':money(row.sisa_biaya) }}</td>
-          <td><Button label="Rincian" :aria-label="`Rincian ${row.nama_calon}`" severity="secondary"
+          <td><div class="admission-row-actions"><Button label="Rincian" :aria-label="`Rincian ${row.nama_calon}`" severity="secondary"
               @click="emit('detail',row)"><template #icon>
                 <Icon name="eye" />
-              </template></Button></td>
+              </template></Button><template v-if="!readonly&&editable(row)"><Button :aria-label="`Ubah ${row.nama_calon}`" title="Ubah calon"
+              severity="secondary" text @click="emit('edit',row)"><template #icon>
+                <Icon name="pencil-simple" />
+              </template></Button><Button :aria-label="`Hapus ${row.nama_calon}`" title="Hapus calon" severity="danger"
+              text @click="emit('remove',row)"><template #icon>
+                <Icon name="trash" />
+              </template></Button></template></div></td>
         </tr>
       </tbody>
     </table>
@@ -102,10 +115,16 @@ function level(row: PendaftaranSiswa) {
             <dt>Sisa</dt>
             <dd>{{ money(row.sisa_biaya) }}</dd>
           </div>
-        </dl><Button label="Rincian" :aria-label="`Rincian ${row.nama_calon}`" severity="secondary"
+        </dl><div class="admission-row-actions"><Button label="Rincian" :aria-label="`Rincian ${row.nama_calon}`" severity="secondary"
           @click="emit('detail',row)"><template #icon>
             <Icon name="eye" />
-          </template></Button>
+          </template></Button><template v-if="!readonly&&editable(row)"><Button label="Ubah" :aria-label="`Ubah ${row.nama_calon}`"
+          severity="secondary" text @click="emit('edit',row)"><template #icon>
+            <Icon name="pencil-simple" />
+          </template></Button><Button label="Hapus" :aria-label="`Hapus ${row.nama_calon}`" severity="danger" text
+          @click="emit('remove',row)"><template #icon>
+            <Icon name="trash" />
+          </template></Button></template></div>
       </li>
     </ul>
     <BeePaginator v-if="rows.length>15" v-model:first="first" :rows="15" :total-records="rows.length" />

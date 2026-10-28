@@ -22,7 +22,8 @@ const loading=ref(false), loadingAccounts=ref(false), accountsError=ref(false)
 const error=ref(""), page=ref(1), total=ref(0)
 const filters=ref<{search:string;status:JurnalStatus|null}>({search:"",status:null})
 let loadSequence=0
-const access=computed(()=>({finance:auth.hasRole(["Finance"]),principal:auth.hasRole(["SchoolPrincipal"]),userId:auth.user?.id}))
+const access=computed(()=>({finance:auth.hasRole(["Finance"]),principal:auth.hasRole(["SchoolPrincipal"]),drafter:auth.hasRole(["Administration"]),userId:auth.user?.id}))
+const canDraft=computed(()=>access.value.finance||access.value.drafter)
 const kind=computed(()=>route.query.jenis==='masuk'||route.query.jenis==='keluar'?route.query.jenis:null)
 const title=computed(()=>kind.value==='masuk'?'Pemasukan':kind.value==='keluar'?'Pengeluaran':'Jurnal')
 const subtitle=computed(()=>kind.value==='masuk'?'Jurnal dengan akun pendapatan. Periksa bukti sebelum mencatat.':kind.value==='keluar'?'Jurnal dengan akun beban. Periksa bukti sebelum mencatat.':'Bukti transaksi, rincian akun, dan pencatatan ke buku besar.')
@@ -54,7 +55,7 @@ const formVisible=ref(false), saving=ref(false), formError=ref("")
 const actionTarget=ref<Jurnal|null>(null), action=ref<Exclude<JournalAction,"edit">|null>(null)
 const pending=ref(false), actionError=ref("")
 function create(){
-  if(!access.value.finance||saving.value||loadingAccounts.value||accountsError.value||!accounts.value.some(account=>account.is_active))return
+  if(!canDraft.value||saving.value||loadingAccounts.value||accountsError.value||!accounts.value.some(account=>account.is_active))return
   editing.value=null;formError.value="";formVisible.value=true
 }
 function choose(value:JournalAction,row:Jurnal){
@@ -63,7 +64,7 @@ function choose(value:JournalAction,row:Jurnal){
   actionTarget.value=row;action.value=value;actionError.value=""
 }
 async function save(payload:JurnalInput){
-  if(saving.value||!access.value.finance)return
+  if(saving.value||!canDraft.value)return
   if(editing.value&&!journalActions(editing.value,access.value).includes('edit')){formError.value="Jurnal ini tidak lagi dapat diubah sebagai draf.";return}
   saving.value=true;formError.value=""
   try{
@@ -108,9 +109,9 @@ async function refreshAction(){
 onMounted(()=>{void load();void loadAccounts()})
 </script>
 <template>
-  <PageLayout :title="title" :subtitle="subtitle" :surface="false"><template #actions><Button v-if="access.finance" label="Buat jurnal" :disabled="loadingAccounts||accountsError||!accounts.some(account=>account.is_active)" @click="create"><template #icon><Icon name="plus" /></template></Button></template>
+  <PageLayout :title="title" :subtitle="subtitle" :surface="false"><template #actions><Button v-if="canDraft" :label="access.finance?'Buat jurnal':'Buat draf jurnal'" :disabled="loadingAccounts||accountsError||!accounts.some(account=>account.is_active)" @click="create"><template #icon><Icon name="plus" /></template></Button></template>
     <div v-if="accountsError||(!loadingAccounts&&!accounts.some(account=>account.is_active))" class="journal-account-notice"><Message severity="warn" :closable="false">{{ accountsError?'Daftar akun belum berhasil dimuat.':'Belum ada akun aktif untuk membuat jurnal.' }} Daftar jurnal tetap dapat dibaca.</Message><Button label="Muat ulang akun" severity="secondary" :loading="loadingAccounts" @click="loadAccounts" /></div>
-    <p class="journal-role-note"><Icon name="info" /><span>{{ access.finance?'Finance mencatat jurnal harian yang memenuhi syarat. Penggajian, kegiatan, dan jurnal khusus diajukan sesuai alur persetujuan.':'Periksa jurnal yang menunggu persetujuan. Jurnal buatan sendiri dan penerimaan yang perlu dicocokkan tidak dapat disetujui di sini.' }}</span></p>
+    <p class="journal-role-note"><Icon name="info" /><span>{{ access.drafter&&!access.finance?'Staf TU menyiapkan draf jurnal beserta buktinya. Staf Keuangan memeriksa lalu mencatatnya ke buku besar; draf hanya dapat diubah atau dihapus oleh pembuatnya.':access.finance?'Finance mencatat jurnal harian yang memenuhi syarat. Penggajian, kegiatan, dan jurnal khusus diajukan sesuai alur persetujuan.':'Periksa jurnal yang menunggu persetujuan. Jurnal buatan sendiri dan penerimaan yang perlu dicocokkan tidak dapat disetujui di sini.' }}</span></p>
     <JurnalDirectory :rows="rows" :total="total" :page="page" :loading="loading" :error="error" :search="filters.search" :status="filters.status" @filter="apply" @page="changePage" @retry="load" @inspect="detail=$event" />
     <JurnalDetailDialog v-model:target="detail" :accounts="accounts" :access="access" :accounts-loading="loadingAccounts" :accounts-error="accountsError" @action="choose" @reload-accounts="loadAccounts" />
     <JurnalFormDialog v-model="formVisible" :journal="editing" :accounts="accounts" :saving="saving" :error="formError" :accounts-loading="loadingAccounts" :accounts-error="accountsError" @save="save" @reload-accounts="loadAccounts" />

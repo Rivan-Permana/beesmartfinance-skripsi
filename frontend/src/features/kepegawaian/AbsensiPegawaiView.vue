@@ -19,6 +19,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useTableSearch } from '@/shared/composables/useTableSearch'
 import { calendarTextMatches, formatLocalDate } from '@/core/format'
 import { notifySuccess } from '@/core/errors'
+import { downloadXlsx } from '@/core/export'
 import type { AbsenPegawaiRekap, Pegawai } from '@/types/api'
 import StaffAttendanceGrid from './StaffAttendanceGrid.vue'
 import { absenPegawaiApi, pegawaiApi } from './api'
@@ -28,7 +29,9 @@ import './employee-finance.css'
 import './staff.css'
 const auth=useAuthStore(), confirm=useConfirm(), toast=useToast()
 const canWrite=computed(()=>auth.hasRole(['Administration','Finance']))
-const tab=ref('harian'), date=ref<Date|null>(new Date()), badDate=ref(false), attempted=ref(false)
+// Kepala Sekolah hanya melihat rekap bulanan.
+const recapOnly=computed(()=>!canWrite.value)
+const tab=ref(recapOnly.value?'rekap':'harian'), date=ref<Date|null>(new Date()), badDate=ref(false), attempted=ref(false)
 const scope=ref(''), staff=ref<Pegawai[]>([]), roster=ref<Pegawai[]>([])
 const attendance=ref<Record<number,StaffAttendanceRow>>({}), baseline=ref<Record<number,StaffAttendanceRow>>({})
 const loading=ref(false), saving=ref(false), verifying=ref(false), choosing=ref(false), loadError=ref(''), saveError=ref(''), message=ref(''), needsVerify=ref(false)
@@ -39,6 +42,7 @@ const locked=computed(()=>saving.value||verifying.value||needsVerify.value)
 const {query,filtered}=useTableSearch(roster,row=>[row.nama,row.nip,row.jabatan])
 const month=ref(new Date().getMonth()+1),year=ref(new Date().getFullYear()),recapScope=ref(''),recap=ref<AbsenPegawaiRekap[]>([]),recapLoading=ref(false),recapError=ref('')
 const {query:recapQuery,filtered:recapRows}=useTableSearch(recap,row=>row.nama)
+const byName=(a:{nama:string},b:{nama:string})=>a.nama.localeCompare(b.nama,'id',{sensitivity:'base'})
 function ask(text:string) { return new Promise<boolean>(resolve=>confirm.require({header:'Perubahan belum disimpan',message:text,acceptLabel:'Lanjutkan tanpa menyimpan',rejectLabel:'Tetap di sini',acceptProps:{severity:'danger'},accept:()=>resolve(true),reject:()=>resolve(false),onHide:()=>resolve(false)})) }
 async function loadDay(target:string) {
   loading.value=true;loadError.value='';saveError.value='';message.value='';scope.value=target;roster.value=[];attendance.value={};baseline.value={};query.value=''
@@ -46,9 +50,10 @@ async function loadDay(target:string) {
     const [people,records]=await Promise.all([pegawaiApi.listAll(),absenPegawaiApi.listAll({tanggal:target})])
     staff.value=people
     const byId=new Map(records.map(record=>[record.pegawai,record]))
-    roster.value=people.filter(person=>person.status_aktif||byId.has(person.id))
+    roster.value=people.filter(person=>person.status==='aktif'||byId.has(person.id))
     // Keep recorded people even when their soft-deleted master profile is no longer returned.
-    for (const record of records) if(!roster.value.some(person=>person.id===record.pegawai)) roster.value.push({id:record.pegawai,nama:`Pegawai #${record.pegawai}`,nip:null,jabatan:'Profil tidak tersedia',nomor_hp:null,alamat:null,status_aktif:false,tanggal_mulai_kerja:null,tanggal_selesai_kerja:null,user:null})
+    for (const record of records) if(!roster.value.some(person=>person.id===record.pegawai)) roster.value.push({id:record.pegawai,nama:`Pegawai #${record.pegawai}`,nip:null,jabatan:'Profil tidak tersedia',nomor_hp:null,alamat:null,status:'nonaktif',status_aktif:false,tanggal_mulai_kerja:null,tanggal_selesai_kerja:null,user:null})
+    roster.value.sort(byName)
     const values:Record<number,StaffAttendanceRow>={}
     for(const person of roster.value) values[person.id]=staffAttendance(person.id,byId.get(person.id))
     attendance.value=values;baseline.value=structuredClone(values);needsVerify.value=false
@@ -98,16 +103,21 @@ async function loadRecap() {
   if(recapLoading.value)return
   const selectedMonth=month.value,selectedYear=year.value
   recapLoading.value=true;recapError.value='';recap.value=[];recapQuery.value='';recapScope.value=`${months[selectedMonth-1]} ${selectedYear}`
-  try{recap.value=await absenPegawaiApi.rekapBulanan(selectedMonth,selectedYear)}catch(e){recapError.value=errorText(e,'Rekap pegawai belum berhasil dimuat')}finally{recapLoading.value=false}
+  try{recap.value=(await absenPegawaiApi.rekapBulanan(selectedMonth,selectedYear)).map(row=>({...row,nama:recapName(row)})).sort(byName)}catch(e){recapError.value=errorText(e,'Rekap pegawai belum berhasil dimuat')}finally{recapLoading.value=false}
+}
+function recapName(row:AbsenPegawaiRekap){return staff.value.find(person=>person.id===row.pegawai)?.nama||row.nama}
+function exportRecap(){
+  const labels={hadir:'Hadir',izin:'Izin',sakit:'Sakit',terlambat:'Terlambat'}
+  downloadXlsx(`rekap-absensi-pegawai-${year.value}-${String(month.value).padStart(2,'0')}.xlsx`,`Rekap ${recapScope.value}`,['No','Nama pegawai',...attendanceFields.map(key=>labels[key])],recap.value.map((row,index)=>[index+1,row.nama,...attendanceFields.map(key=>row[key])]))
 }
 function beforeUnload(event:BeforeUnloadEvent){if(saving.value||needsVerify.value||changed.value){event.preventDefault();event.returnValue=''}}
 onBeforeRouteLeave(async()=>{if(saving.value||verifying.value)return false;return !(changed.value||needsVerify.value)||await ask('Pilihan absensi belum tersimpan atau hasilnya belum terkonfirmasi. Tinggalkan halaman?')})
-onMounted(()=>{void loadDay(dateString.value);window.addEventListener('beforeunload',beforeUnload)})
+onMounted(()=>{if(recapOnly.value)void loadRecap();else void loadDay(dateString.value);window.addEventListener('beforeunload',beforeUnload)})
 onBeforeUnmount(()=>window.removeEventListener('beforeunload',beforeUnload))
 </script>
 <template>
-  <PageLayout title="Absensi pegawai" subtitle="Catat kehadiran per tanggal dan periksa rekap bulanan pegawai." :surface="false"><template #actions><RouterLink class="staff-nav-link" to="/pegawai"><Icon name="users" />Data pegawai</RouterLink></template>
-    <Tabs v-model:value="tab" class="staff-tabs"><TabList><Tab value="harian">Absensi harian</Tab><Tab value="rekap">Rekap bulanan</Tab></TabList><TabPanels><TabPanel value="harian">
+  <PageLayout title="Absensi pegawai" :subtitle="recapOnly?'Rekap kehadiran bulanan pegawai, urut abjad.':'Catat kehadiran per tanggal dan periksa rekap bulanan pegawai.'" :surface="false"><template #actions><RouterLink class="staff-nav-link" to="/pegawai"><Icon name="users" />Data pegawai</RouterLink></template>
+    <Tabs v-model:value="tab" class="staff-tabs"><TabList><Tab v-if="!recapOnly" value="harian">Absensi harian</Tab><Tab value="rekap">Rekap bulanan</Tab></TabList><TabPanels><TabPanel v-if="!recapOnly" value="harian">
       <section class="employee-panel staff-day-controls"><header class="employee-heading"><div><h2>Tanggal absensi</h2><p>Tampilkan tanggal yang ingin dicatat. Daftar mencakup pegawai aktif dan pegawai lain yang sudah memiliki catatan pada tanggal tersebut.</p></div></header><form class="employee-toolbar" @submit.prevent="apply"><div class="employee-field"><label for="staff-attendance-date">Tanggal</label><DatePicker :key="locked?'locked':'editable'" input-id="staff-attendance-date" v-model="date" date-format="dd/mm/yy" :disabled="locked" :invalid="attempted&&(!dateString||badDate)" :input-props="{'aria-invalid':attempted&&(!dateString||badDate)}" @input="badDate=!calendarTextMatches(($event.target as HTMLInputElement).value,date)" @update:model-value="badDate=false" fluid><template #previcon><Icon name="caret-left" /></template><template #nexticon><Icon name="caret-right" /></template></DatePicker><small v-if="attempted&&(!dateString||badDate)" class="employee-field-error">Pilih tanggal yang valid.</small></div><Button label="Tampilkan absensi" severity="secondary" type="submit" :disabled="loading||locked||choosing" /></form><p v-if="dateString!==scope||badDate" class="employee-footnote" role="status">Pilihan tanggal belum diterapkan. Simpan tetap mengikuti tanggal daftar di bawah.</p></section>
       <section class="employee-panel staff-roster" :aria-busy="loading||saving"><header class="employee-heading"><div><h2>{{ scope?dateLabel(scope):'Daftar kehadiran' }}</h2><p v-if="!loading&&!loadError">{{ roster.length }} pegawai · {{ Object.values(baseline).filter(row=>row.stored).length }} memiliki catatan tersimpan · {{ needsVerify?'Hasil simpan perlu diperiksa':`${pendingRows.length} belum disimpan` }}</p></div></header>
         <div v-if="loading" class="employee-empty" role="status"><Icon name="arrows-clockwise" class="bee-spin" /><p>Memuat pegawai dan seluruh catatan pada tanggal ini…</p></div>
@@ -125,11 +135,11 @@ onBeforeUnmount(()=>window.removeEventListener('beforeunload',beforeUnload))
       </section>
     </TabPanel><TabPanel value="rekap">
       <section class="employee-panel"><header class="employee-heading"><div><h2>Rekap kehadiran bulanan</h2><p>Jumlah mengikuti catatan yang tersimpan. Pegawai tanpa catatan pada bulan terpilih tidak ditampilkan.</p></div></header><form class="employee-toolbar" @submit.prevent="loadRecap"><div class="employee-field"><label>Periode rekap</label><PeriodPicker v-model:bulan="month" v-model:tahun="year" /></div><Button label="Tampilkan rekap" severity="secondary" type="submit" :loading="recapLoading"><template #loadingicon><Icon name="arrows-clockwise" class="bee-spin" /></template></Button></form>
-        <div v-if="recapScope" class="employee-heading staff-recap-heading"><div><h2>{{ recapScope }}</h2><p>{{ recap.length }} pegawai memiliki catatan</p></div></div>
+        <div v-if="recapScope" class="employee-heading staff-recap-heading"><div><h2>{{ recapScope }}</h2><p>{{ recap.length }} pegawai memiliki catatan · urut abjad</p></div><Button v-if="!recapLoading&&!recapError&&recap.length" label="Unduh Excel" severity="secondary" :aria-label="`Unduh rekap ${recapScope} sebagai Excel`" @click="exportRecap"><template #icon><Icon name="download" /></template></Button></div>
         <div v-if="recapLoading" class="employee-empty" role="status"><Icon name="arrows-clockwise" class="bee-spin" /><p>Menyiapkan rekap bulanan…</p></div>
         <div v-else-if="recapError" class="employee-empty"><Icon name="warning-circle" /><h3>Rekap belum dapat ditampilkan</h3><p role="alert">{{ recapError }}</p><Button label="Coba muat ulang rekap" severity="secondary" @click="loadRecap" /></div>
         <div v-else-if="!recapScope||!recap.length" class="employee-empty"><Icon name="calendar-blank" /><h3>{{ recapScope?'Belum ada catatan pada periode ini':'Pilih periode untuk melihat rekap' }}</h3><p>{{ recapScope?'Periksa bulan lain atau catat kehadiran pada tab Absensi harian.':'Pilih bulan dan tahun, lalu tampilkan rekap.' }}</p></div>
-        <template v-else><div class="employee-toolbar"><div class="employee-field employee-search"><label for="staff-recap-search">Cari pegawai dalam rekap</label><SearchField input-id="staff-recap-search" v-model="recapQuery" placeholder="Nama pegawai" /></div></div><p v-if="!recapRows.length" class="employee-empty">Tidak ada pegawai yang cocok dengan pencarian.</p><template v-else><table class="employee-table"><caption class="employee-sr-only">Jumlah catatan kehadiran pegawai pada {{ recapScope }}</caption><thead><tr><th>Pegawai</th><th v-for="key in attendanceFields" :key="key" class="employee-number">{{ key==='hadir'?'Hadir':key==='izin'?'Izin':key==='sakit'?'Sakit':'Terlambat' }}</th></tr></thead><tbody><tr v-for="row in recapRows" :key="row.pegawai"><td><strong>{{ staff.find(person=>person.id===row.pegawai)?.nama||row.nama }}</strong></td><td v-for="key in attendanceFields" :key="key" class="employee-number">{{ row[key] }}</td></tr></tbody></table><ul class="employee-cards staff-recap-cards" aria-label="Rekap pegawai"><li v-for="row in recapRows" :key="row.pegawai"><strong>{{ staff.find(person=>person.id===row.pegawai)?.nama||row.nama }}</strong><dl><div v-for="key in attendanceFields" :key="key"><dt>{{ key==='hadir'?'Hadir':key==='izin'?'Izin':key==='sakit'?'Sakit':'Terlambat' }}</dt><dd>{{ row[key] }}</dd></div></dl></li></ul></template></template>
+        <template v-else><div class="employee-toolbar"><div class="employee-field employee-search"><label for="staff-recap-search">Cari pegawai dalam rekap</label><SearchField input-id="staff-recap-search" v-model="recapQuery" placeholder="Nama pegawai" /></div></div><p v-if="!recapRows.length" class="employee-empty">Tidak ada pegawai yang cocok dengan pencarian.</p><template v-else><table class="employee-table"><caption class="employee-sr-only">Jumlah catatan kehadiran pegawai pada {{ recapScope }}</caption><thead><tr><th>Pegawai</th><th v-for="key in attendanceFields" :key="key" class="employee-number">{{ key==='hadir'?'Hadir':key==='izin'?'Izin':key==='sakit'?'Sakit':'Terlambat' }}</th></tr></thead><tbody><tr v-for="row in recapRows" :key="row.pegawai"><td><strong>{{ row.nama }}</strong></td><td v-for="key in attendanceFields" :key="key" class="employee-number">{{ row[key] }}</td></tr></tbody></table><ul class="employee-cards staff-recap-cards" aria-label="Rekap pegawai"><li v-for="row in recapRows" :key="row.pegawai"><strong>{{ row.nama }}</strong><dl><div v-for="key in attendanceFields" :key="key"><dt>{{ key==='hadir'?'Hadir':key==='izin'?'Izin':key==='sakit'?'Sakit':'Terlambat' }}</dt><dd>{{ row[key] }}</dd></div></dl></li></ul></template></template>
         <p class="employee-footnote"><Icon name="info" />Angka menunjukkan jumlah catatan, bukan persentase hari kerja. Tidak ada asumsi hari libur atau perhitungan ulang gaji.</p>
       </section>
     </TabPanel></TabPanels></Tabs>

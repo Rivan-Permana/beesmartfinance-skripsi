@@ -1,5 +1,5 @@
 import { api } from "@/core/api"
-import type { Paginated, Siswa, SiswaInput } from "@/types/api"
+import type { BiayaMasukField, Paginated, Siswa, SiswaInput } from "@/types/api"
 
 export const siswaApi = {
   list: (params?: Record<string, unknown>) =>
@@ -22,4 +22,7 @@ export const siswaApi = {
   update: (id: number, payload: Partial<SiswaInput>) =>
     api.put<Siswa>(`/siswa/${id}/`, payload).then((r) => r.data),
   remove: (id: number) => api.delete(`/siswa/${id}/`),
+  /** Nominal daftar harga sesuai jenjang kelompok, untuk mengisi awal biaya masuk. */
+  biayaMasukDefault: (kelompok: number) =>
+    api.get<Record<BiayaMasukField, string | null>>("/siswa/biaya-masuk-default/", { params: { kelompok } }).then((r) => r.data),
 }

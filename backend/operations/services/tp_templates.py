@@ -66,12 +66,24 @@ def _tahun_ke_for_siswa(siswa) -> int:
     return 1
 
 
-def _already_billed(siswa, kode: str, tahun: int) -> bool:
-    return TagihanDetail.objects.filter(
+def _already_billed(siswa, kode: str, tahun: int, bulan: int = 7) -> bool:
+    from operations.services.biaya_masuk import periode_index
+
+    if TagihanDetail.objects.filter(
         tagihan__siswa=siswa,
         tagihan__periode_tahun=tahun,
         komponen=kode,
-    ).exists()
+    ).exists():
+        return True
+    # Biaya masuk manual dalam 12 bulan terakhir menggantikan komponen daftar harga.
+    target = periode_index(bulan, tahun)
+    return any(
+        target - 11 <= periode_index(b, t) <= target
+        for b, t in TagihanDetail.objects.filter(
+            tagihan__siswa=siswa, tagihan__is_deleted=False,
+            tagihan__jenis="BIAYA_MASUK", komponen=kode,
+        ).values_list("tagihan__periode_bulan", "tagihan__periode_tahun")
+    )
 
 
 def _akun_for_komponen(kode: str):
@@ -103,7 +115,7 @@ def annual_komponen_lines(siswa, periode_bulan: int, periode_tahun: int) -> list
     for tpl in templates:
         if tpl.nominal == 0:
             continue
-        if _already_billed(siswa, tpl.kode, periode_tahun):
+        if _already_billed(siswa, tpl.kode, periode_tahun, periode_bulan):
             continue
         lines.append({
             "komponen": tpl.kode,

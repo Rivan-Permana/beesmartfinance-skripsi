@@ -10,6 +10,8 @@ export interface NavItem {
   group: NavGroup
   /** Query untuk alias jurnal Pemasukan/Pengeluaran */
   query?: Record<string, string>
+  /** Path lain yang juga menandai item ini aktif (menu gabungan). */
+  match?: string[]
 }
 
 export const ROLE_LABEL: Record<Role, string> = {
@@ -28,28 +30,30 @@ export const NAV_GROUP_LABELS: Record<NavGroup, string> = {
 
 export const ALL_NAV: NavItem[] = [
   { label: "Beranda", icon: "pi pi-th-large", to: "/dashboard", roles: ["Finance", "SchoolPrincipal"], group: "KEUANGAN" },
-  { label: "Pemasukan", icon: "pi pi-arrow-down-left", to: "/jurnal", query: { jenis: "masuk" }, roles: ["Finance", "SchoolPrincipal"], group: "KEUANGAN" },
-  { label: "Pengeluaran", icon: "pi pi-arrow-up-right", to: "/jurnal", query: { jenis: "keluar" }, roles: ["Finance", "SchoolPrincipal"], group: "KEUANGAN" },
+  { label: "Pemasukan", icon: "pi pi-arrow-down-left", to: "/jurnal", query: { jenis: "masuk" }, roles: ["Finance", "SchoolPrincipal", "Administration"], group: "KEUANGAN" },
+  { label: "Pengeluaran", icon: "pi pi-arrow-up-right", to: "/jurnal", query: { jenis: "keluar" }, roles: ["Finance", "SchoolPrincipal", "Administration"], group: "KEUANGAN" },
+  { label: "Jurnal", icon: "pi pi-book", to: "/jurnal", roles: ["Finance"], group: "KEUANGAN" },
   { label: "Tunggakan Tagihan", icon: "pi pi-exclamation-circle", to: "/tunggakan-tagihan", roles: ["Finance", "SchoolPrincipal"], group: "KEUANGAN" },
   { label: "Daftar Akun", icon: "pi pi-sitemap", to: "/coa", roles: ["Finance", "SchoolPrincipal"], group: "KEUANGAN" },
-  { label: "Anggaran", icon: "pi pi-chart-pie", to: "/anggaran", roles: ["Finance", "SchoolPrincipal"], group: "KEUANGAN" },
+  { label: "Anggaran Kegiatan", icon: "pi pi-chart-pie", to: "/kegiatan", match: ["/anggaran"], roles: ["Finance", "SchoolPrincipal"], group: "KEUANGAN" },
   { label: "Aset", icon: "pi pi-box", to: "/aset", roles: ["Finance"], group: "KEUANGAN" },
   { label: "Periode", icon: "pi pi-calendar", to: "/periode", roles: ["Finance", "SchoolPrincipal"], group: "KEUANGAN" },
   { label: "Laporan", icon: "pi pi-file", to: "/laporan", roles: ["Finance", "SchoolPrincipal"], group: "KEUANGAN" },
   { label: "Log Audit", icon: "pi pi-history", to: "/audit-log", roles: ["Finance", "SchoolPrincipal"], group: "KEUANGAN" },
-  { label: "Data siswa", icon: "pi pi-users", to: "/siswa", roles: ["Administration"], group: "SISWA" },
+  { label: "Data siswa", icon: "pi pi-users", to: "/siswa", roles: ["Administration", "Finance"], group: "SISWA" },
   { label: "Kelompok", icon: "pi pi-th-large", to: "/kelompok", roles: ["Administration"], group: "SISWA" },
-  { label: "Absensi Siswa", icon: "pi pi-calendar-plus", to: "/absensi-siswa", roles: ["Administration"], group: "SISWA" },
+  { label: "Absensi Siswa", icon: "pi pi-calendar-plus", to: "/absensi-siswa", roles: ["Administration", "TeacherInCharge"], group: "SISWA" },
   { label: "Rekap Absensi", icon: "pi pi-chart-bar", to: "/rekap-siswa", roles: ["Administration", "TeacherInCharge"], group: "SISWA" },
   { label: "Katering", icon: "pi pi-apple", to: "/katering", roles: ["Administration"], group: "SISWA" },
   { label: "Jemputan", icon: "pi pi-car", to: "/jemputan", roles: ["Administration"], group: "SISWA" },
   { label: "Tagihan", icon: "pi pi-receipt", to: "/tagihan", roles: ["Administration"], group: "SISWA" },
-  { label: "Pendaftaran", icon: "pi pi-user-plus", to: "/pendaftaran", roles: ["Administration"], group: "SISWA" },
-  { label: "Pegawai", icon: "pi pi-id-card", to: "/pegawai", roles: ["Administration"], group: "PEGAWAI" },
-  { label: "Absensi Pegawai", icon: "pi pi-calendar-plus", to: "/absensi-pegawai", roles: ["Administration"], group: "PEGAWAI" },
-  { label: "Gaji", icon: "pi pi-money-bill", to: "/gaji", roles: ["Finance"], group: "PEGAWAI" },
-  { label: "Kasbon", icon: "pi pi-credit-card", to: "/pinjaman", roles: ["Finance"], group: "PEGAWAI" },
-  { label: "Kegiatan", icon: "pi pi-flag", to: "/kegiatan", roles: ["TeacherInCharge", "SchoolPrincipal"], group: "KEGIATAN" },
+  { label: "Pendaftaran", icon: "pi pi-user-plus", to: "/pendaftaran", roles: ["Administration", "Finance"], group: "SISWA" },
+  { label: "Pegawai", icon: "pi pi-id-card", to: "/pegawai", roles: ["Administration", "SchoolPrincipal"], group: "PEGAWAI" },
+  { label: "Absensi Pegawai", icon: "pi pi-calendar-plus", to: "/absensi-pegawai", roles: ["Administration", "SchoolPrincipal"], group: "PEGAWAI" },
+  { label: "Gaji", icon: "pi pi-money-bill", to: "/gaji", roles: ["Finance", "SchoolPrincipal"], group: "PEGAWAI" },
+  { label: "Kasbon", icon: "pi pi-credit-card", to: "/pinjaman", roles: ["Finance", "SchoolPrincipal"], group: "PEGAWAI" },
+  // Kepala Sekolah dan Keuangan membuka kegiatan lewat menu Anggaran Kegiatan.
+  { label: "Kegiatan", icon: "pi pi-flag", to: "/kegiatan", roles: ["TeacherInCharge"], group: "KEGIATAN" },
 ]
 
 export const ROUTE_TITLES: Record<string, string> = {
@@ -67,8 +71,8 @@ export const ROUTE_TITLES: Record<string, string> = {
   gaji: "Penggajian",
   pinjaman: "Kasbon Pegawai",
   aset: "Aset tetap",
-  kegiatan: "Kegiatan sekolah",
-  anggaran: "Anggaran",
+  kegiatan: "Anggaran Kegiatan",
+  anggaran: "Anggaran per akun",
   periode: "Periode Akuntansi",
   laporan: "Laporan Keuangan",
   "audit-log": "Log Audit",
@@ -84,12 +88,22 @@ export function roleHome(roles: Role[]): string {
   return "/login"
 }
 
+export function navItemActive(item: NavItem, path: string, jenis: unknown): boolean {
+  if (item.match?.includes(path)) return true
+  if (item.to !== path) return false
+  if (item.query?.jenis) return jenis === item.query.jenis
+  return !jenis || item.to !== "/jurnal"
+}
+
 export function navForRoles(roles: Role[]): NavItem[] {
   return ALL_NAV.filter((item) => item.roles.some((r) => roles.includes(r)))
 }
 
-export function groupedNav(items: NavItem[]): { group: NavGroup; label: string; items: NavItem[] }[] {
-  const order: NavGroup[] = ["SISWA", "KEUANGAN", "PEGAWAI", "KEGIATAN"]
+export function groupedNav(items: NavItem[], roles: Role[] = []): { group: NavGroup; label: string; items: NavItem[] }[] {
+  // Peran keuangan membuka Beranda lebih dulu, jadi grup Keuangan ditaruh paling atas.
+  const order: NavGroup[] = roleHome(roles) === "/dashboard"
+    ? ["KEUANGAN", "SISWA", "PEGAWAI", "KEGIATAN"]
+    : ["SISWA", "KEUANGAN", "PEGAWAI", "KEGIATAN"]
   const map = new Map<NavGroup, NavItem[]>()
   for (const item of items) {
     if (!map.has(item.group)) map.set(item.group, [])

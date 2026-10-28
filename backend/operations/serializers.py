@@ -1,6 +1,7 @@
 from decimal import Decimal
 from django.db import transaction
 
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from .models import (
@@ -49,8 +50,9 @@ class PegawaiSerializer(serializers.ModelSerializer):
         model = Pegawai
         fields = [
             "id", "nip", "nama", "jabatan", "nomor_hp", "alamat",
-            "status_aktif", "tanggal_mulai_kerja", "tanggal_selesai_kerja", "user",
+            "status", "status_aktif", "tanggal_mulai_kerja", "tanggal_selesai_kerja", "user",
         ]
+        read_only_fields = ["status_aktif"]
 
 
 class KehadiranSiswaSerializer(serializers.ModelSerializer):
@@ -153,11 +155,12 @@ class KegiatanSerializer(serializers.ModelSerializer):
     sisa_pagu = serializers.ReadOnlyField()
     rasio_utilisasi = serializers.ReadOnlyField()
     periode_kode = serializers.CharField(source="periode.kode", read_only=True, default=None)
+    penanggung_jawab_nama = serializers.CharField(source="penanggung_jawab.nama", read_only=True, default=None)
 
     class Meta:
         model = Kegiatan
         fields = [
-            "id", "nama", "akun_beban", "pagu", "penanggung_jawab",
+            "id", "nama", "akun_beban", "pagu", "penanggung_jawab", "penanggung_jawab_nama",
             "tanggal_mulai", "tanggal_selesai", "status", "periode", "periode_kode",
             "realisasi", "sisa_pagu", "rasio_utilisasi",
         ]
@@ -247,14 +250,74 @@ class BayarPendaftaranResponseSerializer(serializers.Serializer):
     pendaftaran = PendaftaranSiswaSerializer(read_only=True)
 
 
+class BiayaMasukDefaultSerializer(serializers.Serializer):
+    uang_masuk = serializers.DecimalField(max_digits=18, decimal_places=2, allow_null=True)
+    uang_pengembangan = serializers.DecimalField(max_digits=18, decimal_places=2, allow_null=True)
+    uang_kegiatan = serializers.DecimalField(max_digits=18, decimal_places=2, allow_null=True)
+    uang_seragam = serializers.DecimalField(max_digits=18, decimal_places=2, allow_null=True)
+
+
+class BiayaMasukRingkasSerializer(serializers.Serializer):
+    tagihan = serializers.IntegerField()
+    status = serializers.CharField()
+    total = serializers.DecimalField(max_digits=18, decimal_places=2)
+    sisa = serializers.DecimalField(max_digits=18, decimal_places=2, allow_null=True)
+
+
 class SiswaSerializer(serializers.ModelSerializer):
+    diskon_kategori = serializers.ListField(
+        child=serializers.ChoiceField(choices=Siswa.DISKON_KATEGORI), required=False, allow_empty=True,
+    )
+    diskon_nominal = serializers.DecimalField(max_digits=18, decimal_places=2, min_value=Decimal(0), required=False)
+    uang_masuk = serializers.DecimalField(max_digits=18, decimal_places=2, min_value=Decimal(0), required=False, allow_null=True)
+    uang_kegiatan = serializers.DecimalField(max_digits=18, decimal_places=2, min_value=Decimal(0), required=False, allow_null=True)
+    uang_pengembangan = serializers.DecimalField(max_digits=18, decimal_places=2, min_value=Decimal(0), required=False, allow_null=True)
+    uang_seragam = serializers.DecimalField(max_digits=18, decimal_places=2, min_value=Decimal(0), required=False, allow_null=True)
+    biaya_masuk = serializers.SerializerMethodField()
+
     class Meta:
         model = Siswa
         fields = [
             "id", "nis", "nama", "kelompok", "tanggal_lahir", "alamat",
             "nama_ayah", "kontak_ayah", "nama_ibu", "kontak_ibu",
             "spp_nominal", "status", "periode",
+            "diskon_kategori", "diskon_nominal",
+            "uang_masuk", "uang_kegiatan", "uang_pengembangan", "uang_seragam", "biaya_masuk",
         ]
+
+    def validate_diskon_kategori(self, value):
+        if len(set(value)) != len(value):
+            raise serializers.ValidationError("Kategori diskon tidak boleh berulang.")
+        return [kode for kode, _label in Siswa.DISKON_KATEGORI if kode in value]
+
+    @extend_schema_field(BiayaMasukRingkasSerializer(allow_null=True))
+    def get_biaya_masuk(self, obj):
+        tagihan = getattr(obj, "tagihan_biaya_masuk", None)
+        if tagihan is None:
+            tagihan = list(Tagihan.objects.filter(siswa=obj, jenis="BIAYA_MASUK").order_by("-pk")[:1])
+        if not tagihan:
+            return None
+        t = tagihan[0]
+        return BiayaMasukRingkasSerializer({"tagihan": t.pk, "status": t.status, "total": t.total, "sisa": t.sisa_tagihan}).data
+
+    def _simpan(self, save):
+        from operations.services.biaya_masuk import sinkron_tagihan_biaya_masuk
+
+        request = self.context.get("request")
+        try:
+            with transaction.atomic():
+                siswa = save()
+                sinkron_tagihan_biaya_masuk(siswa, user=getattr(request, "user", None))
+        except ValueError as exc:
+            raise serializers.ValidationError({"biaya_masuk": str(exc)})
+        siswa.__dict__.pop("tagihan_biaya_masuk", None)
+        return siswa
+
+    def create(self, validated_data):
+        return self._simpan(lambda: super(SiswaSerializer, self).create(validated_data))
+
+    def update(self, instance, validated_data):
+        return self._simpan(lambda: super(SiswaSerializer, self).update(instance, validated_data))
 
 
 class TagihanDetailSerializer(serializers.ModelSerializer):
@@ -303,15 +366,17 @@ class TagihanSerializer(serializers.ModelSerializer):
     class Meta:
         model = Tagihan
         fields = [
-            "id", "siswa", "siswa_nama", "periode_bulan", "periode_tahun",
+            "id", "siswa", "siswa_nama", "periode_bulan", "periode_tahun", "jenis",
             "total", "status", "jurnal", "detail", "total_terbayar", "sisa_tagihan", "perlu_rekonsiliasi", "pembayaran",
         ]
-        read_only_fields = ["status", "jurnal", "total", "perlu_rekonsiliasi"]
+        read_only_fields = ["status", "jurnal", "total", "perlu_rekonsiliasi", "jenis"]
 
     def validate(self, attrs):
         instance = getattr(self, "instance", None)
         if instance and (instance.perlu_rekonsiliasi or instance.jurnal_id or instance.pembayaran.exists()):
             raise serializers.ValidationError("Tagihan dengan riwayat pembayaran tidak dapat diubah.")
+        if instance and instance.jenis == "BIAYA_MASUK":
+            raise serializers.ValidationError("Ubah biaya masuk lewat Data Siswa.")
         detail = attrs.get("detail")
         if detail is not None and not detail:
             raise serializers.ValidationError("Tagihan harus memiliki minimal satu rincian.")

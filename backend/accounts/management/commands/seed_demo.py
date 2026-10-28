@@ -222,7 +222,7 @@ class Command(BaseCommand):
                 defaults={
                     "nama": nama,
                     "jabatan": jabatan,
-                    "status_aktif": True,
+                    "status": "aktif",
                     "tanggal_mulai_kerja": date(2024, 1, 1),
                 },
             )

@@ -18,6 +18,7 @@ import { anggaranApi } from "./api"
 import { friendlyError, notifyError, notifySuccess } from "@/core/errors"
 import { coaApi } from "@/features/jurnal/api"
 import PageLayout from "@/shared/components/PageLayout.vue"
+import BudgetTabs from "./BudgetTabs.vue"
 import Icon from "@/shared/components/PhosphorIcon.vue"
 import SearchField from "@/shared/components/SearchField.vue"
 import SelectClearButton from "@/shared/components/SelectClearButton.vue"
@@ -192,10 +193,11 @@ onMounted(async () => {
 </script>
 
 <template>
-  <PageLayout title="Anggaran" subtitle="Pagu beban per akun dan tahun kalender untuk laporan realisasi." :surface="false">
+  <PageLayout title="Anggaran Kegiatan" subtitle="Pagu beban per akun dan tahun kalender untuk laporan realisasi." :surface="false">
     <template #actions>
       <Button v-if="canWrite" label="Tambah anggaran" :disabled="loading || !!error || !!coaError || !bebanCoaList.length" @click="openCreate"><template #icon><Icon name="plus" /></template></Button>
     </template>
+    <BudgetTabs current="akun" />
 
     <div class="budget-scope"><Icon name="info" /><p>Laporan realisasi menjumlah seluruh pagu akun pada <strong>tahun kalender</strong> yang sama, termasuk baris tahunan dan bulanan. Bulan dan penanda carry-over belum membatasi atau memindahkan pagu laporan secara otomatis.</p></div>
     <div v-if="coaError && canWrite" class="budget-notice"><Message severity="warn" :closable="false">{{ coaError }} Daftar tetap dapat dibaca, tetapi penambahan dan pengubahan anggaran ditahan.</Message><Button label="Muat ulang akun" severity="secondary" @click="loadCoa" /></div>

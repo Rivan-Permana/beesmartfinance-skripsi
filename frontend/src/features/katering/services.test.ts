@@ -39,3 +39,14 @@ describe('transport pagination', () => {
         await expect(armadaApi.listAll()).rejects.toThrow('Unavailable');
     });
 });
+
+describe("weekdaysOfMonth", () => {
+  it("lists Monday–Friday dates of the month", async () => {
+    const { weekdaysOfMonth } = await import("./api")
+    const days = weekdaysOfMonth(new Date(2026, 9, 15))
+    expect(days[0]).toBe("2026-10-01")
+    expect(days.at(-1)).toBe("2026-10-30")
+    expect(days).toHaveLength(22)
+    expect(days).not.toContain("2026-10-03")
+  })
+})

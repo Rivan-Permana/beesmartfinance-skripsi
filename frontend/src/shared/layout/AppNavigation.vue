@@ -2,16 +2,16 @@
 import { computed } from "vue"
 import { RouterLink, useRoute } from "vue-router"
 import { useAuthStore } from "@/stores/auth"
-import { groupedNav, navForRoles, type NavItem } from "@/core/navigation"
+import { groupedNav, navForRoles, navItemActive, type NavItem } from "@/core/navigation"
 import Icon from "@/shared/components/PhosphorIcon.vue"
 
 defineProps<{ collapsed?: boolean }>()
 const emit = defineEmits<{ navigate: [] }>()
 const auth = useAuthStore()
 const route = useRoute()
-const groups = computed(() => groupedNav(navForRoles(auth.roles)))
+const groups = computed(() => groupedNav(navForRoles(auth.roles), auth.roles))
 function isActive(item: NavItem) {
-  return item.to === route.path && (item.query?.jenis ? item.query.jenis === route.query.jenis : !route.query.jenis || item.to !== "/jurnal")
+  return navItemActive(item, route.path, route.query.jenis)
 }
 function target(item: NavItem) {
   return item.query ? { path: item.to, query: item.query } : item.to

@@ -10,6 +10,8 @@ import type {
 export interface LaporanPeriod {
   tahun?: number
   bulan?: number
+  tanggal?: string
+  periode?: number
 }
 
 export const laporanApi = {

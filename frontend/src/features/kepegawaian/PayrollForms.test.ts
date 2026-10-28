@@ -22,6 +22,7 @@ describe('payroll forms',()=>{
       expect(payload).toMatchObject({tunjangan_asuransi:'25000.25',uang_makan:'50000.50',hari_hadir:18,gaji_pokok:'4000000.10',potongan_asuransi:'10000.10'})
       expect(payload).not.toHaveProperty('potongan_pinjaman')
       expect(view.text()).toContain('tidak ikut dipotong pada slip ini')
+      expect(view.get('.salary-position').text()).toMatch(/^Jabatan: .+diambil otomatis dari Data Pegawai$/)
       await view.setProps({error:'Data ditolak'})
       expect(view.findAllComponents(InputNumber).find(c=>c.props('inputId')==='salary-uang_makan')!.props('modelValue')).toBe(50000.5)
       await view.setProps({saving:true});await view.get('form').trigger('submit');expect(view.emitted('save')).toHaveLength(1)

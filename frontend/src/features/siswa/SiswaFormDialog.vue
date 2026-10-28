@@ -2,6 +2,7 @@
 import SelectClearButton from "@/shared/components/SelectClearButton.vue"
 import { computed, nextTick, reactive, ref, watch } from "vue"
 import Button from "primevue/button"
+import Checkbox from "primevue/checkbox"
 import Dialog from "primevue/dialog"
 import InputNumber from "primevue/inputnumber"
 import InputText from "primevue/inputtext"
@@ -9,8 +10,10 @@ import Message from "primevue/message"
 import Select from "primevue/select"
 import Textarea from "primevue/textarea"
 import Icon from "@/shared/components/PhosphorIcon.vue"
-import type { Kelompok, Siswa, SiswaInput } from "@/types/api"
-import { kelompokLabel, statusOptions } from "./presentation"
+import { formatRp } from "@/core/format"
+import type { BiayaMasukField, Kelompok, Siswa, SiswaInput } from "@/types/api"
+import { siswaApi } from "./api"
+import { BIAYA_MASUK_FIELDS, biayaMasukBruto, DISKON_KATEGORI, kelompokLabel, statusOptions } from "./presentation"
 
 const props = defineProps<{ student: Siswa | null; kelompok: Kelompok[]; saving?: boolean; error?: string; groupError?: boolean }>()
 const visible = defineModel<boolean>({ default: false })
@@ -23,6 +26,33 @@ const spp = computed({
   get: () => form.spp_nominal === "" ? null : Number(form.spp_nominal),
   set: (value: number | null) => { form.spp_nominal = value == null ? "" : value.toFixed(2) },
 })
+function amount(field: BiayaMasukField | "diskon_nominal") {
+  const value = form[field]
+  return value === "" || value == null ? null : Number(value)
+}
+function setAmount(field: BiayaMasukField | "diskon_nominal", value: number | null) {
+  if (field === "diskon_nominal") form.diskon_nominal = (value ?? 0).toFixed(2)
+  else form[field] = value == null ? null : value.toFixed(2)
+}
+const bruto = computed(() => biayaMasukBruto(form))
+const diskon = computed(() => Number(form.diskon_nominal || 0))
+const diskonInvalid = computed(() => diskon.value > bruto.value)
+const loadingDefaults = ref(false)
+const defaultsError = ref("")
+async function fillFromPriceList() {
+  if (form.kelompok == null || loadingDefaults.value) return
+  loadingDefaults.value = true
+  defaultsError.value = ""
+  try {
+    const defaults = await siswaApi.biayaMasukDefault(form.kelompok)
+    BIAYA_MASUK_FIELDS.forEach(({ field }) => { form[field] = defaults[field] })
+    if (BIAYA_MASUK_FIELDS.every(({ field }) => defaults[field] == null)) defaultsError.value = "Daftar harga untuk jenjang ini belum tersedia. Isi nominal secara manual."
+  } catch {
+    defaultsError.value = "Daftar harga belum berhasil dimuat. Isi nominal secara manual."
+  } finally {
+    loadingDefaults.value = false
+  }
+}
 const nameInvalid = computed(() => !form.nama?.trim())
 const sppInvalid = computed(() => !form.spp_nominal || !Number.isFinite(Number(form.spp_nominal)) || Number(form.spp_nominal) < 0)
 const groupOptions = computed(() => {
@@ -39,13 +69,17 @@ watch(visible, (open) => {
     spp_nominal: props.student?.spp_nominal ?? "0.00", kelompok: props.student?.kelompok ?? null,
     nama_ayah: props.student?.nama_ayah ?? "", kontak_ayah: props.student?.kontak_ayah ?? "",
     nama_ibu: props.student?.nama_ibu ?? "", kontak_ibu: props.student?.kontak_ibu ?? "", alamat: props.student?.alamat ?? "",
+    diskon_kategori: [...(props.student?.diskon_kategori ?? [])], diskon_nominal: props.student?.diskon_nominal ?? "0.00",
+    uang_masuk: props.student?.uang_masuk ?? null, uang_pengembangan: props.student?.uang_pengembangan ?? null,
+    uang_kegiatan: props.student?.uang_kegiatan ?? null, uang_seragam: props.student?.uang_seragam ?? null,
   })
+  defaultsError.value = ""
 }, { immediate: true })
 watch(() => props.error, async (message) => { if (message) { await nextTick(); errorElement.value?.focus() } })
 async function submit() {
   if (props.saving) return
   attempted.value = true
-  if (nameInvalid.value || sppInvalid.value) {
+  if (nameInvalid.value || sppInvalid.value || diskonInvalid.value) {
     await nextTick()
     formElement.value?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus()
     return
@@ -71,6 +105,24 @@ async function submit() {
         </div>
       </fieldset>
       <fieldset :disabled="saving" class="siswa-form-section">
+        <legend>Biaya masuk <span>Opsional</span></legend>
+        <p class="siswa-section-help">Nominal yang diisi menjadi tagihan biaya masuk siswa ini. Setelah disimpan, penerimaan dicatat dari daftar siswa dan boleh dibayar sebagian.</p>
+        <div class="siswa-fee-toolbar"><Button label="Isi dari daftar harga" severity="secondary" text :disabled="form.kelompok == null || saving" :loading="loadingDefaults" @click="fillFromPriceList"><template #icon><Icon name="clipboard-text" /></template></Button><small v-if="form.kelompok == null">Pilih kelompok dulu untuk memakai daftar harga.</small></div>
+        <p v-if="defaultsError" class="siswa-field-error siswa-section-help" role="alert">{{ defaultsError }}</p>
+        <div class="siswa-fields">
+          <div v-for="item in BIAYA_MASUK_FIELDS" :key="item.field" class="siswa-field"><label :for="`siswa-${item.field}`">{{ item.label }} <span>(Rp)</span></label><InputNumber :input-id="`siswa-${item.field}`" :model-value="amount(item.field)" @update:model-value="setAmount(item.field, $event)" locale="id-ID" :min="0" :max-fraction-digits="2" placeholder="Tidak ditagih" fluid /></div>
+        </div>
+        <div class="siswa-discount" role="group" aria-labelledby="siswa-discount-label">
+          <span id="siswa-discount-label" class="siswa-discount-label">Status diskon</span>
+          <div class="siswa-discount-options"><label v-for="kode in DISKON_KATEGORI" :key="kode" class="siswa-discount-option"><Checkbox v-model="form.diskon_kategori" :value="kode" :input-id="`diskon-${kode}`" />{{ kode }}</label></div>
+        </div>
+        <div class="siswa-fields">
+          <div class="siswa-field"><label for="siswa-diskon">Jumlah diskon <span>(Rp)</span></label><InputNumber input-id="siswa-diskon" :model-value="amount('diskon_nominal')" @update:model-value="setAmount('diskon_nominal', $event)" locale="id-ID" :min="0" :max-fraction-digits="2" :invalid="diskonInvalid" :input-props="{ 'aria-invalid': diskonInvalid, 'aria-describedby': diskonInvalid ? 'siswa-diskon-error' : 'siswa-diskon-help' }" fluid /><small v-if="diskonInvalid" id="siswa-diskon-error" class="siswa-field-error">Diskon tidak boleh melebihi total biaya masuk.</small><small v-else id="siswa-diskon-help">Memotong Uang Masuk lebih dulu, lalu Pengembangan, Kegiatan, dan Seragam.</small></div>
+          <dl class="siswa-fee-summary" aria-live="polite"><div><dt>Total biaya masuk</dt><dd>{{ formatRp(bruto) }}</dd></div><div><dt>Diskon</dt><dd>− {{ formatRp(Math.min(diskon, bruto)) }}</dd></div><div class="siswa-fee-total"><dt>Ditagihkan</dt><dd>{{ formatRp(Math.max(bruto - diskon, 0)) }}</dd></div></dl>
+        </div>
+        <small v-if="student?.biaya_masuk" class="siswa-section-help">Komponen yang sudah ada penerimaannya tidak bisa diubah nominalnya.</small>
+      </fieldset>
+      <fieldset :disabled="saving" class="siswa-form-section">
         <legend>Kontak orang tua <span>Opsional</span></legend>
         <div class="siswa-fields">
           <div class="siswa-field"><label for="siswa-father">Nama ayah</label><InputText id="siswa-father" v-model="form.nama_ayah as string" maxlength="100" fluid /></div>
@@ -92,6 +144,11 @@ async function submit() {
 .siswa-form-section legend { font-size: var(--bee-type-body); font-weight: 500; padding: 0 var(--bee-space-3) 0 0; }.siswa-form-section legend span { font-size: var(--bee-type-caption); font-weight: 400; color: var(--app-text-muted); margin-left: var(--bee-space-2); }
 .siswa-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--bee-space-5) var(--bee-space-4); }.siswa-field { display: flex; flex-direction: column; gap: var(--bee-space-2); min-width: 0; }.siswa-field-full { grid-column: 1 / -1; }
 .siswa-field label { font-weight: 500; }.siswa-field label span { color: var(--app-text-muted); font-weight: 400; }.siswa-field small { color: var(--app-text-muted); font-size: var(--bee-type-caption); line-height: 1.4; }.siswa-field small.siswa-field-error { color: var(--bee-color-critical); }
+.siswa-section-help { margin: 0 0 var(--bee-space-4); color: var(--app-text-muted); font-size: var(--bee-type-caption); max-width: 60ch; display: block; }
+.siswa-fee-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--bee-space-2) var(--bee-space-3); margin: 0 0 var(--bee-space-4); }.siswa-fee-toolbar .p-button { padding-inline: 0; }.siswa-fee-toolbar small { color: var(--app-text-muted); font-size: var(--bee-type-caption); }
+.siswa-discount { margin: var(--bee-space-5) 0 var(--bee-space-4); }.siswa-discount-label { display: block; font-weight: 500; margin-bottom: var(--bee-space-2); }
+.siswa-discount-options { display: flex; flex-wrap: wrap; gap: var(--bee-space-2); }.siswa-discount-option { display: inline-flex; align-items: center; gap: var(--bee-space-2); min-height: 44px; padding: 0 var(--bee-space-4); border: 1px solid var(--app-border); border-radius: var(--bee-radius-control); cursor: pointer; }.siswa-discount-option:has(:checked) { border-color: var(--bee-color-brand); background: var(--bee-color-brand-tint); }
+.siswa-fee-summary { margin: 0; padding: var(--bee-space-3) var(--bee-space-4); background: var(--bee-color-surface-subtle); border-radius: var(--bee-radius-control); display: grid; gap: var(--bee-space-1); align-self: start; }.siswa-fee-summary div { display: flex; justify-content: space-between; gap: var(--bee-space-3); }.siswa-fee-summary dt { color: var(--app-text-muted); font-size: var(--bee-type-caption); }.siswa-fee-summary dd { margin: 0; font-variant-numeric: tabular-nums; }.siswa-fee-total { border-top: 1px solid var(--app-border); padding-top: var(--bee-space-1); }.siswa-fee-total dt, .siswa-fee-total dd { font-weight: 600; color: var(--app-text); font-size: var(--bee-type-ui); }
 .siswa-save-error { margin-bottom: var(--bee-space-5); }.siswa-saving { color: var(--app-text-muted); font-size: var(--bee-type-caption); margin-right: auto; }
 @media(max-width: 520px) { .siswa-fields { grid-template-columns: minmax(0, 1fr); gap: var(--bee-space-4); }.siswa-saving { width: 100%; } }
 </style>

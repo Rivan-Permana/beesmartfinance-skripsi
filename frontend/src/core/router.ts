@@ -28,7 +28,7 @@ const router = createRouter({
           path: "jurnal",
           name: "jurnal",
           component: () => import("@/features/jurnal/JurnalListView.vue"),
-          meta: { roles: ["Finance", "SchoolPrincipal"] as Role[] },
+          meta: { roles: ["Finance", "SchoolPrincipal", "Administration"] as Role[] },
         },
         {
           path: "tunggakan-tagihan",
@@ -40,7 +40,7 @@ const router = createRouter({
           path: "siswa",
           name: "siswa",
           component: () => import("@/features/siswa/SiswaListView.vue"),
-          meta: { roles: ["Administration"] as Role[] },
+          meta: { roles: ["Administration", "Finance"] as Role[] },
         },
         {
           path: "kelompok",
@@ -52,7 +52,7 @@ const router = createRouter({
           path: "absensi-siswa",
           name: "absensi-siswa",
           component: () => import("@/features/absensi/AbsensiSiswaView.vue"),
-          meta: { roles: ["Administration"] as Role[] },
+          meta: { roles: ["Administration", "TeacherInCharge"] as Role[] },
         },
         {
           path: "absensi",
@@ -86,31 +86,31 @@ const router = createRouter({
           path: "pendaftaran",
           name: "pendaftaran",
           component: () => import("@/features/pendaftaran/PendaftaranListView.vue"),
-          meta: { roles: ["Administration"] as Role[] },
+          meta: { roles: ["Administration", "Finance"] as Role[] },
         },
         {
           path: "pegawai",
           name: "pegawai",
           component: () => import("@/features/kepegawaian/PegawaiListView.vue"),
-          meta: { roles: ["Administration", "Finance"] as Role[] },
+          meta: { roles: ["Administration", "Finance", "SchoolPrincipal"] as Role[] },
         },
         {
           path: "absensi-pegawai",
           name: "absensi-pegawai",
           component: () => import("@/features/kepegawaian/AbsensiPegawaiView.vue"),
-          meta: { roles: ["Administration", "Finance"] as Role[] },
+          meta: { roles: ["Administration", "Finance", "SchoolPrincipal"] as Role[] },
         },
         {
           path: "gaji",
           name: "gaji",
           component: () => import("@/features/kepegawaian/GajiListView.vue"),
-          meta: { roles: ["Finance"] as Role[] },
+          meta: { roles: ["Finance", "SchoolPrincipal"] as Role[] },
         },
         {
           path: "pinjaman",
           name: "pinjaman",
           component: () => import("@/features/kepegawaian/PinjamanListView.vue"),
-          meta: { roles: ["Finance"] as Role[] },
+          meta: { roles: ["Finance", "SchoolPrincipal"] as Role[] },
         },
         {
           path: "aset",
@@ -122,7 +122,7 @@ const router = createRouter({
           path: "kegiatan",
           name: "kegiatan",
           component: () => import("@/features/kegiatan/KegiatanListView.vue"),
-          meta: { roles: ["TeacherInCharge", "SchoolPrincipal"] as Role[] },
+          meta: { roles: ["TeacherInCharge", "SchoolPrincipal", "Finance"] as Role[] },
         },
         {
           path: "anggaran",

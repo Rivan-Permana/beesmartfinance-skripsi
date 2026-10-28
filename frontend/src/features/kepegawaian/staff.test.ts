@@ -29,7 +29,7 @@ describe('pegawai and attendance contract',()=>{
     expect(mixed.izin).toBe(1)
   })
   it('rejects inverted work dates and saves local dates without changing the linked user',async()=>{
-    const row={id:1,nama:'Pegawai Contoh',nip:'X-1',jabatan:'Guru',nomor_hp:null,alamat:null,status_aktif:false,tanggal_mulai_kerja:'2026-10-18',tanggal_selesai_kerja:null,user:4}
+    const row={id:1,nama:'Pegawai Contoh',nip:'X-1',jabatan:'Guru',nomor_hp:null,alamat:null,status:'nonaktif' as const,status_aktif:false,tanggal_mulai_kerja:'2026-10-18',tanggal_selesai_kerja:null,user:4}
     const view=mount(PegawaiFormDialog,{global:{plugins:[[PrimeVue,{unstyled:true,locale:primevueLocale}],ConfirmationService]},props:{row,saving:false,error:'',uncertain:false,modelValue:true}})
     try{
       await nextTick()
@@ -38,8 +38,9 @@ describe('pegawai and attendance contract',()=>{
       await nextTick();await view.get('form').trigger('submit')
       expect(view.emitted('save')).toBeUndefined()
       dates[1]!.vm.$emit('update:modelValue',new Date(2026,10,3))
+      await view.findAll('[role=radio]').find(b=>b.text()==='Cuti')!.trigger('click')
       await nextTick();await view.get('form').trigger('submit')
-      expect(view.emitted('save')?.[0]?.[0]).toMatchObject({nama:'Pegawai Contoh',status_aktif:false,tanggal_mulai_kerja:'2026-10-18',tanggal_selesai_kerja:'2026-11-03'})
+      expect(view.emitted('save')?.[0]?.[0]).toMatchObject({nama:'Pegawai Contoh',status:'cuti',tanggal_mulai_kerja:'2026-10-18',tanggal_selesai_kerja:'2026-11-03'})
       expect(view.emitted('save')?.[0]?.[0]).not.toHaveProperty('user')
     }finally{view.unmount()}
   })

@@ -17,6 +17,7 @@ import KegiatanDirectory from "./KegiatanDirectory.vue"
 import KegiatanFormDialog from "./KegiatanFormDialog.vue"
 import KegiatanRealisasiDialog from "./KegiatanRealisasiDialog.vue"
 import KegiatanReportDialog from "./KegiatanReportDialog.vue"
+import BudgetTabs from "@/features/anggaran-periode/BudgetTabs.vue"
 import { realisasiValid, type RealisasiForm } from "./presentation"
 import type { Coa, Kegiatan, LaporanKegiatan, Pegawai, PeriodeAkuntansi } from "@/types/api"
 const auth=useAuthStore()
@@ -31,8 +32,10 @@ const periodeFilter=ref<number|null>(null)
 const loading=ref(false)
 const loadError=ref("")
 const periodError=ref(false)
-const canManage=computed(()=>auth.hasRole(["SchoolPrincipal"]))
-const canRealisasi=computed(()=>auth.hasRole(["TeacherInCharge","SchoolPrincipal"]))
+// Anggaran kegiatan dikelola Keuangan; Guru PIC mencatat realisasi; Kepala Sekolah memantau.
+const canManage=computed(()=>auth.hasRole(["Finance"]))
+const canRealisasi=computed(()=>auth.hasRole(["TeacherInCharge"]))
+const budgetMenu=computed(()=>auth.hasRole(["Finance","SchoolPrincipal"]))
 let loadSequence=0
 async function load(){
   const sequence=++loadSequence
@@ -103,7 +106,8 @@ async function lihatLaporan(row:Kegiatan){try{laporan.value=await kegiatanApi.la
 onMounted(()=>Promise.all([load(),loadPeriods(),loadManagementOptions()]))
 </script>
 <template>
-  <PageLayout title="Kegiatan sekolah" :subtitle="canManage?'Tetapkan pagu, kelola kegiatan, dan pantau realisasi anggaran.':'Pantau kegiatan dan catat penggunaan anggaran sesuai pagu.'" :surface="false"><template v-if="canManage" #actions><Button label="Buat kegiatan" @click="openCreate"><template #icon><Icon name="plus" /></template></Button></template>
+  <PageLayout :title="budgetMenu?'Anggaran Kegiatan':'Kegiatan sekolah'" :subtitle="canManage?'Tetapkan pagu dan guru penanggung jawab, lalu pantau realisasi anggaran.':canRealisasi?'Pantau kegiatan dan catat penggunaan anggaran sesuai pagu.':'Pantau pagu, realisasi, sisa, dan utilisasi setiap kegiatan.'" :surface="false"><template v-if="canManage" #actions><Button label="Buat kegiatan" @click="openCreate"><template #icon><Icon name="plus" /></template></Button></template>
+    <BudgetTabs v-if="budgetMenu" current="kegiatan" />
     <KegiatanDirectory v-model:period="periodeFilter" :rows="rows" :periods="periodeList" :loading="loading" :error="loadError" :period-error="periodError" :can-manage="canManage" :can-record="canRealisasi" @create="openCreate" @edit="openEdit" @remove="confirmDelete" @record="openRealisasi" @report="lihatLaporan" @retry="load" @reload-periods="loadPeriods" />
     <KegiatanFormDialog v-if="canManage" v-model="dialog" :activity="editing" :accounts="coaBebanOptions" :staff="pegawaiList" :periods="periodeList" :saving="saving" :error="saveError" @save="save" @reload-options="loadManagementOptions" />
     <KegiatanRealisasiDialog v-if="canRealisasi" v-model="realisasiDialog" v-model:form="realisasiForm" :target="realisasiTarget" :saving="realisasiSaving" :error="realisasiError" @save="saveRealisasi" @report="realisasiTarget&&lihatLaporan(realisasiTarget)" />

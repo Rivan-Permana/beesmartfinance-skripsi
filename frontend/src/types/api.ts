@@ -45,9 +45,19 @@ export interface Siswa {
   spp_nominal: string
   status: SiswaStatus
   periode: number | null
+  diskon_kategori: DiskonKategori[]
+  diskon_nominal: string
+  uang_masuk: string | null
+  uang_kegiatan: string | null
+  uang_pengembangan: string | null
+  uang_seragam: string | null
+  /** Ringkasan tagihan biaya masuk; null bila belum ada isian biaya masuk. */
+  biaya_masuk: { tagihan: number; status: TagihanStatus; total: string; sisa: string | null } | null
 }
 
-export type SiswaInput = Omit<Siswa, "id">
+export type DiskonKategori = "PG" | "SIPG" | "SIB" | "SIKBR"
+export type BiayaMasukField = "uang_masuk" | "uang_pengembangan" | "uang_kegiatan" | "uang_seragam"
+export type SiswaInput = Omit<Siswa, "id" | "biaya_masuk">
 
 export type PendaftaranSiswaStatus = "TRIAL" | "REGISTERED" | "BATAL"
 
@@ -222,12 +232,15 @@ export interface TagihanDetail {
   total_terbayar?: string
 }
 
+export type TagihanJenis = "BULANAN" | "BIAYA_MASUK"
+
 export interface Tagihan {
   id: number
   siswa: number
   siswa_nama?: string
   periode_bulan: number
   periode_tahun: number
+  jenis?: TagihanJenis
   total: string
   status: TagihanStatus
   jurnal: string | null
@@ -302,12 +315,15 @@ export interface Pegawai {
   jabatan: string | null
   nomor_hp: string | null
   alamat: string | null
+  status: PegawaiStatus
+  /** Turunan server: status === "aktif" */
   status_aktif: boolean
   tanggal_mulai_kerja: string | null
   tanggal_selesai_kerja: string | null
   user: number | null
 }
-export type PegawaiInput = Omit<Pegawai, "id">
+export type PegawaiStatus = "aktif" | "cuti" | "nonaktif"
+export type PegawaiInput = Omit<Pegawai, "id" | "status_aktif">
 
 export type AbsenPegawaiStatus = "hadir" | "izin" | "sakit" | "terlambat" | "none"
 
@@ -391,6 +407,7 @@ export interface Kegiatan {
   akun_beban: string
   pagu: string
   penanggung_jawab: number | null
+  penanggung_jawab_nama?: string | null
   tanggal_mulai: string | null
   tanggal_selesai: string | null
   status: KegiatanStatus
@@ -504,21 +521,26 @@ export interface DashboardRingkasan {
   anggaran: { pagu: string | number; realisasi: string | number }
   operasional?: DashboardOperasional
   periode_filter?: {
-    mode: "day" | "month" | "year"
+    mode: "day" | "month" | "year" | "period"
     tahun: number
     bulan: number | null
     tanggal: string | null
+    periode?: number | null
+    awal?: string
+    akhir?: string
     label: string
   }
 }
 
 export interface LabaRugiBulananRow {
+  tahun?: number
   bulan: number
   pendapatan: number
   beban: number
 }
 export interface LabaRugiBulananResult {
   tahun: number
+  periode?: string
   data: LabaRugiBulananRow[]
 }
 

@@ -8,7 +8,7 @@ import { useRoute, useRouter } from "vue-router"
 import { useConfirm } from "primevue/useconfirm"
 import { useToast } from "primevue/usetoast"
 
-import { navForRoles, ROLE_LABEL, ROUTE_TITLES, type NavItem } from "@/core/navigation"
+import { navForRoles, navItemActive, ROLE_LABEL, ROUTE_TITLES, type NavItem } from "@/core/navigation"
 import { useAuthStore } from "@/stores/auth"
 
 const auth = useAuthStore()
@@ -46,9 +46,7 @@ const breadcrumb = computed(() => {
 })
 
 function isActive(item: NavItem) {
-  if (item.to !== route.path) return false
-  if (item.query?.jenis) return route.query.jenis === item.query.jenis
-  return !route.query.jenis || item.to !== "/jurnal"
+  return navItemActive(item, route.path, route.query.jenis)
 }
 
 

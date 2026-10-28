@@ -63,7 +63,7 @@ def import_kafalah_payroll(
             defaults={
                 "nama": srow.nama,
                 "jabatan": srow.skill,
-                "status_aktif": True,
+                "status": "aktif",
                 "tarif_uang_makan_hari": srow.tarif_uang_makan,
                 "tarif_transport_hari": srow.tarif_transport,
             },

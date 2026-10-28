@@ -24,11 +24,14 @@ import EmployeeActionDialog from './EmployeeActionDialog.vue'
 import './employee-finance.css'
 
 const auth=useAuthStore(), toast=useToast()
-const canWrite=computed(()=>auth.hasRole(['Finance']))
+// Slip dibuat Kepala Sekolah atau Keuangan; jurnal gaji hanya dibuat Keuangan.
+const canWrite=computed(()=>auth.hasRole(['Finance','SchoolPrincipal']))
+const canPost=computed(()=>auth.hasRole(['Finance']))
 const rows=ref<Gaji[]>([]), staff=ref<Pegawai[]>([]), loans=ref<Pinjaman[]>([])
 const loading=ref(false), error=ref(''), optionsLoading=ref(false), optionsError=ref('')
 const names=computed(()=>new Map(staff.value.map(row=>[row.id,row.nama])))
 const name=(id:number)=>names.value.get(id)??`Pegawai #${id}`
+const position=(id:number)=>staff.value.find(row=>row.id===id)?.jabatan?.trim()||''
 const status=ref<boolean|null>(null), first=ref(0)
 const scoped=computed(()=>rows.value.filter(row=>status.value==null||!!row.jurnal===status.value))
 const {query,filtered}=useTableSearch(scoped,row=>[name(row.pegawai),salaryPeriod(row),row.jurnal?'Jurnal dibuat':'Belum dijurnal'])
@@ -58,7 +61,7 @@ const menu=ref<InstanceType<typeof Menu>|null>(null), menuTarget=ref<Gaji|null>(
 const items=computed(()=>{
   const row=menuTarget.value
   if(!row||!canWrite.value||row.jurnal)return []
-  return [{label:'Ubah slip',icon:'pencil-simple',command:()=>edit(row)},{label:'Posting ke jurnal',icon:'file-arrow-up',command:()=>startAction('post',row)},{separator:true},{label:'Hapus slip',icon:'trash',class:'employee-action-danger',command:()=>startAction('delete',row)}]
+  return [{label:'Ubah slip',icon:'pencil-simple',command:()=>edit(row)},...(canPost.value?[{label:'Posting ke jurnal',icon:'file-arrow-up',command:()=>startAction('post',row)}]:[]),{separator:true},{label:'Hapus slip',icon:'trash',class:'employee-action-danger',command:()=>startAction('delete',row)}]
 })
 function openMenu(event:Event,row:Gaji){menuTarget.value=row;menu.value?.toggle(event)}
 function create(){if(!canWrite.value||busy.value)return;editing.value=null;formError.value='';uncertainSave.value=false;formOpen.value=true}
@@ -82,7 +85,7 @@ async function save(payload:Partial<Gaji>){
 async function reviewSave(){formOpen.value=false;await Promise.all([load(),loadOptions()])}
 async function showSlip(row:Gaji){if(busy.value)return;opening.value=true;slipError.value='';try{slip.value=await gajiApi.get(row.id)}catch(e){slipError.value=errorText(e,'Rincian slip belum berhasil dimuat. Coba buka kembali.')}finally{opening.value=false}}
 function closeAction(){if(!pending.value&&!checking.value){target.value=null;action.value=null}}
-async function startAction(value:'post'|'delete',row:Gaji){if(!canWrite.value||busy.value||row.jurnal)return;target.value=row;action.value=value;actionReady.value=false;uncertainAction.value=false;await refreshAction()}
+async function startAction(value:'post'|'delete',row:Gaji){if(!(value==='post'?canPost.value:canWrite.value)||busy.value||row.jurnal)return;target.value=row;action.value=value;actionReady.value=false;uncertainAction.value=false;await refreshAction()}
 async function refreshAction(){
   if(!target.value||pending.value||checking.value)return
   checking.value=true;actionError.value='';actionReady.value=false
@@ -97,7 +100,7 @@ async function refreshAction(){
   }finally{checking.value=false}
 }
 async function confirmAction(){
-  if(!target.value||!action.value||!canWrite.value||busy.value||!actionReady.value||uncertainAction.value||target.value.jurnal)return
+  if(!target.value||!action.value||!(action.value==='post'?canPost.value:canWrite.value)||busy.value||!actionReady.value||uncertainAction.value||target.value.jurnal)return
   const row=target.value, value=action.value
   pending.value=true;actionError.value=''
   try{
@@ -127,8 +130,8 @@ onBeforeUnmount(()=>{window.removeEventListener('beforeunload',beforeUnload);win
       <div v-else-if="loading || (optionsLoading && !staff.length)" class="employee-empty" role="status"><Icon name="arrows-clockwise" class="bee-spin" /><p>Menyiapkan slip gaji</p></div>
       <div v-else-if="!filtered.length" class="employee-empty"><Icon :name="hasFilter?'magnifying-glass':'file-text'" /><h3>{{ hasFilter?'Tidak ada slip yang cocok':'Belum ada slip gaji' }}</h3><p>{{ hasFilter?'Coba nama, periode, atau status lain.':'Buat slip untuk mencatat komponen gaji pegawai.' }}</p><Button v-if="hasFilter||canWrite" :label="hasFilter?'Hapus filter':'Buat slip gaji'" severity="secondary" @click="hasFilter?reset():create()" /></div>
       <template v-else>
-        <table class="employee-table"><caption class="employee-sr-only">Slip gaji seluruh hasil pencarian, 15 slip per halaman</caption><thead><tr><th>Pegawai dan periode</th><th class="employee-number">Bruto</th><th class="employee-number">Potongan</th><th class="employee-number">Netto</th><th>Status</th><th class="employee-action-column">Tindakan</th></tr></thead><tbody><tr v-for="row in pageRows" :key="row.id"><td><strong>{{ name(row.pegawai) }}</strong><small>{{ salaryPeriod(row) }}</small></td><td class="employee-number">{{ money(row.total_bruto) }}</td><td class="employee-number">{{ money(row.total_potongan) }}</td><td class="employee-number"><strong>{{ money(row.total_netto) }}</strong></td><td><Tag :value="row.jurnal?'Jurnal dibuat':'Belum dijurnal'" :severity="row.jurnal?'info':'warn'" /></td><td class="employee-action-column"><div class="employee-row-actions"><Button label="Lihat slip" severity="secondary" :aria-label="`Lihat slip ${name(row.pegawai)} ${salaryPeriod(row)}`" :disabled="busy" @click="showSlip(row)" /><Button v-if="canWrite&&!row.jurnal" severity="secondary" text :aria-label="`Tindakan slip ${name(row.pegawai)} ${salaryPeriod(row)}`" title="Tindakan lainnya" aria-controls="salary-actions" aria-haspopup="menu" :aria-expanded="menuOpen&&menuTarget?.id===row.id" :disabled="busy" @click="openMenu($event,row)"><template #icon><Icon name="caret-down" /></template></Button></div></td></tr></tbody></table>
-        <ul class="employee-cards" aria-label="Slip gaji"><li v-for="row in pageRows" :key="row.id"><header><div><strong>{{ name(row.pegawai) }}</strong><small>{{ salaryPeriod(row) }}</small></div><Tag :value="row.jurnal?'Jurnal dibuat':'Belum dijurnal'" :severity="row.jurnal?'info':'warn'" /></header><dl><div><dt>Bruto</dt><dd>{{ money(row.total_bruto) }}</dd></div><div><dt>Potongan</dt><dd>{{ money(row.total_potongan) }}</dd></div><div><dt>Netto</dt><dd><strong>{{ money(row.total_netto) }}</strong></dd></div></dl><div class="employee-card-actions"><Button label="Lihat slip" severity="secondary" :aria-label="`Lihat slip ${name(row.pegawai)} ${salaryPeriod(row)}`" :disabled="busy" @click="showSlip(row)" /><Button v-if="canWrite&&!row.jurnal" label="Tindakan" severity="secondary" text :aria-label="`Tindakan slip ${name(row.pegawai)} ${salaryPeriod(row)}`" aria-controls="salary-actions" aria-haspopup="menu" :aria-expanded="menuOpen&&menuTarget?.id===row.id" :disabled="busy" @click="openMenu($event,row)"><template #icon><Icon name="caret-down" /></template></Button></div></li></ul>
+        <table class="employee-table"><caption class="employee-sr-only">Slip gaji seluruh hasil pencarian, 15 slip per halaman</caption><thead><tr><th>Pegawai dan periode</th><th class="employee-number">Bruto</th><th class="employee-number">Potongan</th><th class="employee-number">Netto</th><th>Status</th><th class="employee-action-column">Tindakan</th></tr></thead><tbody><tr v-for="row in pageRows" :key="row.id"><td><strong>{{ name(row.pegawai) }}</strong><small>{{ [position(row.pegawai),salaryPeriod(row)].filter(Boolean).join(' · ') }}</small></td><td class="employee-number">{{ money(row.total_bruto) }}</td><td class="employee-number">{{ money(row.total_potongan) }}</td><td class="employee-number"><strong>{{ money(row.total_netto) }}</strong></td><td><Tag :value="row.jurnal?'Jurnal dibuat':'Belum dijurnal'" :severity="row.jurnal?'info':'warn'" /></td><td class="employee-action-column"><div class="employee-row-actions"><Button label="Lihat slip" severity="secondary" :aria-label="`Lihat slip ${name(row.pegawai)} ${salaryPeriod(row)}`" :disabled="busy" @click="showSlip(row)" /><Button v-if="canWrite&&!row.jurnal" severity="secondary" text :aria-label="`Tindakan slip ${name(row.pegawai)} ${salaryPeriod(row)}`" title="Tindakan lainnya" aria-controls="salary-actions" aria-haspopup="menu" :aria-expanded="menuOpen&&menuTarget?.id===row.id" :disabled="busy" @click="openMenu($event,row)"><template #icon><Icon name="caret-down" /></template></Button></div></td></tr></tbody></table>
+        <ul class="employee-cards" aria-label="Slip gaji"><li v-for="row in pageRows" :key="row.id"><header><div><strong>{{ name(row.pegawai) }}</strong><small>{{ [position(row.pegawai),salaryPeriod(row)].filter(Boolean).join(' · ') }}</small></div><Tag :value="row.jurnal?'Jurnal dibuat':'Belum dijurnal'" :severity="row.jurnal?'info':'warn'" /></header><dl><div><dt>Bruto</dt><dd>{{ money(row.total_bruto) }}</dd></div><div><dt>Potongan</dt><dd>{{ money(row.total_potongan) }}</dd></div><div><dt>Netto</dt><dd><strong>{{ money(row.total_netto) }}</strong></dd></div></dl><div class="employee-card-actions"><Button label="Lihat slip" severity="secondary" :aria-label="`Lihat slip ${name(row.pegawai)} ${salaryPeriod(row)}`" :disabled="busy" @click="showSlip(row)" /><Button v-if="canWrite&&!row.jurnal" label="Tindakan" severity="secondary" text :aria-label="`Tindakan slip ${name(row.pegawai)} ${salaryPeriod(row)}`" aria-controls="salary-actions" aria-haspopup="menu" :aria-expanded="menuOpen&&menuTarget?.id===row.id" :disabled="busy" @click="openMenu($event,row)"><template #icon><Icon name="caret-down" /></template></Button></div></li></ul>
         <BeePaginator v-if="filtered.length>15" v-model:first="first" :rows="15" :total-records="filtered.length" />
       </template>
       <p class="employee-footnote"><Icon name="info" /><span>Jurnal dibuat berarti jurnal tertaut pada slip. Persetujuan dan pencatatan ke buku besar dilanjutkan pada modul Jurnal.</span></p>

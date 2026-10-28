@@ -27,7 +27,7 @@ describe("menu katering", () => {
     })
     try {
       await flushPromises()
-      await wrapper.findAll("button").find((button) => button.text() === "Menu mingguan")!.trigger("click")
+      await wrapper.findAll("button").find((button) => button.text() === "Menu bulanan")!.trigger("click")
       await flushPromises()
       await wrapper.findAll("button").find((button) => button.text() === "Isi menu")!.trigger("click")
       await flushPromises()

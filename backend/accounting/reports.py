@@ -12,6 +12,7 @@ from django.db import connection
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
 from rest_framework import mixins, serializers, viewsets
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -27,10 +28,19 @@ def _rows(sql, params=None):
         return [dict(zip(cols, r)) for r in cur.fetchall()]
 
 
+def _bulan_berikut(tahun, bulan):
+    return date(tahun + 1, 1, 1) if bulan == 12 else date(tahun, bulan + 1, 1)
+
+
 def _saldo_tahun(tahun, bulan=None, kumulatif=False, dengan_saldo_awal=True):
     """Mutasi periode atau saldo kumulatif sampai akhir periode, termasuk saldo awal bertanggal."""
     awal = date(tahun, bulan or 1, 1)
-    akhir = date(tahun + 1, 1, 1) if not bulan or bulan == 12 else date(tahun, bulan + 1, 1)
+    akhir = _bulan_berikut(tahun, bulan) if bulan else date(tahun + 1, 1, 1)
+    return _saldo_range(awal, akhir, kumulatif=kumulatif, dengan_saldo_awal=dengan_saldo_awal)
+
+
+def _saldo_range(awal, akhir, kumulatif=False, dengan_saldo_awal=True):
+    """Seperti _saldo_tahun untuk rentang tanggal [awal, akhir)."""
     mutasi_mulai = "" if kumulatif else " AND j.tanggal >= %s"
     opening_mulai = "" if kumulatif else " AND c.tanggal_saldo_awal >= %s"
     params: list = [akhir]
@@ -67,37 +77,61 @@ def _saldo_tahun(tahun, bulan=None, kumulatif=False, dengan_saldo_awal=True):
 
 
 def _parse_period_params(request):
-    """Query ?tahun=&bulan=&tanggal= (ISO) untuk filter dashboard/laporan."""
-    from datetime import date
+    """Query ?periode=<id> | ?tanggal= (ISO) | ?tahun=&bulan= untuk filter dashboard/laporan.
 
+    Selalu menyertakan rentang tanggal ``awal``..``akhir`` (akhir eksklusif).
+    """
     today = date.today()
-    tanggal_raw = request.query_params.get("tanggal")
-    if tanggal_raw:
-        d = date.fromisoformat(tanggal_raw)
-        return {"mode": "day", "tanggal": d, "bulan": d.month, "tahun": d.year}
+    try:
+        periode_raw = request.query_params.get("periode")
+        if periode_raw:
+            from .models import MsPeriodeAkuntansi
+            periode = MsPeriodeAkuntansi.objects.filter(pk=int(periode_raw)).first()
+            if not periode:
+                raise ValidationError({"periode": "Periode akuntansi tidak ditemukan."})
+            return {
+                "mode": "period", "tanggal": None, "bulan": None,
+                "tahun": periode.tgl_mulai.year, "periode": periode,
+                "awal": periode.tgl_mulai, "akhir": date.fromordinal(periode.tgl_selesai.toordinal() + 1),
+            }
 
-    tahun_raw = request.query_params.get("tahun")
-    bulan_raw = request.query_params.get("bulan")
-    if tahun_raw and bulan_raw:
-        return {
-            "mode": "month",
-            "tahun": int(tahun_raw),
-            "bulan": int(bulan_raw),
-            "tanggal": None,
-        }
-    if tahun_raw:
-        return {
-            "mode": "year",
-            "tahun": int(tahun_raw),
-            "bulan": None,
-            "tanggal": None,
-        }
+        tanggal_raw = request.query_params.get("tanggal")
+        if tanggal_raw:
+            d = date.fromisoformat(tanggal_raw)
+            return {
+                "mode": "day", "tanggal": d, "bulan": d.month, "tahun": d.year,
+                "awal": d, "akhir": date.fromordinal(d.toordinal() + 1),
+            }
+
+        tahun_raw = request.query_params.get("tahun")
+        bulan_raw = request.query_params.get("bulan")
+        if tahun_raw and bulan_raw:
+            tahun, bulan = int(tahun_raw), int(bulan_raw)
+            return {
+                "mode": "month", "tahun": tahun, "bulan": bulan, "tanggal": None,
+                "awal": date(tahun, bulan, 1), "akhir": _bulan_berikut(tahun, bulan),
+            }
+        if tahun_raw:
+            tahun = int(tahun_raw)
+            return {
+                "mode": "year", "tahun": tahun, "bulan": None, "tanggal": None,
+                "awal": date(tahun, 1, 1), "akhir": date(tahun + 1, 1, 1),
+            }
+    except ValueError:
+        raise ValidationError({"detail": "Parameter periode, tanggal, tahun, atau bulan tidak valid."})
     return {
-        "mode": "month",
-        "tahun": today.year,
-        "bulan": today.month,
-        "tanggal": None,
+        "mode": "month", "tahun": today.year, "bulan": today.month, "tanggal": None,
+        "awal": date(today.year, today.month, 1), "akhir": _bulan_berikut(today.year, today.month),
     }
+
+
+def _bulan_dalam_rentang(awal, akhir):
+    """Pasangan (tahun, bulan) yang beririsan dengan [awal, akhir)."""
+    out, y, m = [], awal.year, awal.month
+    while date(y, m, 1) < akhir:
+        out.append((y, m))
+        y, m = (y + 1, 1) if m == 12 else (y, m + 1)
+    return out
 
 
 @extend_schema(responses=OpenApiTypes.OBJECT)
@@ -116,10 +150,9 @@ class LabaRugiView(APIView):
     permission_classes = [IsFinanceOrPrincipal]
 
     def get(self, request):
-        tahun = request.query_params.get("tahun")
-        bulan = request.query_params.get("bulan")
-        if tahun:
-            data = _saldo_tahun(int(tahun), int(bulan) if bulan else None)
+        if any(request.query_params.get(key) for key in ("tahun", "tanggal", "periode")):
+            period = _parse_period_params(request)
+            data = _saldo_range(period["awal"], period["akhir"])
         else:
             data = _rows("SELECT * FROM v_neraca_saldo ORDER BY kode_akun")
         pendapatan = [r for r in data if str(r["kode_akun"]).startswith("4")]
@@ -232,8 +265,9 @@ class DashboardRingkasanView(APIView):
 
     def get(self, request):
         period = _parse_period_params(request)
-        saldo = _saldo_tahun(period["tahun"], period.get("bulan"), dengan_saldo_awal=False)
-        saldo_kas = _saldo_tahun(period["tahun"], period.get("bulan"), kumulatif=True)
+        awal, akhir = period["awal"], period["akhir"]
+        saldo = _saldo_range(awal, akhir, dengan_saldo_awal=False)
+        saldo_kas = _saldo_range(awal, akhir, kumulatif=True)
         kas = sum((r["saldo_akhir"] for r in saldo_kas
                    if str(r["kode_akun"]).startswith("1.1")
                    or str(r["kode_akun"]) in ("1011", "1101", "1102", "111", "112")), Decimal(0))
@@ -248,7 +282,7 @@ class DashboardRingkasanView(APIView):
             [period["tahun"]],
         )
 
-        from datetime import date
+        from django.db.models import Q
 
         from accounting.models import TrJurnal
         from operations.models import KehadiranSiswa, Siswa, Tagihan
@@ -258,6 +292,9 @@ class DashboardRingkasanView(APIView):
             d = period["tanggal"]
             hadir_qs = KehadiranSiswa.objects.filter(tanggal=d, status="hadir")
             ops_label = d.isoformat()
+        elif period["mode"] == "period":
+            hadir_qs = KehadiranSiswa.objects.filter(tanggal__gte=awal, tanggal__lt=akhir, status="hadir")
+            ops_label = period["periode"].kode
         elif period["mode"] == "year":
             hadir_qs = KehadiranSiswa.objects.filter(
                 tanggal__year=tahun, status="hadir",
@@ -270,7 +307,12 @@ class DashboardRingkasanView(APIView):
             ops_label = f"{bulan}/{tahun}"
 
         tagihan_qs = Tagihan.objects.filter(is_deleted=False)
-        if period["mode"] == "year":
+        if period["mode"] == "period":
+            bulan_q = Q(pk__in=[])
+            for y, m in _bulan_dalam_rentang(awal, akhir):
+                bulan_q |= Q(periode_tahun=y, periode_bulan=m)
+            tagihan_qs = tagihan_qs.filter(bulan_q)
+        elif period["mode"] == "year":
             tagihan_qs = tagihan_qs.filter(periode_tahun=tahun)
         elif period["mode"] in ("month", "day"):
             tagihan_qs = tagihan_qs.filter(periode_tahun=tahun, periode_bulan=bulan)
@@ -290,6 +332,18 @@ class DashboardRingkasanView(APIView):
                     "label": day.strftime("%d/%m"),
                     "hadir": KehadiranSiswa.objects.filter(
                         tanggal=day, status="hadir",
+                    ).count(),
+                })
+        elif period["mode"] == "period":
+            today = date.today()
+            pairs = [(y, m) for y, m in _bulan_dalam_rentang(awal, akhir) if date(y, m, 1) <= today]
+            for y, m in pairs[-6:]:
+                sparkline.append({
+                    "bulan": m,
+                    "tahun": y,
+                    "label": f"{m}/{y}",
+                    "hadir": KehadiranSiswa.objects.filter(
+                        tanggal__year=y, tanggal__month=m, status="hadir",
                     ).count(),
                 })
         elif period["mode"] == "year":
@@ -339,6 +393,8 @@ class DashboardRingkasanView(APIView):
 
         if period["mode"] == "day":
             periode_label = period["tanggal"].isoformat()
+        elif period["mode"] == "period":
+            periode_label = f"Periode {period['periode'].kode}"
         elif period["mode"] == "year":
             periode_label = str(tahun)
         else:
@@ -356,6 +412,9 @@ class DashboardRingkasanView(APIView):
                 "tahun": tahun,
                 "bulan": bulan,
                 "tanggal": period["tanggal"].isoformat() if period.get("tanggal") else None,
+                "periode": period["periode"].pk if period.get("periode") else None,
+                "awal": awal.isoformat(),
+                "akhir": date.fromordinal(akhir.toordinal() - 1).isoformat(),
                 "label": periode_label,
             },
         })
@@ -366,6 +425,14 @@ class PrediksiKasView(APIView):
     permission_classes = [IsFinanceOrPrincipal]
 
     def get(self, request):
+        if request.query_params.get("periode"):
+            period = _parse_period_params(request)
+            pairs = _bulan_dalam_rentang(period["awal"], period["akhir"])
+            return Response(_rows(
+                "SELECT * FROM v_dataset_prediksi_kas WHERE tahun * 100 + bulan BETWEEN %s AND %s "
+                "ORDER BY tahun, bulan",
+                [pairs[0][0] * 100 + pairs[0][1], pairs[-1][0] * 100 + pairs[-1][1]],
+            ))
         tahun = request.query_params.get("tahun")
         if tahun:
             return Response(_rows(
@@ -382,12 +449,44 @@ class LabaRugiBulananView(APIView):
     permission_classes = [IsFinanceOrPrincipal]
 
     def get(self, request):
+        if request.query_params.get("periode"):
+            period = _parse_period_params(request)
+            rows = _rows(
+                """
+                SELECT
+                  EXTRACT(YEAR FROM j.tanggal)::int AS tahun,
+                  EXTRACT(MONTH FROM j.tanggal)::int AS bulan,
+                  substring(c.kode_akun FROM 1 FOR 1) AS gol,
+                  SUM(d.debit)  AS deb,
+                  SUM(d.kredit) AS kre
+                FROM tr_jurnal_detail d
+                JOIN tr_jurnal j ON j.id = d.jurnal_id
+                JOIN ms_coa c ON c.kode_akun = d.kode_akun
+                WHERE j.status = 'POSTED' AND NOT j.is_deleted
+                  AND j.tanggal >= %s AND j.tanggal < %s
+                  AND substring(c.kode_akun FROM 1 FOR 1) IN ('4','5')
+                GROUP BY 1, 2, 3
+                """,
+                [period["awal"], period["akhir"]],
+            )
+            bulanan = {
+                (y, m): {"tahun": y, "bulan": m, "pendapatan": 0, "beban": 0}
+                for y, m in _bulan_dalam_rentang(period["awal"], period["akhir"])
+            }
+            for r in rows:
+                item = bulanan[(r["tahun"], r["bulan"])]
+                deb, kre = float(r["deb"] or 0), float(r["kre"] or 0)
+                if r["gol"] == "4":
+                    item["pendapatan"] += kre - deb
+                else:
+                    item["beban"] += deb - kre
+            return Response({"tahun": period["tahun"], "periode": period["periode"].kode, "data": list(bulanan.values())})
+
         try:
             tahun = int(request.query_params.get("tahun") or 0)
         except ValueError:
             tahun = 0
         if not tahun:
-            from datetime import date
             tahun = date.today().year
 
         rows = _rows(
@@ -409,7 +508,7 @@ class LabaRugiBulananView(APIView):
             [tahun],
         )
 
-        bulanan = {m: {"bulan": m, "pendapatan": 0, "beban": 0} for m in range(1, 13)}
+        bulanan = {m: {"tahun": tahun, "bulan": m, "pendapatan": 0, "beban": 0} for m in range(1, 13)}
         for r in rows:
             m = r["bulan"]
             deb, kre = float(r["deb"] or 0), float(r["kre"] or 0)

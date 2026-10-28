@@ -94,3 +94,14 @@ class IsFinanceWriteFinancePrincipalRead(BasePermission):
         if request.method in ("GET", "HEAD", "OPTIONS"):
             return _in_groups(request.user, (FINANCE, PRINCIPAL))
         return _in_groups(request.user, (FINANCE,))
+
+
+def role_permission(read=(), write=()):
+    """Permission dengan daftar role baca (GET/HEAD/OPTIONS) dan tulis terpisah."""
+
+    class _RolePermission(BasePermission):
+        def has_permission(self, request, view):
+            groups = read if request.method in ("GET", "HEAD", "OPTIONS") else write
+            return _in_groups(request.user, groups)
+
+    return _RolePermission

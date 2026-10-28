@@ -10,13 +10,14 @@ import Icon from '@/shared/components/PhosphorIcon.vue'
 import { calendarTextMatches, formatLocalDate } from '@/core/format'
 import type { Pegawai, Pinjaman } from '@/types/api'
 import { cents, money } from './payroll'
+import { payrollEligible } from './staff'
 const props=defineProps<{row:Pinjaman|null;staff:Pegawai[];optionsLoading:boolean;optionsError:string;saving:boolean;uncertain:boolean;error:string}>()
 const visible=defineModel<boolean>({default:false})
 const emit=defineEmits<{save:[payload:Partial<Pinjaman>];reloadOptions:[];review:[]}>()
 const form=reactive({pegawai:null as number|null,tanggal:new Date() as Date|null,jumlah:null as number|null,tenor:1 as number|null,angsuran:null as number|null})
 const attempted=ref(false),badDate=ref(false),element=ref<HTMLFormElement|null>(null),errorElement=ref<HTMLElement|null>(null)
 const locked=computed(()=>props.saving||props.uncertain)
-const employees=computed(()=>props.staff.filter(row=>row.status_aktif||row.id===props.row?.pegawai))
+const employees=computed(()=>props.staff.filter(row=>payrollEligible(row)||row.id===props.row?.pegawai))
 const dateInvalid=computed(()=>badDate.value||!form.tanggal||!Number.isFinite(form.tanggal.getTime()))
 const invalid=computed(()=>!form.pegawai||!employees.value.some(row=>row.id===form.pegawai)||dateInvalid.value||cents(form.jumlah)==null||(form.jumlah??0)<=0||cents(form.angsuran)==null||!Number.isInteger(form.tenor)||!form.tenor||form.tenor<1)
 watch(visible,open=>{if(!open)return;const row=props.row;attempted.value=false;badDate.value=false;Object.assign(form,{pegawai:row?.pegawai??null,tanggal:row?new Date(row.tanggal_pinjaman+'T12:00:00'):new Date(),jumlah:row?Number(row.jumlah_pinjaman):null,tenor:row?.tenor_bulan??1,angsuran:row?Number(row.angsuran_per_bulan):null})},{immediate:true})

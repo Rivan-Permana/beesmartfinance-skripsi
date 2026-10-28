@@ -7,7 +7,7 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
-from accounts.permissions import IsAdministration
+from accounts.permissions import ADMINISTRATION, FINANCE, role_permission
 
 from operations.models import PendaftaranSiswa
 from operations.serializers import PendaftaranSiswaSerializer, BayarPendaftaranInputSerializer, BayarPendaftaranResponseSerializer, FinalisasiPendaftaranInputSerializer
@@ -19,7 +19,8 @@ class PendaftaranSiswaViewSet(viewsets.ModelViewSet):
         "jurnal_sitin__detail", "jurnal_pendaftaran__detail", "jurnal_sitin__reversals", "jurnal_pendaftaran__reversals",
     ).order_by("-tanggal_daftar", "pk")
     serializer_class = PendaftaranSiswaSerializer
-    permission_classes = [IsAdministration]
+    # Staf TU kelola; Keuangan hanya lihat.
+    permission_classes = [role_permission(read=(ADMINISTRATION, FINANCE), write=(ADMINISTRATION,))]
     filterset_fields = ["status"]
 
     @extend_schema(request=BayarPendaftaranInputSerializer, responses=BayarPendaftaranResponseSerializer)

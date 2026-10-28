@@ -10,7 +10,7 @@ from rest_framework import serializers
 from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
 from rest_framework.response import Response
 
-from accounts.permissions import IsFinance, IsFinanceOrReadOnly, IsPrincipal
+from accounts.permissions import IsAdministration, IsFinance, IsFinanceOrReadOnly, IsPrincipal
 
 from config.db_errors import humanize_db_error
 
@@ -138,8 +138,10 @@ class TrJurnalViewSet(viewsets.ModelViewSet):
         return queryset
 
     def get_permissions(self):
-        # Finance: buat/ubah draft, submit, hapus draft. Principal: approve, void.
-        if self.action in ("create", "update", "partial_update", "submit", "destroy", "catat", "batal_penerimaan"):
+        # Finance/Staf TU: buat/ubah/hapus draft. Finance: submit, catat. Principal: approve, void.
+        if self.action in ("create", "update", "partial_update", "destroy"):
+            return [(IsFinance | IsAdministration)()]
+        if self.action in ("submit", "catat", "batal_penerimaan"):
             return [IsFinance()]
         if self.action in ("approve", "void", "tolak"):
             return [IsPrincipal()]
@@ -149,7 +151,14 @@ class TrJurnalViewSet(viewsets.ModelViewSet):
         with transaction.atomic(), audit_user(self.request.user):
             serializer.save(created_by=self.request.user)
 
+    def _tolak_draf_milik_lain(self, instance):
+        # Staf TU hanya mengubah/menghapus draf buatannya sendiri.
+        user = self.request.user
+        if not IsFinance().has_permission(self.request, self) and instance.created_by_id != user.pk:
+            raise PermissionDenied("Staf TU hanya dapat mengubah atau menghapus draf buatan sendiri.")
+
     def perform_destroy(self, instance):
+        self._tolak_draf_milik_lain(instance)
         with transaction.atomic(), audit_user(self.request.user):
             instance = TrJurnal.objects.select_for_update().get(pk=instance.pk)
             if instance.status != "DRAFT" or instance.tipe_sumber != "MANUAL":
@@ -158,6 +167,7 @@ class TrJurnalViewSet(viewsets.ModelViewSet):
             instance.delete()
 
     def perform_update(self, serializer):
+        self._tolak_draf_milik_lain(serializer.instance)
         if serializer.instance.status != "DRAFT":
             raise ValidationError("Hanya jurnal DRAFT yang bisa diubah.")
         with transaction.atomic(), audit_user(self.request.user):

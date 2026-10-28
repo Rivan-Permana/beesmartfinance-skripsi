@@ -24,7 +24,7 @@ import Icon from "@/shared/components/PhosphorIcon.vue"
 import TagihanDirectory from "./TagihanDirectory.vue"
 import TagihanPaymentDialog from "./TagihanPaymentDialog.vue"
 import TagihanHistoryDialog from "./TagihanHistoryDialog.vue"
-import { paymentPayload, paymentValid, type TagihanPaymentForm } from "./payment"
+import { paymentFormFor, paymentPayload, paymentValid, type TagihanPaymentForm } from "./payment"
 import { perluDicocokkan } from "./presentation"
 import type {
   Coa,
@@ -444,14 +444,7 @@ async function bayar(t: Tagihan) {
     }
     bayarTarget.value = full
     bayarError.value = ""
-    bayarForm.value.tanggal = new Date()
-    bayarForm.value.no_bukti = ""
-    bayarForm.value.akun_kas = kasOptions.value[0]?.kode_akun ?? ""
-    bayarForm.value.request_id = crypto.randomUUID()
-    bayarForm.value.alokasi = full.detail.filter((d) => d.id && Number(d.nominal) > Number(d.total_terbayar ?? 0)).map((d) => ({
-      detail: d.id!, label: d.keterangan || d.komponen, nominal: 0,
-      sisa: Number(d.nominal) - Number(d.total_terbayar ?? 0),
-    }))
+    bayarForm.value = paymentFormFor(full, kasOptions.value[0]?.kode_akun ?? "")
     bayarDialog.value = true
   } catch (e) {
     notifyError(toast, e, "Gagal memuat rincian pembayaran.")

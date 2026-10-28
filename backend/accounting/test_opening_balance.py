@@ -131,3 +131,44 @@ class OpeningBalanceTests(APITestCase):
         balances = {r["kode_akun"]: r for r in _saldo_tahun(2027, kumulatif=True)}
         self.assertEqual(balances["411"]["saldo_akhir"], 0)
         self.assertEqual(balances["3102"]["saldo_akhir"], 500)
+
+
+class DashboardPeriodFilterTests(APITestCase):
+    """Filter Beranda per hari, bulan, dan periode tahun ajaran (lintas tahun kalender)."""
+
+    def setUp(self):
+        user = get_user_model().objects.create_user("dashboard-period")
+        user.groups.add(Group.objects.get(name="SchoolPrincipal"))
+        self.client.force_authenticate(user)
+        self.cash = MsCoa.objects.create(kode_akun="111", nama_akun="Kas", posisi_normal="D")
+        self.income = MsCoa.objects.create(kode_akun="411", nama_akun="SPP", posisi_normal="K")
+        self.periode = MsPeriodeAkuntansi.objects.create(kode="2026/2027", tgl_mulai=date(2026, 7, 1), tgl_selesai=date(2027, 6, 30))
+        for on, value in ((date(2026, 6, 30), 50), (date(2026, 7, 1), 100), (date(2026, 12, 15), 200), (date(2027, 1, 10), 300)):
+            jurnal = TrJurnal.objects.create(id=uuid.uuid4(), no_bukti=str(uuid.uuid4()), tanggal=on)
+            TrJurnalDetail.objects.create(jurnal=jurnal, kode_akun=self.cash, debit=value, kredit=0)
+            TrJurnalDetail.objects.create(jurnal=jurnal, kode_akun=self.income, debit=0, kredit=value)
+            TrJurnal.objects.filter(pk=jurnal.pk).update(status="POSTED")
+
+    def test_period_spans_school_year_across_calendar_years(self):
+        response = self.client.get(f"/api/v1/dashboard/ringkasan/?periode={self.periode.pk}")
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(Decimal(str(response.data["total_pendapatan"])), Decimal("600"))
+        self.assertEqual(Decimal(str(response.data["kas"])), Decimal("650"))
+        self.assertEqual(response.data["periode_filter"]["mode"], "period")
+        self.assertEqual(response.data["periode_filter"]["awal"], "2026-07-01")
+        self.assertEqual(response.data["periode_filter"]["akhir"], "2027-06-30")
+        laba = self.client.get(f"/api/v1/laporan/laba-rugi/?periode={self.periode.pk}")
+        self.assertEqual(Decimal(str(laba.data["total_pendapatan"])), Decimal("600"))
+        bulanan = self.client.get(f"/api/v1/dashboard/laba-rugi-bulanan/?periode={self.periode.pk}").data["data"]
+        self.assertEqual(len(bulanan), 12)
+        self.assertEqual((bulanan[0]["tahun"], bulanan[0]["bulan"], bulanan[0]["pendapatan"]), (2026, 7, 100))
+        self.assertEqual((bulanan[6]["tahun"], bulanan[6]["bulan"], bulanan[6]["pendapatan"]), (2027, 1, 300))
+
+    def test_day_filter_counts_only_that_date(self):
+        response = self.client.get("/api/v1/dashboard/ringkasan/?tanggal=2026-12-15")
+        self.assertEqual(Decimal(str(response.data["total_pendapatan"])), Decimal("200"))
+        self.assertEqual(Decimal(str(response.data["kas"])), Decimal("350"))
+
+    def test_invalid_period_is_rejected(self):
+        self.assertEqual(self.client.get("/api/v1/dashboard/ringkasan/?periode=999999").status_code, 400)
+        self.assertEqual(self.client.get("/api/v1/dashboard/ringkasan/?tanggal=bukan-tanggal").status_code, 400)
