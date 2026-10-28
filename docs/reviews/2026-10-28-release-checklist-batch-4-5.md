@@ -163,7 +163,7 @@ Hasil 28/10 17:34–17:35 UTC: `backups/db-20261028T173437Z-before-batch45.dump`
 
 ## 4. Impor biodata (setelah rilis, oleh Staf TU)
 
-1. Buat backup lagi persis sebelum impor (blok bagian 2, ganti akhiran `before-batch45` menjadi `before-impor-biodata`).
+1. **Selesai 28/10 18:31 UTC:** `backups/db-20261028T183137Z-before-impor-biodata.dump` (249.561 byte, 50 `TABLE DATA`, sudah berisi 4 kelompok baru). Catatan asli langkah ini: buat backup lagi persis sebelum impor (blok bagian 2, ganti akhiran `before-batch45` menjadi `before-impor-biodata`).
 2. **Selesai 28/10:** 4 kelompok TKB dibuat Claude lewat UI produksi atas permintaan pengguna, dengan sesi Staf TU `admin.tu` yang login sendiri: id 8 Bu Dini, 9 Bu Cita, 10 Bu Okta, 11 Bu Latifah (semuanya 26/27, 0 siswa). Total 11 kelompok. Kelompok kosong bisa dihapus lagi dari menu Kelompok bila perlu. Catatan asli langkah ini: pastikan semua kelompok untuk 11 kelas sudah ada. Staf TU membuat 4 kelompok TKB di menu Kelompok → Tambah kelompok: Bu Dini 26/27, Bu Cita 26/27, Bu Okta 26/27, Bu Latifah 26/27. Saran pemetaan di pratinjau impor otomatis mengenali nama ini.
 3. Di Google Sheets, buka tab biodata → File → Download → Comma-separated values (.csv).
 4. Login sebagai Staf TU → Data siswa → **Impor biodata** → pilih CSV. Periksa pratinjau sebelum menyimpan:
