@@ -63,6 +63,25 @@ Cara membaca hasilnya:
 | jurnal DRAFT/PENDING | 7 (sama seperti 28/10) | Tidak terkait rilis. Tetap menghalangi tutup buku. |
 | periode | 2026/2027 01/07/2026–30/06/2027 OPEN | Periksa sebelum rilis. |
 
+### Hasil cek — 28 Oktober 2026 (web console, read-only)
+
+| Cek | Hasil | Penilaian |
+|---|---|---|
+| SHA backend / frontend | `23895b4` / `23895b4`; log terakhir: Worker ter-deploy | Sesuai |
+| Container | backend Up 2 jam, caddy Up 11 hari, db Up 11 hari (healthy) | Sesuai |
+| Disk | 6,4 GB dari 96 GB (7%) | Cukup |
+| Backup terakhir | `db-20261028T050005Z.dump` (248 KB, dari deploy 28/10) | Ada; masih hanya di VPS |
+| Migrasi / kolom 0018 | `0017_biaya_masuk_siswa` / 0 | Sesuai |
+| Siswa | 32, semuanya aktif; SPP 0: 0; nama kembar: 0; tanpa kelompok: 2 | Aman. Impor tidak akan bentrok nama. |
+| Biodata terisi | tgl lahir 0, alamat 0, nama ayah 2, HP ayah 1, nama ibu 5, HP ibu 4 | Impor hampir hanya mengisi kolom kosong. |
+| Kelompok | PG: Kepompong (3), Lebah 1 (10), Lebah 2 (10). TKA: Bu Desi (0), Bu Indri (7), Bu Ita (0), Bu Mei (0). | **Belum ada kelompok untuk Bu Dini, Bu Cita, Bu Okta, Bu Latifah.** Buat dulu sebelum impor. Tidak memblokir merge. |
+| Tagihan | Bulanan 7 (bulan ini 3), Biaya masuk 0 | Tidak terkait rilis |
+| Akun Guru aktif | 1 | Terdampak 3a (tanpa nominal); tidak memblokir |
+| Jurnal DRAFT/PENDING | 7 | Sama seperti sebelumnya |
+| Periode | 2026/2027, 01/07/2026–30/06/2027, OPEN | Sesuai |
+
+Kesimpulan: tidak ada yang menghalangi backup dan merge. Sebelum impor biodata, buat 4 kelompok yang belum ada, dengan jenjang sesuai konfirmasi sekolah.
+
 ## 2. Backup manual sebelum merge
 
 Deploy sudah membuat dump sendiri. Backup bernama ini untuk titik pulih yang jelas sebelum rilis. Jalankan di web console:
