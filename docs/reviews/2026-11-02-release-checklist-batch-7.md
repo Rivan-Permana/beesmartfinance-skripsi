@@ -133,6 +133,14 @@ Hasil 2/11 02:52 UTC: `backups/db-20261102T025212Z-before-batch7.dump`, 271.840 
    - **Kepsek:** Beranda normal; Tunggakan tagihan → Invoice siswa terbuka.
    - **Guru:** Absensi Siswa tetap jalan; tidak ada tombol Invoice atau tab Perlu dilengkapi.
 
+### Hasil rilis — 2 November 2026
+
+- PR #25 di-merge ke `main` pukul 02:57 UTC (`64dadab`) dari sesi Claude atas instruksi pengguna, setelah cek read-only dan backup `before-batch7`.
+- Backend baru aktif ±03:00 UTC: schema produksi memuat `perlu-dilengkapi`, `invoice-gabungan`, `kode-pengeluaran`.
+- Worker berganti ke bundle `index-DYTqwvHV.js`; chunk SiswaListView memuat "Perlu dilengkapi", "Invoice tunggakan", "Ukuran seragam"; CoaListView memuat "Kode pengeluaran sekolah"; JurnalListView memuat "Kode sekolah".
+- Cek dari luar: `/login` 200; API tanpa token 401 lewat Worker dan origin.
+- Cek read-only pasca-rilis dan smoke test per role: menunggu.
+
 ## 4. Setelah rilis (Staf TU)
 
 1. Isi rekening, atas nama, kontak konfirmasi, dan catatan invoice per jenjang di menu Kelompok → Jenjang → Ubah. Datanya dari template INV TK/INV PG sekolah; jangan dicatat di repo.
