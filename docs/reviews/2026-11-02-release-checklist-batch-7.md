@@ -100,6 +100,8 @@ docker compose --env-file .env.vps -f docker-compose.production.yml exec -T db \
 
 Diharapkan: ukuran file sedikit di atas dump `before-batch6` dan jumlah `TABLE DATA` sekitar 50. Kalau ukurannya 0 atau perintah gagal, jangan merge.
 
+Hasil 2/11 02:52 UTC: `backups/db-20261102T025212Z-before-batch7.dump`, 271.840 byte (before-batch6: 268.168), 50 `TABLE DATA`. Titik pulih rilis Batch 7.
+
 ## 3. Rilis
 
 1. Buka PR `codex/auto-deploy-fe-be` → `main` lalu merge di GitHub. Hanya kamu yang melakukan ini, sebagai keputusan rilis.
