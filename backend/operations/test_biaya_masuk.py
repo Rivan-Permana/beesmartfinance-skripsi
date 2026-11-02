@@ -127,6 +127,9 @@ class BiayaMasukTests(APITestCase):
         default = self.client.get(f"/api/v1/siswa/biaya-masuk-default/?kelompok={self.kelompok.pk}&tipe_tp=baru")
         self.assertEqual(default.status_code, 200)
         self.assertEqual(default.data["uang_masuk"], "3200000.00")
+        # Daftar harga 26/27 (dikonfirmasi sekolah 2/11/2026).
+        self.assertEqual(default.data["uang_kegiatan"], "5000000.00")
+        self.assertEqual(default.data["uang_seragam"], "500000.00")
         self.assertEqual(self.client.get("/api/v1/siswa/biaya-masuk-default/?kelompok=abc").status_code, 400)
         for role in ("Finance", "SchoolPrincipal"):
             self.client.force_authenticate(self.users[role])
@@ -178,3 +181,47 @@ class BiayaMasukTests(APITestCase):
             data = self.client.get(f"/api/v1/siswa/{siswa_id}/").data
             self.assertEqual(data["spp_nominal"], "500000.00")
             self.assertIsNotNone(data["biaya_masuk"])
+
+    def test_kategori_tarif_khusus_disimpan_tanpa_diskon_otomatis(self):
+        res = self.client.post("/api/v1/siswa/", self.payload(
+            diskon_kategori=["PINDAHAN", "SBD"], diskon_nominal="0", uang_masuk="500000", uang_kegiatan="2450000",
+        ), format="json")
+        self.assertEqual(res.status_code, 201, res.data)
+        self.assertEqual(res.data["diskon_kategori"], ["SBD", "PINDAHAN"])
+        self.assertEqual(self.tagihan(res.data["id"]).total, Decimal("5000000"))
+
+    def test_akun_kas_baru_bisa_menerima_dan_akun_non_kas_ditolak(self):
+        _coa("1105", "Kas PG", "D")
+        _coa("113", "Perlengkapan Sekolah", "D")
+        siswa_id = self.client.post("/api/v1/siswa/", self.payload(diskon_nominal="0"), format="json").data["id"]
+        tagihan = self.tagihan(siswa_id)
+        detail = tagihan.detail.get(komponen="UANG_MASUK")
+
+        def bayar(akun, no_bukti):
+            return self.client.post(f"/api/v1/tagihan/{tagihan.pk}/bayar/", {
+                "tanggal": "2026-10-28", "no_bukti": no_bukti, "nominal": "100000", "akun_kas": akun,
+                "request_id": str(uuid.uuid4()), "alokasi": [{"detail": detail.pk, "nominal": "100000"}],
+            }, format="json")
+
+        self.assertEqual(bayar("113", "BM-K1").status_code, 400)
+        self.assertEqual(bayar("1105", "BM-K2").status_code, 200)
+        self.client.force_authenticate(self.users["Finance"])
+        flags = {row["kode_akun"]: row["is_kas"] for row in self.client.get("/api/v1/coa/?page_size=500").data["results"]}
+        self.assertEqual((flags["1101"], flags["1105"], flags["113"]), (True, True, False))
+
+    def test_migrasi_harga_26_27_hanya_mengubah_nilai_lama(self):
+        import importlib
+
+        from django.apps import apps
+
+        from operations.models import KomponenBiayaTemplate
+
+        migrasi = importlib.import_module("operations.migrations.0021_harga_tp_2026_27")
+        kegiatan = KomponenBiayaTemplate.objects.filter(kode="KEGIATAN", jenjang="RA", tipe_siswa="baru", tahun_ke=1)
+        seragam_pg = KomponenBiayaTemplate.objects.filter(kode="SERAGAM", jenjang="PG", tipe_siswa="baru")
+        kegiatan.update(nominal=Decimal("4500000"))
+        seragam_pg.update(nominal=Decimal("275000"))  # diubah manual lewat admin
+        migrasi.maju(apps, None)
+        self.assertEqual((kegiatan.get().nominal, seragam_pg.get().nominal), (Decimal("5000000"), Decimal("275000")))
+        migrasi.mundur(apps, None)
+        self.assertEqual(kegiatan.get().nominal, Decimal("4500000"))

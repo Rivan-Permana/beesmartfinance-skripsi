@@ -129,7 +129,7 @@ const kasOptions = ref<Coa[]>([])
 async function loadAccounts() {
   try {
     const coa = await coaApi.list()
-    kasOptions.value = coa.filter((c) => c.is_active && ["111", "112", "1011", "1101", "1102"].includes(c.kode_akun))
+    kasOptions.value = coa.filter((c) => c.is_active && c.is_kas)
   } catch (e) {
     notifyError(toast, e, "Akun penerimaan belum berhasil dimuat.")
   }

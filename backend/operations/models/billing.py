@@ -78,7 +78,7 @@ class Tagihan(SoftDeleteModel, TimeStampedModel):
 
 
 class KomponenBiayaTemplate(models.Model):
-    """Template komponen biaya TP tahunan (seed dari PDF pricelist TA 2025/26)."""
+    """Template komponen biaya TP tahunan (seed dari PDF pricelist TA 2025/26, harga 26/27 lewat migrasi 0021)."""
 
     JENJANG = [("PG", "Playgroup"), ("RA", "RA / TK")]
     TIPE = [("baru", "Siswa Baru"), ("lama", "Daftar Ulang"), ("all", "Semua")]

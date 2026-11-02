@@ -520,7 +520,7 @@ onBeforeUnmount(selesaiCetak)
 async function loadAccounts() {
   try {
     const coa = await coaApi.list()
-    kasOptions.value = coa.filter((c) => c.is_active && ["111", "112", "1011", "1101", "1102"].includes(c.kode_akun))
+    kasOptions.value = coa.filter((c) => c.is_active && c.is_kas)
     const pend = coa.find((c) => c.kode_akun.startsWith("41"))
     if (pend) defaultAkunPendapatan.value = pend.kode_akun
   } catch (e) {

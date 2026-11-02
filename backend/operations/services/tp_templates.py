@@ -6,20 +6,20 @@ from decimal import Decimal
 
 from operations.models import KomponenBiayaTemplate, TagihanDetail
 
-# Nilai canonical dari PDF TA 2025/26 (guide §2.2)
+# Nilai dari PDF TA 2025/26 (guide §2.2), disesuaikan daftar harga 26/27 yang dikonfirmasi sekolah 2/11/2026
 TP_TEMPLATE_ROWS: list[dict] = [
     # PG Semester I — siswa baru
     {"kode": "UANG_MASUK", "nama": "Uang Masuk PG", "jenjang": "PG", "tipe_siswa": "baru", "tahun_ke": 1, "nominal": "700000", "urutan": 1},
     {"kode": "KEGIATAN", "nama": "Uang Kegiatan Semester I", "jenjang": "PG", "tipe_siswa": "baru", "tahun_ke": 1, "nominal": "2500000", "urutan": 2},
     {"kode": "PENGEMBANGAN", "nama": "Uang Pengembangan Semester I", "jenjang": "PG", "tipe_siswa": "baru", "tahun_ke": 1, "nominal": "1000000", "urutan": 3},
-    {"kode": "SERAGAM", "nama": "Seragam Sekolah (1 stel)", "jenjang": "PG", "tipe_siswa": "baru", "tahun_ke": 1, "nominal": "200000", "urutan": 4},
+    {"kode": "SERAGAM", "nama": "Seragam Sekolah (1 stel)", "jenjang": "PG", "tipe_siswa": "baru", "tahun_ke": 1, "nominal": "250000", "urutan": 4},
     {"kode": "PORTOFOLIO", "nama": "Portofolio & Rapor", "jenjang": "PG", "tipe_siswa": "baru", "tahun_ke": 1, "nominal": "300000", "urutan": 5},
     {"kode": "KOMITE", "nama": "Iuran Komite (1 semester)", "jenjang": "PG", "tipe_siswa": "baru", "tahun_ke": 1, "nominal": "375000", "urutan": 6},
     # RA tahun pertama — siswa baru
     {"kode": "UANG_MASUK", "nama": "Uang Masuk RA", "jenjang": "RA", "tipe_siswa": "baru", "tahun_ke": 1, "nominal": "3200000", "urutan": 1},
-    {"kode": "KEGIATAN", "nama": "Uang Kegiatan Ananda", "jenjang": "RA", "tipe_siswa": "baru", "tahun_ke": 1, "nominal": "4500000", "urutan": 2},
+    {"kode": "KEGIATAN", "nama": "Uang Kegiatan Ananda", "jenjang": "RA", "tipe_siswa": "baru", "tahun_ke": 1, "nominal": "5000000", "urutan": 2},
     {"kode": "PENGEMBANGAN", "nama": "Uang Pengembangan", "jenjang": "RA", "tipe_siswa": "baru", "tahun_ke": 1, "nominal": "1650000", "urutan": 3},
-    {"kode": "SERAGAM", "nama": "Seragam (2 stel + Batik IGRA)", "jenjang": "RA", "tipe_siswa": "baru", "tahun_ke": 1, "nominal": "400000", "urutan": 4},
+    {"kode": "SERAGAM", "nama": "Seragam (2 stel + Batik IGRA)", "jenjang": "RA", "tipe_siswa": "baru", "tahun_ke": 1, "nominal": "500000", "urutan": 4},
     {"kode": "KOMITE", "nama": "Iuran Komite (1 tahun)", "jenjang": "RA", "tipe_siswa": "baru", "tahun_ke": 1, "nominal": "750000", "urutan": 5},
     # RA tahun kedua — daftar ulang
     {"kode": "KEGIATAN", "nama": "Uang Kegiatan", "jenjang": "RA", "tipe_siswa": "lama", "tahun_ke": 2, "nominal": "4500000", "urutan": 1},
