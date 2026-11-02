@@ -57,7 +57,11 @@ class Siswa(SoftDeleteModel, TimeStampedModel):
     )
     status = models.CharField(max_length=10, choices=STATUS, default="aktif")
     # Biaya masuk diisi manual per siswa; disimpan sebagai tagihan jenis BIAYA_MASUK.
-    DISKON_KATEGORI = [("PG", "PG"), ("SIPG", "SIPG"), ("SIB", "SIB"), ("SIKBR", "SIKBR")]
+    # SBD, KHUSUS, PINDAHAN: tarif per kesepakatan sekolah (bukan rumus); nominal komponen diisi langsung.
+    DISKON_KATEGORI = [
+        ("PG", "PG"), ("SIPG", "SIPG"), ("SIB", "SIB"), ("SIKBR", "SIKBR"),
+        ("SBD", "SBD"), ("KHUSUS", "KHUSUS"), ("PINDAHAN", "PINDAHAN"),
+    ]
     diskon_kategori = models.JSONField(default=list, blank=True)
     diskon_nominal = models.DecimalField(max_digits=18, decimal_places=2, default=0)
     uang_masuk = models.DecimalField(max_digits=18, decimal_places=2, blank=True, null=True)

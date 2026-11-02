@@ -154,7 +154,7 @@ export interface ImporSppHasil {
   ringkasan: Record<ImporSppAksi, number>
   baris: ImporSppBaris[]
 }
-export type DiskonKategori = "PG" | "SIPG" | "SIB" | "SIKBR"
+export type DiskonKategori = "PG" | "SIPG" | "SIB" | "SIKBR" | "SBD" | "KHUSUS" | "PINDAHAN"
 export type BiayaMasukField = "uang_masuk" | "uang_pengembangan" | "uang_kegiatan" | "uang_seragam"
 export type SiswaInput = Omit<Siswa, "id" | "biaya_masuk">
 
@@ -289,6 +289,8 @@ export interface Coa {
   is_active: boolean
   saldo_awal: string
   tanggal_saldo_awal: string | null
+  /** Dihitung server: akun kas/bank yang boleh dipilih sebagai penerima atau sumber uang. */
+  is_kas?: boolean
 }
 
 export type JurnalStatus = "DRAFT" | "PENDING" | "POSTED" | "VOID"

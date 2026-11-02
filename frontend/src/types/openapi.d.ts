@@ -1606,9 +1606,12 @@ export interface components {
          *     * `SIPG` - SIPG
          *     * `SIB` - SIB
          *     * `SIKBR` - SIKBR
+         *     * `SBD` - SBD
+         *     * `KHUSUS` - KHUSUS
+         *     * `PINDAHAN` - PINDAHAN
          * @enum {string}
          */
-        DiskonKategoriEnum: "PG" | "SIPG" | "SIB" | "SIKBR";
+        DiskonKategoriEnum: "PG" | "SIPG" | "SIB" | "SIKBR" | "SBD" | "KHUSUS" | "PINDAHAN";
         FinalisasiPendaftaranInput: {
             /** Format: decimal */
             spp_nominal: string;
@@ -1960,6 +1963,8 @@ export interface components {
             saldo_awal?: string;
             /** Format: date */
             tanggal_saldo_awal?: string | null;
+            /** @description Akun kas/bank yang bisa dipilih sebagai penerima atau sumber uang. */
+            readonly is_kas: boolean;
         };
         MsGolongan: {
             readonly id: number;
@@ -2468,6 +2473,8 @@ export interface components {
             saldo_awal?: string;
             /** Format: date */
             tanggal_saldo_awal?: string | null;
+            /** @description Akun kas/bank yang bisa dipilih sebagai penerima atau sumber uang. */
+            readonly is_kas?: boolean;
         };
         PatchedMsGolongan: {
             readonly id?: number;

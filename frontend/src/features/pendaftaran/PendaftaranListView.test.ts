@@ -28,7 +28,7 @@ beforeEach(() => {
     vi.mocked(pendaftaranSiswaApi.listAll).mockResolvedValue([{ ...row }]);
     vi.mocked(pendaftaranSiswaApi.get).mockResolvedValue({ ...row });
     vi.mocked(jenjangApi.listAll).mockResolvedValue([{ id: 1, kode: 'TK', nama: 'TK' }]);
-    vi.mocked(coaApi.list).mockResolvedValue([{ kode_akun: '111', nama_akun: 'Kas', is_active: true, posisi_normal: 'D', sub_golongan: null, saldo_awal: '0', tanggal_saldo_awal: null }]);
+    vi.mocked(coaApi.list).mockResolvedValue([{ kode_akun: '111', nama_akun: 'Kas', is_active: true, posisi_normal: 'D', sub_golongan: null, saldo_awal: '0', tanggal_saldo_awal: null, is_kas: true }]);
 });
 const button = (view: ReturnType<typeof mount>, label: string) => view.findAll('button').find(b => b.text().trim() === label)!;
 const number = (view: ReturnType<typeof mount>, id: string) => view.findAllComponents(InputNumber).find(c => c.props('inputId') === id)!;

@@ -137,6 +137,7 @@ async function submit() {
         <div class="siswa-discount" role="group" aria-labelledby="siswa-discount-label">
           <span id="siswa-discount-label" class="siswa-discount-label">Status diskon</span>
           <div class="siswa-discount-options"><label v-for="kode in DISKON_KATEGORI" :key="kode" class="siswa-discount-option"><Checkbox v-model="form.diskon_kategori" :value="kode" :input-id="`diskon-${kode}`" />{{ kode }}</label></div>
+          <small class="siswa-section-help">SBD, KHUSUS, dan PINDAHAN mengikuti kesepakatan sekolah: isi nominal tiap komponen sesuai kesepakatan, jumlah diskon boleh Rp 0.</small>
         </div>
         <div class="siswa-fields">
           <div class="siswa-field"><label for="siswa-diskon">Jumlah diskon <span>(Rp)</span></label><InputNumber input-id="siswa-diskon" :model-value="amount('diskon_nominal')" @update:model-value="setAmount('diskon_nominal', $event)" locale="id-ID" :min="0" :max-fraction-digits="2" :invalid="diskonInvalid" :input-props="{ 'aria-invalid': diskonInvalid, 'aria-describedby': diskonInvalid ? 'siswa-diskon-error' : 'siswa-diskon-help' }" fluid /><small v-if="diskonInvalid" id="siswa-diskon-error" class="siswa-field-error">Diskon tidak boleh melebihi total biaya masuk.</small><small v-else id="siswa-diskon-help">Memotong Uang Masuk lebih dulu, lalu Pengembangan, Kegiatan, dan Seragam.</small></div>

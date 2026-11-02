@@ -38,7 +38,7 @@ export function kelompokLabel(kelompok: Kelompok) {
   return [kelompok.jenjang_kode, kelompok.nama].filter(Boolean).join(" · ")
 }
 
-export const DISKON_KATEGORI: DiskonKategori[] = ["PG", "SIPG", "SIB", "SIKBR"]
+export const DISKON_KATEGORI: DiskonKategori[] = ["PG", "SIPG", "SIB", "SIKBR", "SBD", "KHUSUS", "PINDAHAN"]
 /** Urutan ini juga urutan pemotongan diskon di backend. */
 export const BIAYA_MASUK_FIELDS: { field: BiayaMasukField; label: string }[] = [
   { field: "uang_masuk", label: "Uang Masuk" },

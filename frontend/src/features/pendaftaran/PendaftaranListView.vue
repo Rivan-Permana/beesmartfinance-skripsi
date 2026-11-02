@@ -181,7 +181,7 @@ async function loadAccounts() {
     try {
         const result = await coaApi.list();
         if (request === accountSequence)
-            accounts.value = result.filter(row => row.is_active && ['111', '112', '1011', '1101', '1102'].includes(row.kode_akun));
+            accounts.value = result.filter(row => row.is_active && row.is_kas);
     }
     catch (e) {
         if (request === accountSequence)

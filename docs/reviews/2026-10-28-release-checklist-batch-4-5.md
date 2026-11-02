@@ -156,7 +156,7 @@ Hasil 28/10 17:34–17:35 UTC: `backups/db-20261028T173437Z-before-batch45.dump`
     - `POST /siswa/impor-biodata/` tanpa berkas ditolak 403.
   - **Kepsek:**
     - Beranda tanpa error; filter Hari/Bulan/Periode 2026/2027.
-    - KPI Pendapatan Rp 6.715.000, Beban Rp 5.660.000, Surplus Rp 1.055.000.
+    - KPI Pendapatan, Beban, dan Surplus tampil (nominal tidak dicatat di repo publik).
     - `GET /siswa/` 403, sesuai matriks akses.
 
   Semua lulus.

@@ -4,6 +4,7 @@ from decimal import Decimal
 
 from django.db import transaction
 
+from accounting.kas import akun_kas_q
 from accounting.models import MsCoa, TrJurnal
 from operations.models import PendaftaranSiswa
 
@@ -41,7 +42,7 @@ def post_pembayaran_pendaftaran(pendaftaran, *, komponen, tanggal, no_bukti, nom
                     and sum(jurnal.detail.values_list("debit", flat=True)) == nominal):
                 return jurnal
             raise ValueError("Komponen sudah memiliki penerimaan. Pilih hanya komponen yang belum dibayar.")
-        if not MsCoa.objects.filter(pk=akun_kas, is_active=True, kode_akun__in=["111", "112", "1011", "1101", "1102"]).exists():
+        if not MsCoa.objects.filter(akun_kas_q(), pk=akun_kas, is_active=True).exists():
             raise ValueError("Pilih akun kas/bank aktif yang dipakai sekolah.")
         baris = [(akun_kas, nominal, Decimal(0))]
         for k in komponen:

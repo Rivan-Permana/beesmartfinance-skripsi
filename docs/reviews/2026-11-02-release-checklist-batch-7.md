@@ -133,6 +133,28 @@ Hasil 2/11 02:52 UTC: `backups/db-20261102T025212Z-before-batch7.dump`, 271.840 
    - **Kepsek:** Beranda normal; Tunggakan tagihan → Invoice siswa terbuka.
    - **Guru:** Absensi Siswa tetap jalan; tidak ada tombol Invoice atau tab Perlu dilengkapi.
 
+### Hasil rilis — 2 November 2026
+
+- PR #25 di-merge ke `main` pukul 02:57 UTC (`64dadab`) dari sesi Claude atas instruksi pengguna, setelah cek read-only dan backup `before-batch7`.
+- Backend baru aktif ±03:00 UTC: schema produksi memuat `perlu-dilengkapi`, `invoice-gabungan`, `kode-pengeluaran`.
+- Worker berganti ke bundle `index-DYTqwvHV.js`; chunk SiswaListView memuat "Perlu dilengkapi", "Invoice tunggakan", "Ukuran seragam"; CoaListView memuat "Kode pengeluaran sekolah"; JurnalListView memuat "Kode sekolah".
+- Cek dari luar: `/login` 200; API tanpa token 401 lewat Worker dan origin.
+- Cek read-only pasca-rilis (web console, ±03:18 UTC):
+  - SHA backend dan frontend `64dadab`; Worker version `7e821c23…`
+  - backend Up 18 menit, db healthy, disk 8%
+  - dump deploy `db-20261102T030004Z.dump` (271.840 byte)
+  - migrasi `0020_seed_kode_pengeluaran`, kolom 0019 = 8, kode pengeluaran 46 / 19 terpetakan
+  - 108 siswa aktif (SPP 0 = 10, tanpa kelompok = 2, kedua HP kosong = 4), tagihan 7 / 0 / 3, jurnal 18 (DRAFT/PENDING 7), periode 2026/2027 OPEN
+
+  Tidak ada data yang berubah.
+- Smoke test produksi per role (2/11; pengguna login di browser bawaan, Claude memeriksa tanpa menyimpan data; jumlah jurnal dan tagihan tidak berubah):
+  - **Staf TU:** tab Perlu dilengkapi tampil dengan filter per jenis masalah; Lengkapi membuka form; form siswa berisi ukuran seragam; total invoice gabungan sama dengan sisa di daftar tagihan untuk semua siswa bertunggakan, tagihan "perlu dicocokkan" tampil sebagai peringatan; form Jenjang berisi isian info pembayaran; kode `PLN` mengisi akun 5406, `AB3` minta unit, `DVD` belum dipetakan.
+  - **Keuangan:** panel kode pengeluaran dengan Tambah/Ubah kode; kolom Invoice di Tunggakan; nominal siswa tetap terlihat; POST kode kosong ditolak 400.
+  - **Kepsek:** Beranda tanpa error dan angka sama seperti sebelum rilis; Invoice dari Tunggakan terbuka; tulis kode 403.
+  - **Guru:** Absensi tanpa error dan tanpa nominal; perlu-dilengkapi, invoice-gabungan, dan tulis kode 403.
+
+  Semua lulus. Catatan: siswa bertunggakan tanpa kelompok tidak mendapat rekening jenjang di invoice; siswa tanpa HP ortu yang valid tidak punya tombol WA (pakai Salin teks WA).
+
 ## 4. Setelah rilis (Staf TU)
 
 1. Isi rekening, atas nama, kontak konfirmasi, dan catatan invoice per jenjang di menu Kelompok → Jenjang → Ubah. Datanya dari template INV TK/INV PG sekolah; jangan dicatat di repo.

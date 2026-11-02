@@ -18,6 +18,7 @@ from rest_framework.views import APIView
 
 from accounts.permissions import IsFinanceOrPrincipal, IsPrincipal
 
+from .kas import is_akun_kas
 from .models import AuditLog
 
 
@@ -269,8 +270,7 @@ class DashboardRingkasanView(APIView):
         saldo = _saldo_range(awal, akhir, dengan_saldo_awal=False)
         saldo_kas = _saldo_range(awal, akhir, kumulatif=True)
         kas = sum((r["saldo_akhir"] for r in saldo_kas
-                   if str(r["kode_akun"]).startswith("1.1")
-                   or str(r["kode_akun"]) in ("1011", "1101", "1102", "111", "112")), Decimal(0))
+                   if str(r["kode_akun"]).startswith("1.1") or is_akun_kas(r["kode_akun"], r["nama_akun"])), Decimal(0))
         pendapatan = sum((r["saldo_akhir"] for r in saldo
                           if str(r["kode_akun"]).startswith("4")), Decimal(0))
         beban = sum((r["saldo_akhir"] for r in saldo

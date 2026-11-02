@@ -5264,12 +5264,18 @@ components:
       - SIPG
       - SIB
       - SIKBR
+      - SBD
+      - KHUSUS
+      - PINDAHAN
       type: string
       description: |-
         * `PG` - PG
         * `SIPG` - SIPG
         * `SIB` - SIB
         * `SIKBR` - SIKBR
+        * `SBD` - SBD
+        * `KHUSUS` - KHUSUS
+        * `PINDAHAN` - PINDAHAN
     FinalisasiPendaftaranInput:
       type: object
       properties:
@@ -6143,7 +6149,13 @@ components:
           type: string
           format: date
           nullable: true
+        is_kas:
+          type: boolean
+          readOnly: true
+          description: Akun kas/bank yang bisa dipilih sebagai penerima atau sumber
+            uang.
       required:
+      - is_kas
       - kode_akun
       - nama_akun
       - posisi_normal
@@ -7071,6 +7083,11 @@ components:
           type: string
           format: date
           nullable: true
+        is_kas:
+          type: boolean
+          readOnly: true
+          description: Akun kas/bank yang bisa dipilih sebagai penerima atau sumber
+            uang.
     PatchedMsGolongan:
       type: object
       properties:

@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from django.db import transaction
+from .kas import is_akun_kas
 from .services import can_finance_post, periode_tertutup
 
 from .models import (
@@ -33,6 +34,11 @@ class MsCoaSerializer(serializers.ModelSerializer):
         required=False,
     )
 
+    is_kas = serializers.SerializerMethodField(help_text="Akun kas/bank yang bisa dipilih sebagai penerima atau sumber uang.")
+
+    def get_is_kas(self, obj) -> bool:
+        return is_akun_kas(obj.kode_akun, obj.nama_akun)
+
     def validate(self, attrs):
         if self.instance and attrs.get("kode_akun", self.instance.pk) != self.instance.pk:
             raise serializers.ValidationError({"kode_akun": "Kode akun tidak dapat diubah."})
@@ -52,7 +58,7 @@ class MsCoaSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = MsCoa
-        fields = ["kode_akun", "sub_golongan", "nama_akun", "posisi_normal", "is_active", "saldo_awal", "tanggal_saldo_awal"]
+        fields = ["kode_akun", "sub_golongan", "nama_akun", "posisi_normal", "is_active", "saldo_awal", "tanggal_saldo_awal", "is_kas"]
 
 
 class MsPeriodeAkuntansiSerializer(serializers.ModelSerializer):
