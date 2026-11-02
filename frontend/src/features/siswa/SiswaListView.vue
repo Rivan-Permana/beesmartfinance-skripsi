@@ -3,7 +3,7 @@ import Button from "primevue/button"
 import { useConfirm } from "primevue/useconfirm"
 import { useToast } from "primevue/usetoast"
 import { computed, onMounted, ref } from "vue"
-import { useRoute, useRouter } from "vue-router"
+import { RouterLink, useRoute, useRouter } from "vue-router"
 import { kelompokApi } from "@/features/absensi/api"
 import { siswaApi } from "./api"
 import { friendlyError, notifyError, notifySuccess } from "@/core/errors"
@@ -11,13 +11,15 @@ import Icon from "@/shared/components/PhosphorIcon.vue"
 import PageLayout from "@/shared/components/PageLayout.vue"
 import SiswaDirectory from "./SiswaDirectory.vue"
 import SiswaFormDialog from "./SiswaFormDialog.vue"
+import SiswaKelengkapan from "./SiswaKelengkapan.vue"
+import InvoiceGabunganDialog from "@/features/tagihan/InvoiceGabunganDialog.vue"
 import SiswaImportDialog from "./SiswaImportDialog.vue"
 import SppImportDialog from "./SppImportDialog.vue"
 import TagihanPaymentDialog from "@/features/tagihan/TagihanPaymentDialog.vue"
 import { tagihanApi } from "@/features/tagihan/api"
 import { paymentFormFor, paymentPayload, paymentValid, type TagihanPaymentForm } from "@/features/tagihan/payment"
 import { coaApi } from "@/features/jurnal/api"
-import type { Coa, ImporBiodataHasil, ImporSppHasil, Kelompok, Siswa, SiswaInput, Tagihan } from "@/types/api"
+import type { Coa, ImporBiodataHasil, ImporSppHasil, KelengkapanHasil, Kelompok, Siswa, SiswaInput, Tagihan } from "@/types/api"
 import { useAuthStore } from '@/stores/auth'
 
 const toast = useToast()
@@ -48,11 +50,28 @@ async function sppImported(result: ImporSppHasil) {
   await load()
 }
 
+const tab = computed(() => route.query.tab === "lengkapi" ? "lengkapi" : "semua")
+const kelengkapan = ref<KelengkapanHasil | null>(null)
+const kelengkapanError = ref("")
+async function loadKelengkapan() {
+  kelengkapanError.value = ""
+  try {
+    kelengkapan.value = await siswaApi.perluDilengkapi()
+  } catch {
+    kelengkapanError.value = "Pemeriksaan data siswa belum berhasil dimuat. Coba lagi."
+  }
+}
+function editById(id: number) {
+  const row = rows.value.find((item) => item.id === id)
+  if (row) openEdit(row)
+}
+const invoiceSiswa = ref<number | null>(null)
+
 async function load() {
   loading.value = true
   loadError.value = ""
   try {
-    const [students, groups] = await Promise.allSettled([siswaApi.listAll(), kelompokApi.list()])
+    const [students, groups] = await Promise.allSettled([siswaApi.listAll(), kelompokApi.list(), loadKelengkapan()])
     rows.value = students.status === "fulfilled" ? students.value : []
     if (students.status === "rejected") loadError.value = "Data siswa belum berhasil dimuat. Periksa koneksi, lalu coba lagi."
     groupError.value = groups.status === "rejected"
@@ -151,10 +170,26 @@ const canWrite = computed(() => useAuthStore().hasRole(['Administration']))
 <template>
   <PageLayout title="Data siswa" :subtitle="canWrite?'Kelola profil dan administrasi siswa PG/TK.':'Lihat profil dan tarif siswa PG/TK. Perubahan data dilakukan Staf TU.'" :surface="false">
     <template v-if="canWrite" #actions><Button label="Tambah siswa" @click="openCreate"><template #icon><Icon name="plus" /></template></Button></template>
-    <SiswaDirectory :rows="rows" :initial-group="initialGroup" :kelompok="kelompokList" :loading="loading" :error="loadError" :group-error="groupError" :readonly="!canWrite" @create="openCreate" @edit="openEdit" @remove="confirmDelete" @receive="openReceive" @retry="load" @manage-groups="router.push('/kelompok')" @import="importDialog = true" @import-spp="sppDialog = true" />
+    <nav class="siswa-tabs" aria-label="Data siswa">
+      <RouterLink :to="{ query: { ...route.query, tab: undefined } }" :aria-current="tab === 'semua' ? 'page' : undefined"><Icon name="users" />Semua siswa</RouterLink>
+      <RouterLink :to="{ query: { ...route.query, tab: 'lengkapi' } }" :aria-current="tab === 'lengkapi' ? 'page' : undefined"><Icon name="warning-circle" />Perlu dilengkapi<span v-if="kelengkapan?.baris.length" class="siswa-tabs-count">{{ kelengkapan.baris.length }}</span></RouterLink>
+    </nav>
+    <SiswaKelengkapan v-if="tab === 'lengkapi'" :result="kelengkapan" :loading="loading && !kelengkapan" :error="kelengkapanError" :readonly="!canWrite" @edit="editById" @retry="load" />
+    <SiswaDirectory v-else :rows="rows" :initial-group="initialGroup" :kelompok="kelompokList" :loading="loading" :error="loadError" :group-error="groupError" :readonly="!canWrite" @create="openCreate" @edit="openEdit" @remove="confirmDelete" @receive="openReceive" @retry="load" @manage-groups="router.push('/kelompok')" @import="importDialog = true" @import-spp="sppDialog = true" @invoice="invoiceSiswa = $event.id" />
+    <InvoiceGabunganDialog :siswa-id="invoiceSiswa" @close="invoiceSiswa = null" />
     <SppImportDialog v-if="canWrite" v-model="sppDialog" @saved="sppImported" />
     <SiswaImportDialog v-if="canWrite" v-model="importDialog" :kelompok="kelompokList" @saved="imported" />
     <TagihanPaymentDialog v-if="canWrite" v-model="receiveDialog" v-model:form="receiveForm" :target="receiveTarget" :student-name="receiveStudent" :accounts="kasOptions" :saving="receiveSaving" :error="receiveError" @save="saveReceive" @reload-accounts="loadAccounts" />
     <SiswaFormDialog v-model="dialog" :student="editing" :kelompok="kelompokList" :saving="saving" :error="saveError" :group-error="groupError" @save="save" />
   </PageLayout>
 </template>
+
+<style scoped>
+.siswa-tabs { display: flex; gap: var(--bee-space-1); margin-bottom: var(--bee-space-5); border-bottom: 1px solid var(--app-border); overflow-x: auto; }
+.siswa-tabs a { display: inline-flex; align-items: center; gap: var(--bee-space-2); min-height: 44px; padding: 0 var(--bee-space-4); border-bottom: 2px solid transparent; color: var(--app-text-muted); font-size: var(--bee-type-ui); text-decoration: none; white-space: nowrap; }
+.siswa-tabs a .bee-icon { width: 16px; height: 16px; }
+.siswa-tabs a[aria-current=page] { border-bottom-color: var(--bee-color-brand); color: var(--bee-color-brand); font-weight: 500; }
+.siswa-tabs a:hover:not([aria-current=page]) { color: var(--app-text); }
+.siswa-tabs a:focus-visible { outline: 2px solid var(--bee-color-focus); outline-offset: -2px; }
+.siswa-tabs-count { font-size: var(--bee-type-caption); font-weight: 500; color: var(--bee-color-muted); background: var(--bee-color-neutral-tint); padding: 0 6px; border-radius: var(--bee-radius-status); }
+</style>

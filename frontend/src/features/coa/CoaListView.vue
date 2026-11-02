@@ -23,6 +23,7 @@ import SelectClearButton from "@/shared/components/SelectClearButton.vue"
 import { useAuthStore } from "@/stores/auth"
 import type { Coa, Golongan, SubGolongan } from "@/types/api"
 import { coaManageApi } from "./api"
+import KodePengeluaranPanel from "./KodePengeluaranPanel.vue"
 import "./coa.css"
 
 type Kind = "akun" | "sub" | "golongan"
@@ -280,6 +281,7 @@ onMounted(loadAll)
       </template>
       </div>
     </section>
+    <KodePengeluaranPanel :accounts="akun" :can-write="canWrite" />
 
     <Dialog v-model:visible="dialog" :header="dialogTitle" modal class="coa-dialog" :closable="!saving" :dismissable-mask="!saving" :close-on-escape="!saving">
       <form id="coa-form" class="coa-form" @submit.prevent="save">

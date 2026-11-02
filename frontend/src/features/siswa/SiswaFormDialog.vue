@@ -82,6 +82,7 @@ watch(visible, (open) => {
     diskon_kategori: [...(props.student?.diskon_kategori ?? [])], diskon_nominal: props.student?.diskon_nominal ?? "0.00",
     uang_masuk: props.student?.uang_masuk ?? null, uang_pengembangan: props.student?.uang_pengembangan ?? null,
     uang_kegiatan: props.student?.uang_kegiatan ?? null, uang_seragam: props.student?.uang_seragam ?? null,
+    ukuran_seragam_putih: props.student?.ukuran_seragam_putih ?? "", ukuran_seragam_olga: props.student?.ukuran_seragam_olga ?? "",
   })
   defaultsError.value = ""
 }, { immediate: true })
@@ -98,6 +99,7 @@ async function submit() {
     ...form, nama: form.nama!.trim(), nis: form.nis?.trim() || null,
     nama_panggilan: form.nama_panggilan?.trim() || null, tempat_lahir: form.tempat_lahir?.trim() || null,
     tanggal_lahir: birthDate.value ? formatLocalDate(birthDate.value) : null,
+    ukuran_seragam_putih: form.ukuran_seragam_putih?.trim().toUpperCase() ?? "", ukuran_seragam_olga: form.ukuran_seragam_olga?.trim().toUpperCase() ?? "",
   })
 }
 </script>
@@ -120,6 +122,8 @@ async function submit() {
           <div class="siswa-field"><label for="siswa-birthdate">Tanggal lahir</label><DatePicker :key="(saving) ? 'locked' : 'editable'" input-id="siswa-birthdate" v-model="birthDate" date-format="dd/mm/yy" :max-date="new Date()" :disabled="saving" @input="checkBirthDate" @update:model-value="badBirthDate = false" :invalid="attempted && birthDateInvalid" :input-props="{ 'aria-invalid': attempted && birthDateInvalid, 'aria-describedby': attempted && birthDateInvalid ? 'siswa-birthdate-error' : 'siswa-birthdate-help' }" fluid><template #previcon><Icon name="caret-left" /></template><template #nexticon><Icon name="caret-right" /></template></DatePicker><small v-if="attempted && birthDateInvalid" id="siswa-birthdate-error" class="siswa-field-error">Periksa atau pilih ulang tanggal lahir.</small><small v-else id="siswa-birthdate-help" aria-live="polite">{{ usia ? `Usia ${usia}` : 'Format hh/bb/tttt. Usia dihitung otomatis.' }}</small></div>
           <div class="siswa-field"><label for="siswa-kelompok">Kelompok belajar</label><Select :key="(groupError || saving) ? 'locked' : 'editable'" input-id="siswa-kelompok" v-model="form.kelompok" :options="groupOptions" option-label="label" option-value="value" placeholder="Belum dikelompokkan" show-clear filter :disabled="groupError || saving" empty-filter-message="Kelompok tidak ditemukan" aria-describedby="siswa-group-help" fluid><template #filtericon><Icon name="magnifying-glass" /></template><template #dropdownicon><Icon name="caret-down" /></template><template #clearicon="slotProps"><SelectClearButton v-bind="slotProps" /></template></Select><small id="siswa-group-help">{{ groupError ? 'Pilihan kelompok belum tersedia. Kelompok siswa saat ini tetap dipertahankan.' : 'Pilih sesuai kelompok belajar siswa.' }}</small></div>
           <div class="siswa-field"><label for="siswa-spp">SPP per bulan <span>(Rp)</span></label><InputNumber input-id="siswa-spp" v-model="spp" locale="id-ID" :min="0" :max-fraction-digits="2" :invalid="attempted && sppInvalid" :input-props="{ 'aria-invalid': attempted && sppInvalid, 'aria-describedby': attempted && sppInvalid ? 'siswa-spp-error' : 'siswa-spp-help' }" fluid /><small v-if="attempted && sppInvalid" id="siswa-spp-error" class="siswa-field-error">Isi nominal nol atau lebih besar.</small><small v-else id="siswa-spp-help">Tarif siswa, bukan pembayaran yang diterima.</small></div>
+          <div class="siswa-field"><label for="siswa-seragam-putih">Ukuran seragam putih</label><InputText id="siswa-seragam-putih" v-model="form.ukuran_seragam_putih" maxlength="10" placeholder="Contoh: M" fluid /></div>
+          <div class="siswa-field"><label for="siswa-seragam-olga">Ukuran seragam olahraga</label><InputText id="siswa-seragam-olga" v-model="form.ukuran_seragam_olga" maxlength="10" placeholder="Contoh: M" fluid /></div>
         </div>
       </fieldset>
       <fieldset :disabled="saving" class="siswa-form-section">

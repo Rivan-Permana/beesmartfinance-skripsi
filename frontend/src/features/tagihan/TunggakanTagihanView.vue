@@ -15,6 +15,7 @@ import SearchField from "@/shared/components/SearchField.vue"
 import { useTableSearch } from "@/shared/composables/useTableSearch"
 import type { Tagihan } from "@/types/api"
 import { tagihanApi } from "./api"
+import InvoiceGabunganDialog from "./InvoiceGabunganDialog.vue"
 import { perluDicocokkan, tagihanPeriod, tagihanState } from "./presentation"
 
 const rows = ref<Tagihan[]>([])
@@ -25,6 +26,7 @@ const month = ref(new Date().getMonth() + 1)
 const year = ref(new Date().getFullYear())
 const status = ref<"all" | "known" | "review">("all")
 const first = ref(0)
+const invoiceSiswa = ref<number | null>(null)
 
 function cents(value: string | null): bigint | null {
   const parts = /^(-?)(\d+)(?:\.(\d{1,2}))?$/.exec(value || "")
@@ -106,10 +108,11 @@ onMounted(load)
       <div v-if="loading" class="outstanding-empty" role="status"><Icon name="arrows-clockwise" class="bee-spin" /><p>Menyiapkan daftar tagihan</p></div>
       <div v-else-if="!error && !filtered.length" class="outstanding-empty"><Icon :name="hasFilter ? 'magnifying-glass' : 'check-circle'" /><h3>{{ hasFilter ? "Tidak ada tagihan yang cocok" : "Tidak ada tunggakan tercatat" }}</h3><p>{{ hasFilter ? "Ubah pencarian, periode, atau jenis perhatian." : "Semua tagihan yang dimuat tidak memiliki sisa positif dan tidak menunggu pencocokan." }}</p><Button v-if="hasFilter" label="Hapus filter" severity="secondary" @click="clearFilters" /></div>
       <template v-else-if="!error">
-        <table class="outstanding-table"><caption class="outstanding-sr-only">Tagihan dengan sisa positif atau perlu dicocokkan</caption><thead><tr><th>Siswa</th><th>Periode</th><th class="outstanding-number">Sisa tagihan</th><th>Status</th></tr></thead><tbody><tr v-for="row in pageRows" :key="row.id"><td><strong>{{ studentName(row) }}</strong></td><td>{{ tagihanPeriod(row) }}</td><td class="outstanding-number" :class="{ 'outstanding-unknown': reviewNeeded(row) }">{{ balance(row) }}</td><td><Tag :value="statusLabel(row)" :severity="reviewNeeded(row) ? 'warn' : tagihanState(row).severity" /></td></tr></tbody></table>
-        <ul class="outstanding-cards" aria-label="Tagihan yang perlu ditinjau"><li v-for="row in pageRows" :key="row.id"><header><div><strong>{{ studentName(row) }}</strong><small>{{ tagihanPeriod(row) }}</small></div><Tag :value="statusLabel(row)" :severity="reviewNeeded(row) ? 'warn' : tagihanState(row).severity" /></header><dl><div><dt>Sisa tagihan</dt><dd :class="{ 'outstanding-unknown': reviewNeeded(row) }">{{ balance(row) }}</dd></div></dl></li></ul>
+        <table class="outstanding-table"><caption class="outstanding-sr-only">Tagihan dengan sisa positif atau perlu dicocokkan</caption><thead><tr><th>Siswa</th><th>Periode</th><th class="outstanding-number">Sisa tagihan</th><th>Status</th><th class="outstanding-number">Invoice</th></tr></thead><tbody><tr v-for="row in pageRows" :key="row.id"><td><strong>{{ studentName(row) }}</strong></td><td>{{ tagihanPeriod(row) }}</td><td class="outstanding-number" :class="{ 'outstanding-unknown': reviewNeeded(row) }">{{ balance(row) }}</td><td><Tag :value="statusLabel(row)" :severity="reviewNeeded(row) ? 'warn' : tagihanState(row).severity" /></td><td class="outstanding-number"><Button label="Invoice siswa" severity="secondary" text size="small" :aria-label="`Invoice semua tunggakan ${studentName(row)}`" @click="invoiceSiswa = row.siswa"><template #icon><Icon name="file-text" /></template></Button></td></tr></tbody></table>
+        <ul class="outstanding-cards" aria-label="Tagihan yang perlu ditinjau"><li v-for="row in pageRows" :key="row.id"><header><div><strong>{{ studentName(row) }}</strong><small>{{ tagihanPeriod(row) }}</small></div><Tag :value="statusLabel(row)" :severity="reviewNeeded(row) ? 'warn' : tagihanState(row).severity" /></header><dl><div><dt>Sisa tagihan</dt><dd :class="{ 'outstanding-unknown': reviewNeeded(row) }">{{ balance(row) }}</dd></div></dl><Button class="outstanding-invoice" label="Invoice semua tunggakan siswa" severity="secondary" text fluid @click="invoiceSiswa = row.siswa"><template #icon><Icon name="file-text" /></template></Button></li></ul>
         <BeePaginator v-if="filtered.length > 10" v-model:first="first" :rows="10" :total-records="filtered.length" />
       </template>
+      <InvoiceGabunganDialog :siswa-id="invoiceSiswa" @close="invoiceSiswa = null" />
       <p class="outstanding-footnote"><Icon name="info" />Halaman ini untuk memantau. Admin TU mencatat pembayaran dan memeriksa riwayat pada menu Tagihan.</p>
     </section>
   </PageLayout>
@@ -142,6 +145,7 @@ onMounted(load)
 .outstanding-table th,.outstanding-table td { padding: var(--bee-space-4) var(--bee-space-5); border-bottom: 1px solid var(--app-border); }
 .outstanding-table strong { font-weight: 500; }.outstanding-table .outstanding-number { text-align: end; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .outstanding-unknown { color: var(--app-text-muted); }
+.outstanding-invoice { margin-top: var(--bee-space-2); min-height: 44px; justify-content: flex-start; padding-inline: 0; }
 .outstanding-cards { display: none; list-style: none; padding: 0; margin: 0; }
 .outstanding-footnote { display: flex; gap: var(--bee-space-2); align-items: start; margin: 0; padding: var(--bee-space-4) var(--bee-space-5); color: var(--app-text-muted); font-size: var(--bee-type-caption); border-top: 1px solid var(--app-border); }
 .outstanding-empty { display: grid; justify-items: center; gap: var(--bee-space-3); padding: var(--bee-space-7) var(--bee-space-5); text-align: center; }

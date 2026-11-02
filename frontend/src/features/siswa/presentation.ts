@@ -1,4 +1,4 @@
-import type { BiayaMasukField, DiskonKategori, JenisKelamin, Kelompok, Siswa, SiswaStatus } from "@/types/api"
+import type { BiayaMasukField, DiskonKategori, JenisKelamin, KelengkapanKode, Kelompok, Siswa, SiswaStatus } from "@/types/api"
 
 export const SISWA_STATUS = {
   aktif: { label: "Aktif", severity: "success" },
@@ -62,3 +62,11 @@ export function sppBelumDiisi(row: Pick<Siswa, "status" | "spp_nominal">) {
 export function canReceiveBiayaMasuk(row: Siswa) {
   return Boolean(row.biaya_masuk && Number(row.biaya_masuk.sisa) > 0)
 }
+
+export const KELENGKAPAN_LABEL = {
+  spp_kosong: "SPP belum diisi",
+  spp_janggal: "SPP di luar kisaran",
+  tanpa_kelompok: "Tanpa kelompok",
+  kontak_kosong: "HP orang tua kosong",
+  hp_janggal: "HP perlu dicek",
+} as const satisfies Record<KelengkapanKode, string>

@@ -15,6 +15,7 @@ from .models import (
     KehadiranSiswa,
     Kegiatan,
     Kelompok,
+    KodePengeluaran,
     MenuKatering,
     Pegawai,
     PendaftaranJemputan,
@@ -357,6 +358,7 @@ class SiswaSerializer(serializers.ModelSerializer):
             "spp_nominal", "status", "periode",
             "diskon_kategori", "diskon_nominal",
             "uang_masuk", "uang_kegiatan", "uang_pengembangan", "uang_seragam", "biaya_masuk",
+            "ukuran_seragam_putih", "ukuran_seragam_olga",
         ]
 
     # Guru membaca daftar siswa untuk absensi; nominal biaya hanya untuk TU, Keuangan, Kepsek.
@@ -511,3 +513,116 @@ class BayarTagihanResponseSerializer(serializers.Serializer):
     tagihan = TagihanSerializer()
     pembayaran = PembayaranTagihanSerializer()
     jurnal_id = serializers.UUIDField()
+
+
+class KelengkapanMasalahSerializer(serializers.Serializer):
+    kode = serializers.ChoiceField(choices=["spp_kosong", "spp_janggal", "tanpa_kelompok", "kontak_kosong", "hp_janggal"])
+    pesan = serializers.CharField()
+
+
+class KelengkapanBarisSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    nama = serializers.CharField()
+    nis = serializers.CharField(allow_null=True)
+    kelompok = serializers.CharField(allow_null=True)
+    spp_nominal = serializers.DecimalField(max_digits=18, decimal_places=2)
+    spp_acuan = serializers.DecimalField(max_digits=18, decimal_places=2, allow_null=True)
+    masalah = KelengkapanMasalahSerializer(many=True)
+
+
+class KelengkapanRingkasanSerializer(serializers.Serializer):
+    spp_kosong = serializers.IntegerField()
+    spp_janggal = serializers.IntegerField()
+    tanpa_kelompok = serializers.IntegerField()
+    kontak_kosong = serializers.IntegerField()
+    hp_janggal = serializers.IntegerField()
+
+
+class KelengkapanHasilSerializer(serializers.Serializer):
+    total_siswa = serializers.IntegerField()
+    ringkasan = KelengkapanRingkasanSerializer()
+    baris = KelengkapanBarisSerializer(many=True)
+
+
+class InvoiceGabunganLineSerializer(serializers.Serializer):
+    tagihan_id = serializers.IntegerField()
+    periode = serializers.CharField()
+    komponen = serializers.CharField()
+    label = serializers.CharField()
+    nominal = serializers.DecimalField(max_digits=18, decimal_places=2)
+
+
+class InvoiceGabunganSectionSerializer(serializers.Serializer):
+    kategori = serializers.ChoiceField(choices=["TAHUNAN", "BULANAN", "LAIN"])
+    label = serializers.CharField()
+    lines = InvoiceGabunganLineSerializer(many=True)
+
+
+class InvoiceGabunganDicocokkanSerializer(serializers.Serializer):
+    tagihan_id = serializers.IntegerField()
+    periode = serializers.CharField()
+    jenis = serializers.CharField()
+    total = serializers.DecimalField(max_digits=18, decimal_places=2)
+
+
+class InvoiceRekeningSerializer(serializers.Serializer):
+    bank = serializers.CharField(allow_blank=True)
+    nomor = serializers.CharField()
+    atas_nama = serializers.CharField(allow_blank=True)
+
+
+class InvoiceKontakSerializer(serializers.Serializer):
+    nama = serializers.CharField(allow_blank=True)
+    wa = serializers.CharField(allow_blank=True)
+
+
+class InvoiceKontakOrtuSerializer(serializers.Serializer):
+    label = serializers.CharField()
+    nomor = serializers.CharField()
+
+
+class InvoiceGabunganSerializer(serializers.Serializer):
+    sekolah = serializers.CharField()
+    tanggal = serializers.DateField()
+    siswa_id = serializers.IntegerField()
+    siswa = serializers.CharField()
+    nis = serializers.CharField(allow_null=True)
+    kelompok = serializers.CharField(allow_null=True)
+    jenjang = serializers.CharField(allow_null=True)
+    sections = InvoiceGabunganSectionSerializer(many=True)
+    total = serializers.DecimalField(max_digits=18, decimal_places=2)
+    perlu_dicocokkan = InvoiceGabunganDicocokkanSerializer(many=True)
+    rekening = InvoiceRekeningSerializer(allow_null=True)
+    kontak = InvoiceKontakSerializer(allow_null=True)
+    catatan = serializers.CharField(allow_blank=True)
+    kontak_ortu = InvoiceKontakOrtuSerializer(many=True)
+
+
+class KodePengeluaranSerializer(serializers.ModelSerializer):
+    akun_nama = serializers.CharField(source="akun.nama_akun", read_only=True, allow_null=True, default=None)
+
+    class Meta:
+        model = KodePengeluaran
+        fields = ["id", "kode", "unit", "nama", "akun", "akun_nama", "aktif"]
+        validators = []  # keunikan kode+unit dicek di validate() dengan pesan berbahasa Indonesia
+
+    def validate_kode(self, value):
+        kode = value.strip().upper()
+        if not kode or " " in kode:
+            raise serializers.ValidationError("Kode berisi satu kata tanpa spasi, misalnya ATK.")
+        return kode
+
+    def validate_akun(self, value):
+        if value is not None and not value.is_active:
+            raise serializers.ValidationError("Pilih akun yang masih aktif.")
+        return value
+
+    def validate(self, attrs):
+        kode = attrs.get("kode", getattr(self.instance, "kode", None))
+        unit = attrs.get("unit", getattr(self.instance, "unit", "UMUM"))
+        sama = KodePengeluaran.objects.filter(kode=kode, unit=unit)
+        if self.instance:
+            sama = sama.exclude(pk=self.instance.pk)
+        if sama.exists():
+            raise serializers.ValidationError({"kode": f"Kode {kode} untuk unit ini sudah ada."})
+        return attrs

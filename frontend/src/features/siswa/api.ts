@@ -1,5 +1,5 @@
 import { api } from "@/core/api"
-import type { BiayaMasukField, ImporBiodataHasil, ImporSppHasil, Paginated, Siswa, SiswaInput } from "@/types/api"
+import type { BiayaMasukField, ImporBiodataHasil, ImporSppHasil, InvoiceGabungan, KelengkapanHasil, Paginated, Siswa, SiswaInput } from "@/types/api"
 
 export const siswaApi = {
   list: (params?: Record<string, unknown>) =>
@@ -40,4 +40,8 @@ export const siswaApi = {
   /** Nominal daftar harga sesuai jenjang kelompok, untuk mengisi awal biaya masuk. */
   biayaMasukDefault: (kelompok: number) =>
     api.get<Record<BiayaMasukField, string | null>>("/siswa/biaya-masuk-default/", { params: { kelompok } }).then((r) => r.data),
+  /** Siswa aktif dengan SPP kosong/di luar kisaran, HP janggal, atau tanpa kelompok. */
+  perluDilengkapi: () => api.get<KelengkapanHasil>("/siswa/perlu-dilengkapi/").then((r) => r.data),
+  /** Semua tagihan siswa yang masih bersisa, dengan rekening dan kontak jenjang. */
+  invoiceGabungan: (id: number) => api.get<InvoiceGabungan>(`/siswa/${id}/invoice-gabungan/`).then((r) => r.data),
 }

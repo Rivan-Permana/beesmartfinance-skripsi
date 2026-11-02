@@ -8,7 +8,8 @@ import { friendlyError, jurnalActionSuccessMessage, notifySuccess } from "@/core
 import Icon from "@/shared/components/PhosphorIcon.vue"
 import PageLayout from "@/shared/components/PageLayout.vue"
 import { useAuthStore } from "@/stores/auth"
-import type { Coa, Jurnal, JurnalInput, JurnalStatus } from "@/types/api"
+import type { Coa, Jurnal, JurnalInput, JurnalStatus, KodePengeluaran } from "@/types/api"
+import { kodePengeluaranApi } from "@/features/coa/api"
 import { coaApi, jurnalApi } from "./api"
 import JurnalDirectory from "./JurnalDirectory.vue"
 import JurnalFormDialog from "./JurnalFormDialog.vue"
@@ -17,7 +18,7 @@ import JurnalActionDialog from "./JurnalActionDialog.vue"
 import { journalActions, type JournalAction } from "./presentation"
 
 const route=useRoute(), auth=useAuthStore(), toast=useToast()
-const rows=ref<Jurnal[]>([]), accounts=ref<Coa[]>([])
+const rows=ref<Jurnal[]>([]), accounts=ref<Coa[]>([]), codes=ref<KodePengeluaran[]>([])
 const loading=ref(false), loadingAccounts=ref(false), accountsError=ref(false)
 const error=ref(""), page=ref(1), total=ref(0)
 const filters=ref<{search:string;status:JurnalStatus|null}>({search:"",status:null})
@@ -106,7 +107,10 @@ async function refreshAction(){
     await load()
   }catch(e){actionError.value=errorText(e,"Status jurnal belum berhasil diperiksa")}finally{pending.value=false}
 }
-onMounted(()=>{void load();void loadAccounts()})
+// Kode sekolah hanya mempercepat isi akun; bila gagal dimuat, akun tetap dipilih manual.
+async function loadCodes(){if(kind.value==='keluar'&&canDraft.value&&!codes.value.length){try{codes.value=await kodePengeluaranApi.list()}catch{codes.value=[]}}}
+watch(kind,()=>{void loadCodes()})
+onMounted(()=>{void load();void loadAccounts();void loadCodes()})
 </script>
 <template>
   <PageLayout :title="title" :subtitle="subtitle" :surface="false"><template #actions><Button v-if="canDraft" :label="access.finance?'Buat jurnal':'Buat draf jurnal'" :disabled="loadingAccounts||accountsError||!accounts.some(account=>account.is_active)" @click="create"><template #icon><Icon name="plus" /></template></Button></template>
@@ -114,7 +118,7 @@ onMounted(()=>{void load();void loadAccounts()})
     <p class="journal-role-note"><Icon name="info" /><span>{{ access.drafter&&!access.finance?'Staf TU menyiapkan draf jurnal beserta buktinya. Staf Keuangan memeriksa lalu mencatatnya ke buku besar; draf hanya dapat diubah atau dihapus oleh pembuatnya.':access.finance?'Finance mencatat jurnal harian yang memenuhi syarat. Penggajian, kegiatan, dan jurnal khusus diajukan sesuai alur persetujuan.':'Periksa jurnal yang menunggu persetujuan. Jurnal buatan sendiri dan penerimaan yang perlu dicocokkan tidak dapat disetujui di sini.' }}</span></p>
     <JurnalDirectory :rows="rows" :total="total" :page="page" :loading="loading" :error="error" :search="filters.search" :status="filters.status" @filter="apply" @page="changePage" @retry="load" @inspect="detail=$event" />
     <JurnalDetailDialog v-model:target="detail" :accounts="accounts" :access="access" :accounts-loading="loadingAccounts" :accounts-error="accountsError" @action="choose" @reload-accounts="loadAccounts" />
-    <JurnalFormDialog v-model="formVisible" :journal="editing" :accounts="accounts" :saving="saving" :error="formError" :accounts-loading="loadingAccounts" :accounts-error="accountsError" @save="save" @reload-accounts="loadAccounts" />
+    <JurnalFormDialog v-model="formVisible" :journal="editing" :accounts="accounts" :saving="saving" :error="formError" :accounts-loading="loadingAccounts" :accounts-error="accountsError" @save="save" @reload-accounts="loadAccounts" :codes="kind==='keluar'?codes:[]" />
     <JurnalActionDialog :target="actionTarget" :action="action" :pending="pending" :error="actionError" @close="closeAction" @confirm="confirmAction" @refresh="refreshAction" />
   </PageLayout>
 </template>

@@ -8,7 +8,7 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
-from accounts.permissions import ADMINISTRATION, FINANCE, TEACHER, role_permission
+from accounts.permissions import ADMINISTRATION, FINANCE, PRINCIPAL, TEACHER, role_permission
 
 from operations.models import Jenjang, KehadiranSiswa, Kelompok, Siswa, Tagihan
 from operations.serializers import (
@@ -17,12 +17,16 @@ from operations.serializers import (
     ImporBiodataInputSerializer,
     ImporSppHasilSerializer,
     ImporSppInputSerializer,
+    InvoiceGabunganSerializer,
+    KelengkapanHasilSerializer,
     JenjangSerializer,
     KehadiranSiswaSerializer,
     KelompokSerializer,
     SiswaSerializer,
 )
 from operations.services import impor_biodata, impor_spp
+from operations.services.billing import invoice_gabungan
+from operations.services.kelengkapan import siswa_perlu_dilengkapi
 from operations.services.biaya_masuk import default_biaya_masuk
 
 
@@ -102,6 +106,26 @@ class SiswaViewSet(viewsets.ModelViewSet):
         kelompok = Kelompok.objects.select_related("jenjang").filter(pk=int(kelompok_id)).first()
         tipe_tp = "lama" if request.query_params.get("tipe_tp") == "lama" else "baru"
         return Response(BiayaMasukDefaultSerializer(default_biaya_masuk(kelompok, tipe_tp)).data)
+
+    # Nominal tagihan dan SPP: hanya TU, Keuangan, Kepsek (bukan Guru).
+    @extend_schema(responses=KelengkapanHasilSerializer)
+    @action(
+        detail=False, methods=["get"], url_path="perlu-dilengkapi",
+        permission_classes=[role_permission(read=(ADMINISTRATION, FINANCE, PRINCIPAL))],
+    )
+    def perlu_dilengkapi(self, request):
+        """Siswa aktif dengan SPP kosong/di luar kisaran, nomor HP janggal, atau tanpa kelompok."""
+        return Response(KelengkapanHasilSerializer(siswa_perlu_dilengkapi()).data)
+
+    @extend_schema(responses=InvoiceGabunganSerializer)
+    @action(
+        detail=True, methods=["get"], url_path="invoice-gabungan",
+        permission_classes=[role_permission(read=(ADMINISTRATION, FINANCE, PRINCIPAL))],
+    )
+    def invoice_gabungan(self, request, pk=None):
+        """Semua tagihan siswa yang masih bersisa, dengan rekening dan kontak jenjangnya."""
+        siswa = Siswa.objects.select_related("kelompok__jenjang").get(pk=self.get_object().pk)
+        return Response(InvoiceGabunganSerializer(invoice_gabungan(siswa)).data)
 
     @extend_schema(request={"multipart/form-data": ImporBiodataInputSerializer}, responses=ImporBiodataHasilSerializer)
     @action(detail=False, methods=["post"], url_path="impor-biodata", parser_classes=[parsers.MultiPartParser])

@@ -18,6 +18,7 @@ from .payroll import GajiPegawai, PinjamanPegawai, PotonganKasbonGaji
 from .assets import FixedAsset
 from .activities import Kegiatan, RealisasiKegiatan
 from .registration import PendaftaranSiswa
+from .expenses import KodePengeluaran
 
 __all__ = [
     "TimeStampedModel", "SoftDeleteModel", "SoftDeleteManager", "SoftDeleteQuerySet",
@@ -30,4 +31,5 @@ __all__ = [
     "FixedAsset",
     "Kegiatan", "RealisasiKegiatan",
     "PendaftaranSiswa",
+    "KodePengeluaran",
 ]

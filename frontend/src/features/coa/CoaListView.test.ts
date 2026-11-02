@@ -9,7 +9,7 @@ vi.mock("@/stores/auth", () => ({
 }))
 vi.mock("@/core/api", () => ({
   api: {
-    get: vi.fn(async (path: string) => ({ data: {
+    get: vi.fn(async (path: string) => path === "/kode-pengeluaran/" ? { data: [] } : ({ data: {
       results: path === "/coa/" ? [{ kode_akun: "111", nama_akun: "Kas", sub_golongan: null,
         posisi_normal: "D", is_active: true, saldo_awal: "1000.25", tanggal_saldo_awal: "2026-01-01" }] : [],
       next: null,
