@@ -145,7 +145,13 @@ Hasil 2/11 15:55 UTC: `backups/db-20261102T155556Z-before-batch8.dump`, 276.879 
   - Kode pengeluaran 60 / 42 / 51; 108 siswa aktif, 0 berkategori diskon; tagihan 7 / 0 / 3; jurnal 18 (DRAFT/PENDING 7); periode 2026/2027 OPEN.
 
   Tidak ada data selain tiga baris template yang berubah.
-- Smoke test per role: _belum_.
+- Smoke test produksi per role (2/11; pengguna login di browser bawaan, Claude memeriksa tanpa menyimpan data, lalu logout tiap role):
+  - **Staf TU:** form Tambah siswa menampilkan 7 kategori dan teks bantu SBD/KHUSUS/PINDAHAN; default daftar harga TK baru (Kegiatan, Seragam) dan PG baru (Seragam) sudah 26/27; dropdown Kas/Bank di Catat pembayaran tetap Kas di Tangan dan Kas di Bank.
+  - **Keuangan:** form Tambah akun COA menampilkan teks bantu akun kas (terhubung lewat `aria-describedby`); panel kode "42 dari 60 kode sudah dipetakan".
+  - **Kepsek:** Beranda tanpa error; Kas dan bank, Pendapatan, Beban sama dengan sebelum rilis.
+  - **Guru:** Absensi siswa tanpa error dan tanpa nominal; API siswa tidak mengirim field nominal.
+
+  Semua lulus. Catatan: Kas dan bank di Beranda negatif sejak sebelum rilis (saldo awal kas belum diisi); diselesaikan saat cut-over Januari.
 
 ## 4. Setelah rilis (Keuangan)
 
