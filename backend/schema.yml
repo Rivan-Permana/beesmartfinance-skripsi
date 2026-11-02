@@ -2724,6 +2724,160 @@ paths:
               schema:
                 $ref: '#/components/schemas/Kelompok'
           description: ''
+  /api/v1/kode-pengeluaran/:
+    get:
+      operationId: v1_kode_pengeluaran_list
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/KodePengeluaran'
+          description: ''
+    post:
+      operationId: v1_kode_pengeluaran_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KodePengeluaran'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/KodePengeluaran'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/KodePengeluaran'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KodePengeluaran'
+          description: ''
+  /api/v1/kode-pengeluaran/{id}/:
+    get:
+      operationId: v1_kode_pengeluaran_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this kode pengeluaran.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KodePengeluaran'
+          description: ''
+    put:
+      operationId: v1_kode_pengeluaran_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this kode pengeluaran.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KodePengeluaran'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/KodePengeluaran'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/KodePengeluaran'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KodePengeluaran'
+          description: ''
+    patch:
+      operationId: v1_kode_pengeluaran_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this kode pengeluaran.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedKodePengeluaran'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedKodePengeluaran'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedKodePengeluaran'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KodePengeluaran'
+          description: ''
+    delete:
+      operationId: v1_kode_pengeluaran_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this kode pengeluaran.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
   /api/v1/laporan/buku-besar/{kode_akun}/:
     get:
       operationId: v1_laporan_buku_besar_retrieve
@@ -4178,6 +4332,29 @@ paths:
       responses:
         '204':
           description: No response body
+  /api/v1/siswa/{id}/invoice-gabungan/:
+    get:
+      operationId: v1_siswa_invoice_gabungan_retrieve
+      description: Semua tagihan siswa yang masih bersisa, dengan rekening dan kontak
+        jenjangnya.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this siswa.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvoiceGabungan'
+          description: ''
   /api/v1/siswa/biaya-masuk-default/:
     get:
       operationId: v1_siswa_biaya_masuk_default_retrieve
@@ -4245,6 +4422,22 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ImporSppHasil'
+          description: ''
+  /api/v1/siswa/perlu-dilengkapi/:
+    get:
+      operationId: v1_siswa_perlu_dilengkapi_retrieve
+      description: Siswa aktif dengan SPP kosong/di luar kisaran, nomor HP janggal,
+        atau tanpa kelompok.
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KelengkapanHasil'
           description: ''
   /api/v1/sub-golongan/:
     get:
@@ -5439,6 +5632,165 @@ components:
       - galat
       - isi
       - sama
+    InvoiceGabungan:
+      type: object
+      properties:
+        sekolah:
+          type: string
+        tanggal:
+          type: string
+          format: date
+        siswa_id:
+          type: integer
+        siswa:
+          type: string
+        nis:
+          type: string
+          nullable: true
+        kelompok:
+          type: string
+          nullable: true
+        jenjang:
+          type: string
+          nullable: true
+        sections:
+          type: array
+          items:
+            $ref: '#/components/schemas/InvoiceGabunganSection'
+        total:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+        perlu_dicocokkan:
+          type: array
+          items:
+            $ref: '#/components/schemas/InvoiceGabunganDicocokkan'
+        rekening:
+          allOf:
+          - $ref: '#/components/schemas/InvoiceRekening'
+          nullable: true
+        kontak:
+          allOf:
+          - $ref: '#/components/schemas/InvoiceKontak'
+          nullable: true
+        catatan:
+          type: string
+        kontak_ortu:
+          type: array
+          items:
+            $ref: '#/components/schemas/InvoiceKontakOrtu'
+      required:
+      - catatan
+      - jenjang
+      - kelompok
+      - kontak
+      - kontak_ortu
+      - nis
+      - perlu_dicocokkan
+      - rekening
+      - sections
+      - sekolah
+      - siswa
+      - siswa_id
+      - tanggal
+      - total
+    InvoiceGabunganDicocokkan:
+      type: object
+      properties:
+        tagihan_id:
+          type: integer
+        periode:
+          type: string
+        jenis:
+          type: string
+        total:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+      required:
+      - jenis
+      - periode
+      - tagihan_id
+      - total
+    InvoiceGabunganLine:
+      type: object
+      properties:
+        tagihan_id:
+          type: integer
+        periode:
+          type: string
+        komponen:
+          type: string
+        label:
+          type: string
+        nominal:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+      required:
+      - komponen
+      - label
+      - nominal
+      - periode
+      - tagihan_id
+    InvoiceGabunganSection:
+      type: object
+      properties:
+        kategori:
+          $ref: '#/components/schemas/InvoiceGabunganSectionKategoriEnum'
+        label:
+          type: string
+        lines:
+          type: array
+          items:
+            $ref: '#/components/schemas/InvoiceGabunganLine'
+      required:
+      - kategori
+      - label
+      - lines
+    InvoiceGabunganSectionKategoriEnum:
+      enum:
+      - TAHUNAN
+      - BULANAN
+      - LAIN
+      type: string
+      description: |-
+        * `TAHUNAN` - TAHUNAN
+        * `BULANAN` - BULANAN
+        * `LAIN` - LAIN
+    InvoiceKontak:
+      type: object
+      properties:
+        nama:
+          type: string
+        wa:
+          type: string
+      required:
+      - nama
+      - wa
+    InvoiceKontakOrtu:
+      type: object
+      properties:
+        label:
+          type: string
+        nomor:
+          type: string
+      required:
+      - label
+      - nomor
+    InvoiceRekening:
+      type: object
+      properties:
+        bank:
+          type: string
+        nomor:
+          type: string
+        atas_nama:
+          type: string
+      required:
+      - atas_nama
+      - bank
+      - nomor
     JenisEnum:
       enum:
       - BULANAN
@@ -5467,20 +5819,28 @@ components:
         nama:
           type: string
           maxLength: 100
+        rekening_bank:
+          type: string
+          maxLength: 50
+        rekening_nomor:
+          type: string
+          maxLength: 40
+        rekening_atas_nama:
+          type: string
+          maxLength: 100
+        kontak_nama:
+          type: string
+          maxLength: 100
+        kontak_wa:
+          type: string
+          maxLength: 20
+        catatan_invoice:
+          type: string
+          maxLength: 200
       required:
       - id
       - kode
       - nama
-    KategoriEnum:
-      enum:
-      - BULANAN
-      - TAHUNAN
-      - LAIN
-      type: string
-      description: |-
-        * `BULANAN` - Biaya Bulanan
-        * `TAHUNAN` - Biaya Tahunan
-        * `LAIN` - Lain-lain
     Kegiatan:
       type: object
       properties:
@@ -5585,6 +5945,84 @@ components:
         * `izin` - Izin
         * `sakit` - Sakit
         * `tidak_hadir` - Tidak Hadir
+    KelengkapanBaris:
+      type: object
+      properties:
+        id:
+          type: integer
+        nama:
+          type: string
+        nis:
+          type: string
+          nullable: true
+        kelompok:
+          type: string
+          nullable: true
+        spp_nominal:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+        spp_acuan:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+          nullable: true
+        masalah:
+          type: array
+          items:
+            $ref: '#/components/schemas/KelengkapanMasalah'
+      required:
+      - id
+      - kelompok
+      - masalah
+      - nama
+      - nis
+      - spp_acuan
+      - spp_nominal
+    KelengkapanHasil:
+      type: object
+      properties:
+        total_siswa:
+          type: integer
+        ringkasan:
+          $ref: '#/components/schemas/KelengkapanRingkasan'
+        baris:
+          type: array
+          items:
+            $ref: '#/components/schemas/KelengkapanBaris'
+      required:
+      - baris
+      - ringkasan
+      - total_siswa
+    KelengkapanMasalah:
+      type: object
+      properties:
+        kode:
+          $ref: '#/components/schemas/KodeEnum'
+        pesan:
+          type: string
+      required:
+      - kode
+      - pesan
+    KelengkapanRingkasan:
+      type: object
+      properties:
+        spp_kosong:
+          type: integer
+        spp_janggal:
+          type: integer
+        tanpa_kelompok:
+          type: integer
+        kontak_kosong:
+          type: integer
+        hp_janggal:
+          type: integer
+      required:
+      - hp_janggal
+      - kontak_kosong
+      - spp_janggal
+      - spp_kosong
+      - tanpa_kelompok
     Kelompok:
       type: object
       properties:
@@ -5612,6 +6050,47 @@ components:
       - jenjang_nama
       - nama
       - siswa_aktif
+    KodeEnum:
+      enum:
+      - spp_kosong
+      - spp_janggal
+      - tanpa_kelompok
+      - kontak_kosong
+      - hp_janggal
+      type: string
+      description: |-
+        * `spp_kosong` - spp_kosong
+        * `spp_janggal` - spp_janggal
+        * `tanpa_kelompok` - tanpa_kelompok
+        * `kontak_kosong` - kontak_kosong
+        * `hp_janggal` - hp_janggal
+    KodePengeluaran:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        kode:
+          type: string
+          maxLength: 20
+        unit:
+          $ref: '#/components/schemas/UnitEnum'
+        nama:
+          type: string
+          maxLength: 120
+        akun:
+          type: string
+          nullable: true
+        akun_nama:
+          type: string
+          readOnly: true
+          nullable: true
+        aktif:
+          type: boolean
+      required:
+      - akun_nama
+      - id
+      - kode
     MenuKatering:
       type: object
       properties:
@@ -6420,6 +6899,24 @@ components:
         nama:
           type: string
           maxLength: 100
+        rekening_bank:
+          type: string
+          maxLength: 50
+        rekening_nomor:
+          type: string
+          maxLength: 40
+        rekening_atas_nama:
+          type: string
+          maxLength: 100
+        kontak_nama:
+          type: string
+          maxLength: 100
+        kontak_wa:
+          type: string
+          maxLength: 20
+        catatan_invoice:
+          type: string
+          maxLength: 200
     PatchedKegiatan:
       type: object
       properties:
@@ -6508,6 +7005,29 @@ components:
         siswa_aktif:
           type: string
           readOnly: true
+    PatchedKodePengeluaran:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        kode:
+          type: string
+          maxLength: 20
+        unit:
+          $ref: '#/components/schemas/UnitEnum'
+        nama:
+          type: string
+          maxLength: 120
+        akun:
+          type: string
+          nullable: true
+        akun_nama:
+          type: string
+          readOnly: true
+          nullable: true
+        aktif:
+          type: boolean
     PatchedMenuKatering:
       type: object
       properties:
@@ -6872,6 +7392,12 @@ components:
           - $ref: '#/components/schemas/BiayaMasukRingkas'
           nullable: true
           readOnly: true
+        ukuran_seragam_putih:
+          type: string
+          maxLength: 10
+        ukuran_seragam_olga:
+          type: string
+          maxLength: 10
     PatchedTagihan:
       type: object
       properties:
@@ -7394,6 +7920,12 @@ components:
           - $ref: '#/components/schemas/BiayaMasukRingkas'
           nullable: true
           readOnly: true
+        ukuran_seragam_putih:
+          type: string
+          maxLength: 10
+        ukuran_seragam_olga:
+          type: string
+          maxLength: 10
       required:
       - biaya_masuk
       - id
@@ -7499,7 +8031,7 @@ components:
         komponen:
           $ref: '#/components/schemas/TagihanDetailKomponenEnum'
         kategori:
-          $ref: '#/components/schemas/KategoriEnum'
+          $ref: '#/components/schemas/TagihanDetailKategoriEnum'
         keterangan:
           type: string
           maxLength: 120
@@ -7519,6 +8051,16 @@ components:
       - id
       - komponen
       - total_terbayar
+    TagihanDetailKategoriEnum:
+      enum:
+      - BULANAN
+      - TAHUNAN
+      - LAIN
+      type: string
+      description: |-
+        * `BULANAN` - Biaya Bulanan
+        * `TAHUNAN` - Biaya Tahunan
+        * `LAIN` - Lain-lain
     TagihanDetailKomponenEnum:
       enum:
       - SPP
@@ -7748,6 +8290,16 @@ components:
         * `PENDING` - Pending
         * `POSTED` - Posted
         * `VOID` - Void
+    UnitEnum:
+      enum:
+      - UMUM
+      - TK
+      - PG
+      type: string
+      description: |-
+        * `UMUM` - Umum
+        * `TK` - TK
+        * `PG` - PG
   securitySchemes:
     jwtAuth:
       type: http

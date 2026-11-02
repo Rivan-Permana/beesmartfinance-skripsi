@@ -17,6 +17,7 @@ from .payroll import GajiPegawaiViewSet, PinjamanPegawaiViewSet
 from .assets import FixedAssetViewSet
 from .activities import KegiatanViewSet
 from .registration import PendaftaranSiswaViewSet
+from .expenses import KodePengeluaranViewSet
 
 __all__ = [
     "JenjangViewSet", "KelompokViewSet", "SiswaViewSet", "KehadiranSiswaViewSet",
@@ -27,4 +28,5 @@ __all__ = [
     "FixedAssetViewSet",
     "KegiatanViewSet",
     "PendaftaranSiswaViewSet",
+    "KodePengeluaranViewSet",
 ]

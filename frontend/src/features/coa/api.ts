@@ -1,5 +1,5 @@
 import { api } from "@/core/api"
-import type { Coa, Golongan, Paginated, SubGolongan } from "@/types/api"
+import type { Coa, Golongan, KodePengeluaran, KodePengeluaranInput, Paginated, SubGolongan } from "@/types/api"
 
 async function fetchAll<T>(path: string): Promise<T[]> {
   const out: T[] = []
@@ -41,4 +41,14 @@ export const coaManageApi = {
   updateCoa: (kode: string, payload: Partial<CoaInput>) =>
     api.patch<Coa>(`/coa/${kode}/`, payload).then((r) => r.data),
   removeCoa: (kode: string) => api.delete(`/coa/${kode}/`),
+}
+
+/** Kode buku kas sekolah (ATK, PLN, AB3 TK, ...) -> akun beban. Ditulis Keuangan, dibaca semua peran. */
+export const kodePengeluaranApi = {
+  list: () => api.get<KodePengeluaran[]>("/kode-pengeluaran/").then((r) => r.data),
+  create: (payload: KodePengeluaranInput) =>
+    api.post<KodePengeluaran>("/kode-pengeluaran/", payload).then((r) => r.data),
+  update: (id: number, payload: KodePengeluaranInput) =>
+    api.put<KodePengeluaran>(`/kode-pengeluaran/${id}/`, payload).then((r) => r.data),
+  remove: (id: number) => api.delete(`/kode-pengeluaran/${id}/`),
 }

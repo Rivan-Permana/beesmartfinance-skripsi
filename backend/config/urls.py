@@ -46,6 +46,7 @@ from operations.api import (
     KegiatanViewSet,
     KehadiranSiswaViewSet,
     KelompokViewSet,
+    KodePengeluaranViewSet,
     MenuKateringViewSet,
     PegawaiViewSet,
     PendaftaranJemputanViewSet,
@@ -81,6 +82,7 @@ router.register("pegawai", PegawaiViewSet, basename="pegawai")
 router.register("pinjaman", PinjamanPegawaiViewSet, basename="pinjaman")
 router.register("gaji", GajiPegawaiViewSet, basename="gaji")
 router.register("aset", FixedAssetViewSet, basename="aset")
+router.register("kode-pengeluaran", KodePengeluaranViewSet, basename="kode-pengeluaran")
 
 # Semua resource & aksi di bawah versi /api/v1/
 api_v1 = [

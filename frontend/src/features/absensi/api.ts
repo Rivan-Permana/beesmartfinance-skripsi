@@ -19,7 +19,7 @@ async function allPages<T>(path: string, params?: Record<string, unknown>): Prom
 export const jenjangApi = {
   listAll: () => allPages<Jenjang>("/jenjang/"),
   list: () => api.get<Paginated<Jenjang>>("/jenjang/").then((r) => r.data.results),
-  create: (payload: Omit<Jenjang, "id">) =>
+  create: (payload: Pick<Jenjang, "kode" | "nama"> & Partial<Omit<Jenjang, "id">>) =>
     api.post<Jenjang>("/jenjang/", payload).then((r) => r.data),
   update: (id: number, payload: Partial<Omit<Jenjang, "id">>) =>
     api.patch<Jenjang>(`/jenjang/${id}/`, payload).then((r) => r.data),

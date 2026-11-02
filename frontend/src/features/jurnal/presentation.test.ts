@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { journalAccounts, journalSamples } from "@/design-system/journal-fixtures"
-import { journalActions, journalFormValid, journalPayload, journalState, journalTotals, type JournalForm } from "./presentation"
+import { journalActions, journalFormValid, journalPayload, journalState, journalTotals, resolveKodePengeluaran, type JournalForm } from "./presentation"
+import type { KodePengeluaran } from "@/types/api"
 
 const finance={finance:true,principal:false,userId:1}
 const principal={finance:false,principal:true,userId:2}
@@ -40,5 +41,23 @@ describe('journal workflow contracts',()=>{
     expect(journalActions(journalSamples[3]!,finance)).toEqual([])
     expect(journalActions({...journalSamples[0]!,is_deleted:true},finance)).toEqual([])
     expect(journalActions(journalSamples[0]!,{finance:false,principal:false,userId:3})).toEqual([])
+  })
+})
+
+describe("resolveKodePengeluaran", () => {
+  const code = (kode: string, unit: KodePengeluaran["unit"], akun: string | null, aktif = true): KodePengeluaran =>
+    ({ id: Math.random(), kode, unit, nama: "", akun, akun_nama: akun ? "Akun " + akun : null, aktif })
+  const codes = [code("PLN", "UMUM", "5406"), code("AB3", "TK", "5112"), code("AB3", "PG", "5212"), code("DVD", "UMUM", null), code("OLD", "UMUM", "5401", false)]
+  it("memilih kode umum, kode per unit, dan menolak kode ambigu", () => {
+    expect(resolveKodePengeluaran(" pln ", codes)).toMatchObject({ status: "ok", kode: { akun: "5406" } })
+    expect(resolveKodePengeluaran("ab3 pg", codes)).toMatchObject({ status: "ok", kode: { akun: "5212" } })
+    expect(resolveKodePengeluaran("PLN TK", codes)).toMatchObject({ status: "ok", kode: { akun: "5406" } })
+    expect(resolveKodePengeluaran("AB3", codes)).toEqual({ status: "ambiguous", pilihan: ["AB3 TK", "AB3 PG"] })
+  })
+  it("membedakan kode belum dipetakan, nonaktif, dan kosong", () => {
+    expect(resolveKodePengeluaran("DVD", codes).status).toBe("unmapped")
+    expect(resolveKodePengeluaran("OLD", codes).status).toBe("unknown")
+    expect(resolveKodePengeluaran("XYZ", codes).status).toBe("unknown")
+    expect(resolveKodePengeluaran("  ", codes).status).toBe("empty")
   })
 })

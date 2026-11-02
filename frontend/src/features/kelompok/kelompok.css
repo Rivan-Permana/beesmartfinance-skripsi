@@ -96,3 +96,9 @@
   .kelompok-move-body { padding-inline: var(--bee-space-4); }
   .kelompok-move-fields > .p-button { width: 100%; }
 }
+.kelompok-invoice-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--bee-space-3); margin: var(--bee-space-4) 0 0; padding: var(--bee-space-4) 0 0; border: 0; border-top: 1px solid var(--app-border); min-width: 0; }
+.kelompok-invoice-fields legend { float: left; width: 100%; padding: 0; font-weight: 500; }.kelompok-invoice-fields legend span { font-weight: 400; color: var(--app-text-muted); }
+.kelompok-invoice-fields > p { grid-column: 1 / -1; margin: 0; color: var(--app-text-muted); font-size: var(--bee-type-caption); }
+.kelompok-invoice-wide { grid-column: 1 / -1; }
+.kelompok-invoice-state { display: block; margin-top: var(--bee-space-1); color: var(--app-text-muted); font-size: var(--bee-type-caption); }
+@media (max-width: 600px) { .kelompok-invoice-fields { grid-template-columns: minmax(0, 1fr); } }

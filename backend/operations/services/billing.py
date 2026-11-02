@@ -452,3 +452,76 @@ def struk_tagihan(tagihan):
         "perlu_rekonsiliasi": tagihan.perlu_rekonsiliasi,
         "no_jurnal": str(tagihan.jurnal_id) if tagihan.jurnal_id else None,
     }
+
+
+def _baris_sisa(tagihan, details):
+    """Rincian sisa per komponen. Bila alokasi tidak lengkap (pembayaran lama), tampilkan
+    nominal penuh ditambah satu baris pembayaran agar jumlahnya tetap sama dengan sisa tagihan."""
+    terbayar = tagihan.total_terbayar
+    if sum((d.total_terbayar for d in details), Decimal(0)) == terbayar:
+        lines = [(d, d.nominal - d.total_terbayar) for d in details]
+        return [(d, n) for d, n in lines if n], None
+    return [(d, d.nominal) for d in details if d.nominal], terbayar
+
+
+def invoice_gabungan(siswa):
+    """Semua tagihan siswa yang masih bersisa dalam satu invoice untuk dicetak atau dikirim lewat WA."""
+    tagihan_qs = (
+        siswa.tagihan.prefetch_related("detail__alokasi__pembayaran", "pembayaran")
+        .order_by("periode_tahun", "periode_bulan", "pk")
+    )
+    lines = {kat: [] for kat in KATEGORI_LABELS}
+    perlu_dicocokkan = []
+    total = Decimal(0)
+    for tagihan in tagihan_qs:
+        periode = f"{BULAN_NAMA[tagihan.periode_bulan - 1]} {tagihan.periode_tahun}"
+        if tagihan.perlu_rekonsiliasi:
+            perlu_dicocokkan.append({
+                "tagihan_id": tagihan.id, "periode": periode,
+                "jenis": tagihan.get_jenis_display(), "total": tagihan.total,
+            })
+            continue
+        sisa = tagihan.sisa_tagihan
+        if sisa <= 0:
+            continue
+        total += sisa
+        baris, terbayar = _baris_sisa(tagihan, list(tagihan.detail.all()))
+        for detail, nominal in baris:
+            lines[detail.kategori].append({
+                "tagihan_id": tagihan.id, "periode": periode, "komponen": detail.komponen,
+                "label": detail.keterangan or detail.get_komponen_display(), "nominal": nominal,
+            })
+        if terbayar:
+            kategori = baris[0][0].kategori if baris else "LAIN"
+            lines[kategori].append({
+                "tagihan_id": tagihan.id, "periode": periode, "komponen": "POTONGAN",
+                "label": "Pembayaran diterima", "nominal": -terbayar,
+            })
+    jenjang = siswa.kelompok.jenjang if siswa.kelompok_id else None
+    kontak_ortu = [
+        {"label": label, "nomor": nomor}
+        for label, nomor in (("Ibu", siswa.kontak_ibu), ("Ayah", siswa.kontak_ayah)) if nomor
+    ]
+    return {
+        "sekolah": "RA Lebah Madu",
+        "tanggal": timezone.localdate(),
+        "siswa_id": siswa.id,
+        "siswa": siswa.nama,
+        "nis": siswa.nis,
+        "kelompok": str(siswa.kelompok) if siswa.kelompok_id else None,
+        "jenjang": jenjang.kode if jenjang else None,
+        "sections": [
+            {"kategori": kat, "label": KATEGORI_LABELS[kat], "lines": lines[kat]}
+            for kat in ("TAHUNAN", "BULANAN", "LAIN") if lines[kat]
+        ],
+        "total": total,
+        "perlu_dicocokkan": perlu_dicocokkan,
+        "rekening": {
+            "bank": jenjang.rekening_bank, "nomor": jenjang.rekening_nomor,
+            "atas_nama": jenjang.rekening_atas_nama,
+        } if jenjang and jenjang.rekening_nomor else None,
+        "kontak": {"nama": jenjang.kontak_nama, "wa": jenjang.kontak_wa}
+        if jenjang and (jenjang.kontak_nama or jenjang.kontak_wa) else None,
+        "catatan": jenjang.catatan_invoice if jenjang else "",
+        "kontak_ortu": kontak_ortu,
+    }

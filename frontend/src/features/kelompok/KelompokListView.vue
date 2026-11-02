@@ -88,7 +88,16 @@ const editingId = ref<number | null>(null)
 const saving = ref(false)
 const formError = ref("")
 const uncertainSave = ref(false)
-const levelForm = reactive({ kode: "", nama: "" })
+const INVOICE_FIELDS = [
+  { key: "rekening_bank", label: "Bank", max: 50, placeholder: "Contoh: BSI" },
+  { key: "rekening_nomor", label: "Nomor rekening", max: 40, placeholder: "" },
+  { key: "rekening_atas_nama", label: "Atas nama", max: 100, placeholder: "" },
+  { key: "kontak_nama", label: "Nama kontak konfirmasi", max: 100, placeholder: "Contoh: Bu Ani (Staf TU)" },
+  { key: "kontak_wa", label: "Nomor WA kontak", max: 20, placeholder: "08…" },
+  { key: "catatan_invoice", label: "Catatan di invoice", max: 200, placeholder: "Contoh: Biaya tahunan dapat dicicil hingga September" },
+] as const
+type InvoiceField = (typeof INVOICE_FIELDS)[number]["key"]
+const levelForm = reactive({ kode: "", nama: "", rekening_bank: "", rekening_nomor: "", rekening_atas_nama: "", kontak_nama: "", kontak_wa: "", catatan_invoice: "" })
 const groupForm = reactive({ jenjang: null as number | null, nama: "" })
 const formInvalid = computed(() => formKind.value === "jenjang"
   ? !levelForm.kode.trim() || levelForm.kode.trim().length > 10 || !levelForm.nama.trim() || levelForm.nama.trim().length > 100
@@ -103,6 +112,7 @@ function openForm(kind: FormKind, row?: Jenjang | Kelompok) {
     const level = row as Jenjang | undefined
     levelForm.kode = level?.kode || ""
     levelForm.nama = level?.nama || ""
+    for (const field of INVOICE_FIELDS) levelForm[field.key] = level?.[field.key] || ""
   } else {
     const group = row as Kelompok | undefined
     groupForm.jenjang = group?.jenjang ?? levelFilter.value ?? null
@@ -117,8 +127,9 @@ async function saveForm() {
     const kind = formKind.value
     const id = editingId.value
     if (kind === "jenjang") {
-      const payload = { kode: levelForm.kode.trim().toUpperCase(), nama: levelForm.nama.trim() }
-      if (id) await jenjangApi.update(id, { nama: payload.nama })
+      const invoice = Object.fromEntries(INVOICE_FIELDS.map((field) => [field.key, levelForm[field.key].trim()])) as Record<InvoiceField, string>
+      const payload = { kode: levelForm.kode.trim().toUpperCase(), nama: levelForm.nama.trim(), ...invoice }
+      if (id) await jenjangApi.update(id, { nama: payload.nama, ...invoice })
       else await jenjangApi.create(payload)
     } else {
       const payload = { nama: groupForm.nama.trim(), jenjang: groupForm.jenjang! }
@@ -282,8 +293,8 @@ onMounted(loadAll)
             <div v-if="loading" class="kelompok-empty" role="status"><Icon name="arrows-clockwise" class="bee-spin" /><p>Menyiapkan jenjang</p></div>
             <div v-else-if="!listError && !levels.length" class="kelompok-empty"><Icon name="tree-structure" /><h3>Belum ada jenjang</h3><p>Mulai dengan jenjang yang dipakai sekolah, misalnya PG, TKA, atau TKB.</p><Button label="Tambah jenjang" severity="secondary" @click="openForm('jenjang')" /></div>
             <template v-else-if="!listError">
-              <table class="kelompok-table kelompok-level-table"><caption class="kelompok-sr-only">Jenjang sekolah</caption><thead><tr><th>Kode</th><th>Nama jenjang</th><th class="kelompok-number">Kelompok</th><th class="kelompok-actions">Tindakan</th></tr></thead><tbody><tr v-for="level in pageLevels" :key="level.id"><td><strong>{{ level.kode }}</strong></td><td>{{ level.nama }}</td><td class="kelompok-number">{{ groups.filter(group => group.jenjang === level.id).length }}</td><td class="kelompok-actions"><Button label="Ubah" severity="secondary" :aria-label="'Ubah jenjang ' + level.kode" @click="openForm('jenjang', level)" /><Button v-if="groups.some(group => group.jenjang === level.id)" label="Lihat kelompok" severity="secondary" text :aria-label="'Lihat kelompok jenjang ' + level.kode" @click="showLevelGroups(level)" /><Button v-else label="Hapus" severity="secondary" text :aria-label="'Hapus jenjang ' + level.kode" @click="removeLevel(level)" /></td></tr></tbody></table>
-              <ul class="kelompok-cards" aria-label="Jenjang sekolah"><li v-for="level in pageLevels" :key="level.id"><div><strong>{{ level.kode }}</strong><span>{{ level.nama }}</span></div><p><strong>{{ groups.filter(group => group.jenjang === level.id).length }}</strong> kelompok</p><div class="kelompok-card-actions"><Button label="Ubah jenjang" severity="secondary" @click="openForm('jenjang', level)" /><Button v-if="groups.some(group => group.jenjang === level.id)" label="Lihat kelompok" severity="secondary" text @click="showLevelGroups(level)" /><Button v-else label="Hapus" severity="secondary" text @click="removeLevel(level)" /></div></li></ul>
+              <table class="kelompok-table kelompok-level-table"><caption class="kelompok-sr-only">Jenjang sekolah</caption><thead><tr><th>Kode</th><th>Nama jenjang</th><th class="kelompok-number">Kelompok</th><th class="kelompok-actions">Tindakan</th></tr></thead><tbody><tr v-for="level in pageLevels" :key="level.id"><td><strong>{{ level.kode }}</strong></td><td>{{ level.nama }}<small class="kelompok-invoice-state">{{ level.rekening_nomor ? "Rekening invoice sudah diatur" : "Rekening invoice belum diatur" }}</small></td><td class="kelompok-number">{{ groups.filter(group => group.jenjang === level.id).length }}</td><td class="kelompok-actions"><Button label="Ubah" severity="secondary" :aria-label="'Ubah jenjang ' + level.kode" @click="openForm('jenjang', level)" /><Button v-if="groups.some(group => group.jenjang === level.id)" label="Lihat kelompok" severity="secondary" text :aria-label="'Lihat kelompok jenjang ' + level.kode" @click="showLevelGroups(level)" /><Button v-else label="Hapus" severity="secondary" text :aria-label="'Hapus jenjang ' + level.kode" @click="removeLevel(level)" /></td></tr></tbody></table>
+              <ul class="kelompok-cards" aria-label="Jenjang sekolah"><li v-for="level in pageLevels" :key="level.id"><div><strong>{{ level.kode }}</strong><span>{{ level.nama }}</span><small class="kelompok-invoice-state">{{ level.rekening_nomor ? "Rekening invoice sudah diatur" : "Rekening invoice belum diatur" }}</small></div><p><strong>{{ groups.filter(group => group.jenjang === level.id).length }}</strong> kelompok</p><div class="kelompok-card-actions"><Button label="Ubah jenjang" severity="secondary" @click="openForm('jenjang', level)" /><Button v-if="groups.some(group => group.jenjang === level.id)" label="Lihat kelompok" severity="secondary" text @click="showLevelGroups(level)" /><Button v-else label="Hapus" severity="secondary" text @click="removeLevel(level)" /></div></li></ul>
               <BeePaginator v-if="levels.length > 10" v-model:first="levelFirst" :rows="10" :total-records="levels.length" />
             </template>
           </section>
@@ -316,6 +327,7 @@ onMounted(loadAll)
         <div v-else class="kelompok-field"><label for="kelompok-jenjang">Jenjang <span>(wajib)</span></label><Select input-id="kelompok-jenjang" v-model="groupForm.jenjang" :options="levelOptions" option-label="label" option-value="value" placeholder="Pilih jenjang" :disabled="saving" fluid><template #dropdownicon><Icon name="caret-down" /></template></Select></div>
         <Message v-if="formKind === 'kelompok' && editingGroup && editingGroup.jenjang !== groupForm.jenjang && editingGroup.siswa_aktif" severity="warn" :closable="false">Mengubah jenjang kelompok juga mengubah jenjang yang terlihat pada profil {{ editingGroup.siswa_aktif }} siswa aktif di dalamnya.</Message>
         <div class="kelompok-field"><label for="kelompok-nama">{{ formKind === "jenjang" ? "Nama jenjang" : "Nama kelompok" }} <span>(wajib)</span></label><InputText v-if="formKind === 'jenjang'" id="kelompok-nama" v-model="levelForm.nama" maxlength="100" :disabled="saving" fluid placeholder="Contoh: Taman Kanak-kanak A" /><InputText v-else id="kelompok-nama" v-model="groupForm.nama" maxlength="50" :disabled="saving" fluid placeholder="Contoh: Melati" /></div>
+        <fieldset v-if="formKind === 'jenjang'" class="kelompok-invoice-fields"><legend>Info pembayaran di invoice <span>(opsional)</span></legend><p>Dicetak di invoice tunggakan siswa jenjang ini dan di teks WA.</p><div v-for="field in INVOICE_FIELDS" :key="field.key" class="kelompok-field" :class="{ 'kelompok-invoice-wide': field.key === 'catatan_invoice' }"><label :for="`jenjang-${field.key}`">{{ field.label }}</label><InputText :id="`jenjang-${field.key}`" v-model="levelForm[field.key]" :maxlength="field.max" :disabled="saving" fluid :placeholder="field.placeholder" /></div></fieldset>
         <Message v-if="formError" :severity="uncertainSave ? 'warn' : 'error'" :closable="false" role="alert">{{ formError }}{{ uncertainSave ? " Periksa daftar terbaru sebelum mencoba lagi." : "" }}</Message>
       </form>
       <template #footer><Button label="Batal" severity="secondary" :disabled="saving" @click="formKind = null" /><Button v-if="uncertainSave" label="Periksa daftar" severity="secondary" @click="formKind = null; loadAll()" /><Button v-else label="Simpan" type="submit" form="kelompok-form" :disabled="formInvalid || saving" :loading="saving"><template #loadingicon><Icon name="arrows-clockwise" class="bee-spin" /></template></Button></template>

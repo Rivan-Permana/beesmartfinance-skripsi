@@ -808,6 +808,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/kode-pengeluaran/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["v1_kode_pengeluaran_list"];
+        put?: never;
+        post: operations["v1_kode_pengeluaran_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kode-pengeluaran/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["v1_kode_pengeluaran_retrieve"];
+        put: operations["v1_kode_pengeluaran_update"];
+        post?: never;
+        delete: operations["v1_kode_pengeluaran_destroy"];
+        options?: never;
+        head?: never;
+        patch: operations["v1_kode_pengeluaran_partial_update"];
+        trace?: never;
+    };
     "/api/v1/laporan/buku-besar/{kode_akun}/": {
         parameters: {
             query?: never;
@@ -1195,6 +1227,23 @@ export interface paths {
         patch: operations["v1_siswa_partial_update"];
         trace?: never;
     };
+    "/api/v1/siswa/{id}/invoice-gabungan/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Semua tagihan siswa yang masih bersisa, dengan rekening dan kontak jenjangnya. */
+        get: operations["v1_siswa_invoice_gabungan_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/siswa/biaya-masuk-default/": {
         parameters: {
             query?: never;
@@ -1240,6 +1289,23 @@ export interface paths {
         put?: never;
         /** @description Pratinjau (simpan=false) atau isi SPP siswa yang masih Rp 0 dari tab master Recap Cash In. */
         post: operations["v1_siswa_impor_spp_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/siswa/perlu-dilengkapi/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Siswa aktif dengan SPP kosong/di luar kisaran, nomor HP janggal, atau tanpa kelompok. */
+        get: operations["v1_siswa_perlu_dilengkapi_retrieve"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1689,6 +1755,64 @@ export interface components {
             cek: number;
             galat: number;
         };
+        InvoiceGabungan: {
+            sekolah: string;
+            /** Format: date */
+            tanggal: string;
+            siswa_id: number;
+            siswa: string;
+            nis: string | null;
+            kelompok: string | null;
+            jenjang: string | null;
+            sections: components["schemas"]["InvoiceGabunganSection"][];
+            /** Format: decimal */
+            total: string;
+            perlu_dicocokkan: components["schemas"]["InvoiceGabunganDicocokkan"][];
+            rekening: components["schemas"]["InvoiceRekening"] | null;
+            kontak: components["schemas"]["InvoiceKontak"] | null;
+            catatan: string;
+            kontak_ortu: components["schemas"]["InvoiceKontakOrtu"][];
+        };
+        InvoiceGabunganDicocokkan: {
+            tagihan_id: number;
+            periode: string;
+            jenis: string;
+            /** Format: decimal */
+            total: string;
+        };
+        InvoiceGabunganLine: {
+            tagihan_id: number;
+            periode: string;
+            komponen: string;
+            label: string;
+            /** Format: decimal */
+            nominal: string;
+        };
+        InvoiceGabunganSection: {
+            kategori: components["schemas"]["InvoiceGabunganSectionKategoriEnum"];
+            label: string;
+            lines: components["schemas"]["InvoiceGabunganLine"][];
+        };
+        /**
+         * @description * `TAHUNAN` - TAHUNAN
+         *     * `BULANAN` - BULANAN
+         *     * `LAIN` - LAIN
+         * @enum {string}
+         */
+        InvoiceGabunganSectionKategoriEnum: "TAHUNAN" | "BULANAN" | "LAIN";
+        InvoiceKontak: {
+            nama: string;
+            wa: string;
+        };
+        InvoiceKontakOrtu: {
+            label: string;
+            nomor: string;
+        };
+        InvoiceRekening: {
+            bank: string;
+            nomor: string;
+            atas_nama: string;
+        };
         /**
          * @description * `BULANAN` - Bulanan
          *     * `BIAYA_MASUK` - Biaya masuk
@@ -1705,14 +1829,13 @@ export interface components {
             readonly id: number;
             kode: string;
             nama: string;
+            rekening_bank?: string;
+            rekening_nomor?: string;
+            rekening_atas_nama?: string;
+            kontak_nama?: string;
+            kontak_wa?: string;
+            catatan_invoice?: string;
         };
-        /**
-         * @description * `BULANAN` - Biaya Bulanan
-         *     * `TAHUNAN` - Biaya Tahunan
-         *     * `LAIN` - Lain-lain
-         * @enum {string}
-         */
-        KategoriEnum: "BULANAN" | "TAHUNAN" | "LAIN";
         Kegiatan: {
             readonly id: number;
             nama: string;
@@ -1760,6 +1883,33 @@ export interface components {
          * @enum {string}
          */
         KehadiranSiswaStatusEnum: "hadir" | "izin" | "sakit" | "tidak_hadir";
+        KelengkapanBaris: {
+            id: number;
+            nama: string;
+            nis: string | null;
+            kelompok: string | null;
+            /** Format: decimal */
+            spp_nominal: string;
+            /** Format: decimal */
+            spp_acuan: string | null;
+            masalah: components["schemas"]["KelengkapanMasalah"][];
+        };
+        KelengkapanHasil: {
+            total_siswa: number;
+            ringkasan: components["schemas"]["KelengkapanRingkasan"];
+            baris: components["schemas"]["KelengkapanBaris"][];
+        };
+        KelengkapanMasalah: {
+            kode: components["schemas"]["KodeEnum"];
+            pesan: string;
+        };
+        KelengkapanRingkasan: {
+            spp_kosong: number;
+            spp_janggal: number;
+            tanpa_kelompok: number;
+            kontak_kosong: number;
+            hp_janggal: number;
+        };
         Kelompok: {
             readonly id: number;
             nama: string;
@@ -1767,6 +1917,24 @@ export interface components {
             readonly jenjang_kode: string;
             readonly jenjang_nama: string;
             readonly siswa_aktif: string;
+        };
+        /**
+         * @description * `spp_kosong` - spp_kosong
+         *     * `spp_janggal` - spp_janggal
+         *     * `tanpa_kelompok` - tanpa_kelompok
+         *     * `kontak_kosong` - kontak_kosong
+         *     * `hp_janggal` - hp_janggal
+         * @enum {string}
+         */
+        KodeEnum: "spp_kosong" | "spp_janggal" | "tanpa_kelompok" | "kontak_kosong" | "hp_janggal";
+        KodePengeluaran: {
+            readonly id: number;
+            kode: string;
+            unit?: components["schemas"]["UnitEnum"];
+            nama?: string;
+            akun?: string | null;
+            readonly akun_nama: string | null;
+            aktif?: boolean;
         };
         MenuKatering: {
             readonly id: number;
@@ -2225,6 +2393,12 @@ export interface components {
             readonly id?: number;
             kode?: string;
             nama?: string;
+            rekening_bank?: string;
+            rekening_nomor?: string;
+            rekening_atas_nama?: string;
+            kontak_nama?: string;
+            kontak_wa?: string;
+            catatan_invoice?: string;
         };
         PatchedKegiatan: {
             readonly id?: number;
@@ -2265,6 +2439,15 @@ export interface components {
             readonly jenjang_kode?: string;
             readonly jenjang_nama?: string;
             readonly siswa_aktif?: string;
+        };
+        PatchedKodePengeluaran: {
+            readonly id?: number;
+            kode?: string;
+            unit?: components["schemas"]["UnitEnum"];
+            nama?: string;
+            akun?: string | null;
+            readonly akun_nama?: string | null;
+            aktif?: boolean;
         };
         PatchedMenuKatering: {
             readonly id?: number;
@@ -2410,6 +2593,8 @@ export interface components {
             /** Format: decimal */
             uang_seragam?: string | null;
             readonly biaya_masuk?: components["schemas"]["BiayaMasukRingkas"] | null;
+            ukuran_seragam_putih?: string;
+            ukuran_seragam_olga?: string;
         };
         PatchedTagihan: {
             readonly id?: number;
@@ -2601,6 +2786,8 @@ export interface components {
             /** Format: decimal */
             uang_seragam?: string | null;
             readonly biaya_masuk: components["schemas"]["BiayaMasukRingkas"] | null;
+            ukuran_seragam_putih?: string;
+            ukuran_seragam_olga?: string;
         };
         /**
          * @description * `aktif` - Aktif
@@ -2635,7 +2822,7 @@ export interface components {
         TagihanDetail: {
             readonly id: number;
             komponen: components["schemas"]["TagihanDetailKomponenEnum"];
-            kategori?: components["schemas"]["KategoriEnum"];
+            kategori?: components["schemas"]["TagihanDetailKategoriEnum"];
             keterangan?: string;
             akun_pendapatan: string;
             /** Format: decimal */
@@ -2643,6 +2830,13 @@ export interface components {
             /** Format: decimal */
             readonly total_terbayar: string;
         };
+        /**
+         * @description * `BULANAN` - Biaya Bulanan
+         *     * `TAHUNAN` - Biaya Tahunan
+         *     * `LAIN` - Lain-lain
+         * @enum {string}
+         */
+        TagihanDetailKategoriEnum: "BULANAN" | "TAHUNAN" | "LAIN";
         /**
          * @description * `SPP` - SPP
          *     * `KATERING` - Katering
@@ -2732,6 +2926,13 @@ export interface components {
          * @enum {string}
          */
         TrJurnalStatusEnum: "DRAFT" | "PENDING" | "POSTED" | "VOID";
+        /**
+         * @description * `UMUM` - Umum
+         *     * `TK` - TK
+         *     * `PG` - PG
+         * @enum {string}
+         */
+        UnitEnum: "UMUM" | "TK" | "PG";
     };
     responses: never;
     parameters: never;
@@ -5206,6 +5407,154 @@ export interface operations {
             };
         };
     };
+    v1_kode_pengeluaran_list: {
+        parameters: {
+            query?: {
+                /** @description Which field to use when ordering the results. */
+                ordering?: string;
+                /** @description A search term. */
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KodePengeluaran"][];
+                };
+            };
+        };
+    };
+    v1_kode_pengeluaran_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KodePengeluaran"];
+                "application/x-www-form-urlencoded": components["schemas"]["KodePengeluaran"];
+                "multipart/form-data": components["schemas"]["KodePengeluaran"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KodePengeluaran"];
+                };
+            };
+        };
+    };
+    v1_kode_pengeluaran_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A unique integer value identifying this kode pengeluaran. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KodePengeluaran"];
+                };
+            };
+        };
+    };
+    v1_kode_pengeluaran_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A unique integer value identifying this kode pengeluaran. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KodePengeluaran"];
+                "application/x-www-form-urlencoded": components["schemas"]["KodePengeluaran"];
+                "multipart/form-data": components["schemas"]["KodePengeluaran"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KodePengeluaran"];
+                };
+            };
+        };
+    };
+    v1_kode_pengeluaran_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A unique integer value identifying this kode pengeluaran. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    v1_kode_pengeluaran_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A unique integer value identifying this kode pengeluaran. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedKodePengeluaran"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedKodePengeluaran"];
+                "multipart/form-data": components["schemas"]["PatchedKodePengeluaran"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KodePengeluaran"];
+                };
+            };
+        };
+    };
     v1_laporan_buku_besar_retrieve: {
         parameters: {
             query?: never;
@@ -6538,6 +6887,28 @@ export interface operations {
             };
         };
     };
+    v1_siswa_invoice_gabungan_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A unique integer value identifying this siswa. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvoiceGabungan"];
+                };
+            };
+        };
+    };
     v1_siswa_biaya_masuk_default_retrieve: {
         parameters: {
             query?: {
@@ -6602,6 +6973,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ImporSppHasil"];
+                };
+            };
+        };
+    };
+    v1_siswa_perlu_dilengkapi_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KelengkapanHasil"];
                 };
             };
         };

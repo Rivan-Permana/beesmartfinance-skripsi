@@ -9,6 +9,13 @@ from .base import SoftDeleteModel, TimeStampedModel
 class Jenjang(models.Model):
     kode = models.CharField(max_length=10, unique=True)   # PG, TK
     nama = models.CharField(max_length=100)
+    # Dicetak di invoice gabungan siswa; diisi Staf TU per jenjang.
+    rekening_bank = models.CharField(max_length=50, blank=True, default="")
+    rekening_nomor = models.CharField(max_length=40, blank=True, default="")
+    rekening_atas_nama = models.CharField(max_length=100, blank=True, default="")
+    kontak_nama = models.CharField(max_length=100, blank=True, default="")
+    kontak_wa = models.CharField(max_length=20, blank=True, default="")
+    catatan_invoice = models.CharField(max_length=200, blank=True, default="")
 
     def __str__(self):
         return f"{self.kode} - {self.nama}"
@@ -61,6 +68,8 @@ class Siswa(SoftDeleteModel, TimeStampedModel):
         "accounting.MsPeriodeAkuntansi", on_delete=models.SET_NULL,
         db_constraint=False, blank=True, null=True, related_name="siswa",
     )
+    ukuran_seragam_putih = models.CharField(max_length=10, blank=True, default="")
+    ukuran_seragam_olga = models.CharField(max_length=10, blank=True, default="")
 
     history = HistoricalRecords()
 

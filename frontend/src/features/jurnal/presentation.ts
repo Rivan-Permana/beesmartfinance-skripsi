@@ -1,5 +1,5 @@
 import { formatLocalDate } from "@/core/format"
-import type { Coa, Jurnal, JurnalInput, JurnalStatus } from "@/types/api"
+import type { Coa, Jurnal, JurnalInput, JurnalStatus, KodePengeluaran } from "@/types/api"
 
 export const journalStates: Record<JurnalStatus, { label: string; severity: "secondary" | "warn" | "success" | "danger" }> = {
   DRAFT: { label: "Draf", severity: "secondary" },
@@ -40,7 +40,8 @@ export interface JournalForm {
   no_bukti: string
   tanggal: Date | null
   keterangan: string
-  detail: { kode_akun: string | null; debit: number; kredit: number }[]
+  /** kode_sekolah: kode singkat buku kas yang diketik; akun_dari_kode: akun terisi dari kode itu. Keduanya tidak disimpan. */
+  detail: { kode_akun: string | null; debit: number; kredit: number; kode_sekolah?: string; akun_dari_kode?: boolean }[]
 }
 export function journalLineValid(line: JournalForm["detail"][number], accounts: Coa[]) {
   return accounts.some(account => account.is_active && account.kode_akun === line.kode_akun)
@@ -76,4 +77,26 @@ export function journalActions(row: Jurnal, access: JournalAccess): JournalActio
     if (row.status === "POSTED") actions.push("void")
   }
   return actions
+}
+
+export type KodeResolusi =
+  | { status: "ok"; kode: KodePengeluaran }
+  | { status: "unmapped"; kode: KodePengeluaran }
+  | { status: "ambiguous"; pilihan: string[] }
+  | { status: "unknown" }
+  | { status: "empty" }
+/** "ATK", "STR TK", "ab3 pg" -> kode sekolah aktif. Unit yang tidak terdaftar jatuh ke kode Umum. */
+export function resolveKodePengeluaran(input: string, codes: KodePengeluaran[]): KodeResolusi {
+  const [kode = "", unit] = input.trim().toUpperCase().split(/\s+/)
+  if (!kode) return { status: "empty" }
+  const cocok = codes.filter(code => code.aktif && code.kode === kode)
+  const pilih = (unit ? cocok.find(code => code.unit === unit) : undefined)
+    ?? cocok.find(code => code.unit === "UMUM")
+    ?? (cocok.length === 1 ? cocok[0] : undefined)
+  if (pilih) return { status: pilih.akun ? "ok" : "unmapped", kode: pilih }
+  if (cocok.length) return { status: "ambiguous", pilihan: cocok.map(code => `${code.kode} ${code.unit}`) }
+  return { status: "unknown" }
+}
+export function kodeLabel(code: KodePengeluaran) {
+  return code.unit === "UMUM" ? code.kode : `${code.kode} ${code.unit}`
 }

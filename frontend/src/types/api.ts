@@ -56,7 +56,64 @@ export interface Siswa {
   uang_seragam: string | null
   /** Ringkasan tagihan biaya masuk; null bila belum ada isian biaya masuk. */
   biaya_masuk: { tagihan: number; status: TagihanStatus; total: string; sisa: string | null } | null
+  ukuran_seragam_putih: string
+  ukuran_seragam_olga: string
 }
+
+export type KelengkapanKode = "spp_kosong" | "spp_janggal" | "tanpa_kelompok" | "kontak_kosong" | "hp_janggal"
+export interface KelengkapanBaris {
+  id: number
+  nama: string
+  nis: string | null
+  kelompok: string | null
+  spp_nominal: string
+  /** Median SPP jenjang; null bila siswa tanpa kelompok atau sampel jenjang kurang. */
+  spp_acuan: string | null
+  masalah: { kode: KelengkapanKode; pesan: string }[]
+}
+export interface KelengkapanHasil {
+  total_siswa: number
+  ringkasan: Record<KelengkapanKode, number>
+  baris: KelengkapanBaris[]
+}
+
+export interface InvoiceGabunganLine {
+  tagihan_id: number
+  periode: string
+  komponen: string
+  label: string
+  nominal: string
+}
+export interface InvoiceGabungan {
+  sekolah: string
+  tanggal: string
+  siswa_id: number
+  siswa: string
+  nis: string | null
+  kelompok: string | null
+  jenjang: string | null
+  sections: { kategori: TagihanKategori; label: string; lines: InvoiceGabunganLine[] }[]
+  total: string
+  /** Tagihan dengan pembayaran lama yang belum dicocokkan; tidak ikut total. */
+  perlu_dicocokkan: { tagihan_id: number; periode: string; jenis: string; total: string }[]
+  rekening: { bank: string; nomor: string; atas_nama: string } | null
+  kontak: { nama: string; wa: string } | null
+  catatan: string
+  kontak_ortu: { label: string; nomor: string }[]
+}
+
+export type KodePengeluaranUnit = "UMUM" | "TK" | "PG"
+export interface KodePengeluaran {
+  id: number
+  kode: string
+  unit: KodePengeluaranUnit
+  nama: string
+  /** Kosong bila arti kode belum dikonfirmasi; akun dipilih manual. */
+  akun: string | null
+  akun_nama: string | null
+  aktif: boolean
+}
+export type KodePengeluaranInput = Omit<KodePengeluaran, "id" | "akun_nama">
 
 export type JenisKelamin = "L" | "P"
 export type ImporBiodataAksi = "baru" | "ubah" | "sama" | "galat"
@@ -149,6 +206,12 @@ export interface Jenjang {
   id: number
   kode: string
   nama: string
+  rekening_bank: string
+  rekening_nomor: string
+  rekening_atas_nama: string
+  kontak_nama: string
+  kontak_wa: string
+  catatan_invoice: string
 }
 
 export interface Kelompok {
