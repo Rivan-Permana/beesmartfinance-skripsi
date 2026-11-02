@@ -68,9 +68,24 @@ Cara membaca hasilnya:
 | Kode pengeluaran | `60 / 42 / 51` | Catat sebagai pembanding baru. |
 | Siswa, tagihan, jurnal, periode | Sama dengan snapshot handoff 2/11 | Catat; harus sama sesudah rilis. |
 
-### Hasil cek
+### Hasil cek — 2 November 2026 (web console, read-only)
 
-_Belum dijalankan._
+| Baris | Hasil | Status |
+|---|---|---|
+| SHA backend/frontend | `64dadab` keduanya; Worker version `7e821c23…` | Sesuai |
+| Container | backend Up 13 jam, caddy dan db Up 2 minggu (db healthy) | Sesuai |
+| Disk | 7,2 GB dari 96 GB (8%) | Cukup |
+| Backup | Terakhir `…before-kode-pengeluaran` (276.679 byte); 27 dump, total 6,2 MB | Ada; masih hanya di VPS |
+| Migrasi terakhir | `0020_seed_kode_pengeluaran` | Sesuai |
+| Template | 5 baris KEGIATAN/SERAGAM aktif; tiga baris sasaran masih bernilai lama | Migrasi akan mengubah 3 baris |
+| Akun kas | Hanya `111` Kas di Tangan dan `112` Kas di Bank | Sesuai; dropdown kas tidak berubah saat rilis |
+| Kode pengeluaran | 60 / 42 / 51 | Sesuai |
+| Siswa | 108, semua aktif; 0 siswa berkategori diskon | Sesuai; catatan rollback kategori belum relevan |
+| Tagihan | Bulanan 7, biaya masuk 0, perlu dicocokkan 3 | Sama dengan snapshot |
+| Jurnal | 18 total, DRAFT/PENDING 7 | Sama dengan snapshot |
+| Periode | 2026/2027, 01/07/2026–30/06/2027, OPEN | Sesuai |
+
+Kesimpulan: tidak ada yang menghalangi backup dan merge.
 
 ## 2. Backup manual sebelum merge
 
