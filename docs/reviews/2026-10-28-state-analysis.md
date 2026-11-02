@@ -66,7 +66,7 @@ Diperiksa ulang: model/migrasi `0016`–`0017`, service `operations/services/bia
     - tagihan tetap 7.
   - Sisa:
     - isi SPP 10 siswa itu lewat form;
-    - periksa SPP lama yang janggal (2 siswa PG di atas Rp 2,9 jt, 1 TKA Rp 1,25 jt), yang memang tidak diubah impor.
+    - periksa SPP lama yang janggal (2 siswa PG dan 1 TKA), yang memang tidak diubah impor.
   - Catatan asli: selesai di branch, belum dirilis; tanpa migrasi.
   - Data siswa → **Impor SPP** (Staf TU): unggah CSV tab master, pratinjau, lalu "Isi SPP".
   - Tarif = nominal SPP yang paling sering dibayar. Hanya siswa dengan SPP Rp 0 yang diisi.
