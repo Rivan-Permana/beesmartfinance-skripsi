@@ -65,6 +65,24 @@ Cara membaca hasilnya:
 | jurnal | Dicatat; DRAFT/PENDING 7 | Harus sama sesudah rilis. |
 | periode | 2026/2027 01/07/2026–30/06/2027 OPEN | Periksa sebelum rilis. |
 
+### Hasil cek — 2 November 2026 (web console, read-only)
+
+| Cek | Hasil | Penilaian |
+|---|---|---|
+| SHA backend / frontend | `99b4a13` / `99b4a13`; log terakhir: Worker ter-deploy | Sesuai |
+| Container | backend Up 4 hari, caddy Up 2 minggu, db Up 2 minggu (healthy) | Sesuai |
+| Disk | 7,1 GB dari 96 GB (8%) | Cukup |
+| Backup | Terakhir `db-20261028T192504Z.dump` (268 KB, deploy batch 6) dan `…before-batch6`; 24 dump, total 5,4 MB | Ada; masih hanya di VPS |
+| Migrasi / kolom-tabel 0019 | `0018_siswa_data_diri` / 0 | Sesuai |
+| Akun seed kode | 19 / 19 aktif | Semua 19 kode akan terpetakan |
+| Siswa | 108, semuanya aktif; SPP 0: 10; tanpa kelompok: 2; kedua HP kosong: 4 | Sama seperti 28/10; perkiraan isi tab Perlu dilengkapi |
+| Jenjang | PG (3 kelompok), TKA (4), TKB (4) | Rekening/kontak diisi untuk 3 jenjang |
+| Tagihan | Bulanan 7, biaya masuk 0, perlu dicocokkan 3 | 3 tagihan lama akan muncul sebagai peringatan "perlu dicocokkan" di invoice |
+| Jurnal | 18 total, DRAFT/PENDING 7 | Sama seperti sebelumnya |
+| Periode | 2026/2027, 01/07/2026–30/06/2027, OPEN | Sesuai |
+
+Kesimpulan: tidak ada yang menghalangi backup dan merge.
+
 Cek dari luar sebelum rilis (2 November, Claude): `/login` Worker 200; schema produksi belum memuat `perlu-dilengkapi` (sesuai, Batch 7 belum dirilis).
 
 ## 2. Backup manual sebelum merge
