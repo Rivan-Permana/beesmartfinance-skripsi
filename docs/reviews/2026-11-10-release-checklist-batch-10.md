@@ -111,6 +111,13 @@ Hasil 10/11 16:27 UTC: `backups/db-20261110T162737Z-before-batch10.dump`, 288.19
    - **Kepsek:** `/` → Beranda tanpa error.
    - **Guru:** `/` → Kegiatan; Absensi tanpa nominal.
 
+### Hasil rilis — 10 November 2026
+
+- PR #28 di-merge ke `main` pukul 16:29:01 UTC (`242d519`) dari sesi Claude atas instruksi pengguna, setelah cek read-only dan backup `before-batch10`.
+- Worker baru terlihat dari luar 16:31:21 UTC, bundle `index-x02cqMm3.js`: chunk TagihanListView memuat "Batalkan saldo awal", JurnalListView memuat teks Pengeluaran "transfer ke yayasan".
+- Cek dari luar: `/login` 200; API tanpa token 401, lewat Worker maupun origin.
+- Cek read-only pasca-rilis dan smoke test per role: menunggu pengguna.
+
 ## Rollback
 
 - **Kode:** revert merge commit di `main`, lalu push. Tidak ada migrasi yang perlu dibalik. Saldo awal yang sudah dibatalkan tetap dibatalkan (data, bukan kode). Tagihan LSU yang sudah tercatat ke 418 tetap di 418.
