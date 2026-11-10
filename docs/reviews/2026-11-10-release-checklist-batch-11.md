@@ -107,6 +107,8 @@ if pw:
 
 Diharapkan: `dibuat penyusun.anggaran ['BudgetPlanner']` dan satu baris PASSWORD. Simpan password di pengelola password; saat menempel hasil ke chat, hapus baris PASSWORD.
 
+Hasil 10/11: `dibuat penyusun.anggaran ['BudgetPlanner']`; password acak dicetak di console dan disimpan pengguna (tidak lewat chat). Pesan "9 objects could not be automatically imported" adalah info auto-import shell Django 5.2 untuk model Historical*, bukan galat.
+
 Smoke test penyusun (pengguna login, Claude memeriksa tanpa menyimpan): `/` → `/anggaran`; menu hanya Anggaran; jurnal, tagihan, aset, laba rugi 403; panel anggaran bulanan tampil; form tambah tanpa pilihan plafon.
 
 ## 5. Plafon tahunan (Keuangan)
