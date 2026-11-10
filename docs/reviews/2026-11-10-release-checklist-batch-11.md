@@ -115,6 +115,8 @@ Hasil smoke test penyusun (10/11, produksi): login `penyusun.anggaran` (grup Bud
 
 ## 5. Plafon tahunan (Keuangan)
 
+Keputusan 10/11: **ditunda** sampai anggaran resmi per akun tersedia. Anggaran bulanan tetap bisa diisi tanpa plafon.
+
 Menu Anggaran → Tambah anggaran → kosongkan Bulan → pilih TP 2026/2027 → isi Plafon per akun beban. Nominal dari anggaran sekolah. Setelah itu penyusun bisa mengisi anggaran bulanan di bawah plafon tersebut.
 
 ## Rollback
