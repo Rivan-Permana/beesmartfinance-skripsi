@@ -96,6 +96,8 @@ docker compose --env-file .env.vps -f docker-compose.production.yml exec -T db \
 
 Yang diharapkan: ukuran sekitar `…before-batch9` (278.077 byte), `TABLE DATA` = 53 (51 + dua tabel LSU dari Batch 9). Kalau ukurannya 0 atau perintah gagal, jangan merge.
 
+Hasil 10/11 16:27 UTC: `backups/db-20261110T162737Z-before-batch10.dump`, 288.196 byte (before-batch9: 278.077; selisih dari skema Batch 9: dua tabel LSU, kolom Komite/Portofolio/saldo awal, dan constraint baru), 53 `TABLE DATA`. Titik pulih rilis Batch 10.
+
 ## 3. Rilis
 
 1. Buka PR `codex/auto-deploy-fe-be` → `main`, lalu merge. Hanya atas instruksi eksplisit pengguna.
