@@ -498,6 +498,25 @@ export interface Gaji {
   total_potongan: string
   total_netto: string
   jurnal: string | null
+  jurnal_status: "DRAFT" | "PENDING" | "POSTED" | "VOID" | null
+}
+
+export interface GajiPeriodeBaris {
+  gaji: number
+  pegawai: number
+  nama: string
+  netto: string
+  status: "siap" | "berhasil" | "gagal"
+  pesan: string | null
+}
+
+export interface GajiPeriodeHasil {
+  disimpan: boolean
+  jumlah: number
+  berhasil: number
+  gagal: number
+  total_netto: string
+  hasil: GajiPeriodeBaris[]
 }
 
 export interface Pinjaman {

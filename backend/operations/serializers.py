@@ -126,6 +126,7 @@ class GajiPegawaiSerializer(serializers.ModelSerializer):
     total_bruto = serializers.ReadOnlyField()
     total_potongan = serializers.ReadOnlyField()
     total_netto = serializers.ReadOnlyField()
+    jurnal_status = serializers.CharField(source="jurnal.status", read_only=True, allow_null=True, default=None)
 
     class Meta:
         model = GajiPegawai
@@ -135,9 +136,33 @@ class GajiPegawaiSerializer(serializers.ModelSerializer):
             "tunjangan_asuransi", "uang_makan", "transport",
             "bonus_insentif", "thr", "hari_hadir",
             "potongan_pinjaman", "potongan_asuransi",
-            "total_bruto", "total_potongan", "total_netto", "jurnal",
+            "total_bruto", "total_potongan", "total_netto", "jurnal", "jurnal_status",
         ]
         read_only_fields = ["jurnal"]
+
+
+class GajiPeriodeInputSerializer(serializers.Serializer):
+    periode_bulan = serializers.IntegerField(min_value=1, max_value=12)
+    periode_tahun = serializers.IntegerField(min_value=2020, max_value=2100)
+    simpan = serializers.BooleanField(default=False)
+
+
+class GajiPeriodeBarisSerializer(serializers.Serializer):
+    gaji = serializers.IntegerField()
+    pegawai = serializers.IntegerField()
+    nama = serializers.CharField()
+    netto = serializers.DecimalField(max_digits=18, decimal_places=2)
+    status = serializers.ChoiceField(choices=["siap", "berhasil", "gagal"])
+    pesan = serializers.CharField(allow_null=True)
+
+
+class GajiPeriodeHasilSerializer(serializers.Serializer):
+    disimpan = serializers.BooleanField()
+    jumlah = serializers.IntegerField()
+    berhasil = serializers.IntegerField()
+    gagal = serializers.IntegerField()
+    total_netto = serializers.DecimalField(max_digits=18, decimal_places=2)
+    hasil = GajiPeriodeBarisSerializer(many=True)
 
 
 class FixedAssetSerializer(serializers.ModelSerializer):

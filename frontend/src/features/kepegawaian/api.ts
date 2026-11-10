@@ -3,6 +3,7 @@ import type {
   AbsenPegawai,
   AbsenPegawaiRekap,
   Gaji,
+  GajiPeriodeHasil,
   Paginated,
   Pegawai,
   PegawaiInput,
@@ -66,6 +67,10 @@ export const gajiApi = {
   remove: (id: number) => api.delete(`/gaji/${id}/`),
   posting: (id: number) =>
     api.post<{ detail: string; jurnal_id: string }>(`/gaji/${id}/posting/`).then((r) => r.data),
+  postingPeriode: (periode_bulan: number, periode_tahun: number, simpan: boolean) =>
+    api.post<GajiPeriodeHasil>("/gaji/posting-periode/", { periode_bulan, periode_tahun, simpan }).then((r) => r.data),
+  setujuiPeriode: (periode_bulan: number, periode_tahun: number, simpan: boolean) =>
+    api.post<GajiPeriodeHasil>("/gaji/setujui-periode/", { periode_bulan, periode_tahun, simpan }).then((r) => r.data),
 }
 
 export const pinjamanApi = {

@@ -3,13 +3,16 @@
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
+from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 
 from accounts.permissions import FINANCE, PRINCIPAL, IsFinance, IsPrincipal, role_permission
 
 from operations.models import GajiPegawai, PinjamanPegawai
-from operations.serializers import GajiPegawaiSerializer, PinjamanPegawaiSerializer
-from operations.services import post_gaji, post_pencairan_kasbon
+from operations.serializers import (
+    GajiPegawaiSerializer, GajiPeriodeHasilSerializer, GajiPeriodeInputSerializer, PinjamanPegawaiSerializer,
+)
+from operations.services import post_gaji, post_pencairan_kasbon, posting_gaji_periode, setujui_gaji_periode
 from operations.services.payroll import apply_potongan_pinjaman
 
 
@@ -58,13 +61,15 @@ class PinjamanPegawaiViewSet(_TerkunciSetelahJurnal, viewsets.ModelViewSet):
 
 class GajiPegawaiViewSet(_TerkunciSetelahJurnal, viewsets.ModelViewSet):
     pesan_terkunci = "Slip gaji yang sudah diposting tidak dapat diubah atau dihapus."
-    queryset = GajiPegawai.objects.select_related("pegawai").order_by("-periode_tahun", "-periode_bulan")
+    queryset = GajiPegawai.objects.select_related("pegawai", "jurnal").order_by("-periode_tahun", "-periode_bulan")
     serializer_class = GajiPegawaiSerializer
 
     def get_permissions(self):
         # Slip dibuat Kepala Sekolah atau Keuangan; jurnal gaji tetap dibuat Keuangan.
-        if self.action == "posting":
+        if self.action in ("posting", "posting_periode"):
             return [IsFinance()]
+        if self.action == "setujui_periode":
+            return [IsPrincipal()]
         return [role_permission(read=(FINANCE, PRINCIPAL), write=(FINANCE, PRINCIPAL))()]
 
     def perform_create(self, serializer):
@@ -87,3 +92,22 @@ class GajiPegawaiViewSet(_TerkunciSetelahJurnal, viewsets.ModelViewSet):
             "detail": "Gaji berhasil dijurnal sebagai DRAFT — menunggu approval.",
             "jurnal_id": str(jurnal.id),
         })
+
+    def _periode(self, request, proses):
+        data = GajiPeriodeInputSerializer(data=request.data)
+        data.is_valid(raise_exception=True)
+        v = data.validated_data
+        hasil = proses(v["periode_bulan"], v["periode_tahun"], request.user, simpan=v["simpan"])
+        return Response(GajiPeriodeHasilSerializer(hasil).data)
+
+    @extend_schema(request=GajiPeriodeInputSerializer, responses=GajiPeriodeHasilSerializer)
+    @action(detail=False, methods=["post"], url_path="posting-periode")
+    def posting_periode(self, request):
+        """Keuangan: jurnal + ajukan semua slip periode yang belum dijurnal (pratinjau bila simpan=false)."""
+        return self._periode(request, posting_gaji_periode)
+
+    @extend_schema(request=GajiPeriodeInputSerializer, responses=GajiPeriodeHasilSerializer)
+    @action(detail=False, methods=["post"], url_path="setujui-periode")
+    def setujui_periode(self, request):
+        """Kepala Sekolah: setujui semua jurnal gaji periode yang menunggu (pratinjau bila simpan=false)."""
+        return self._periode(request, setujui_gaji_periode)

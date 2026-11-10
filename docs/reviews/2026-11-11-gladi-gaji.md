@@ -29,8 +29,15 @@ Kesimpulan: alur dan akuntansinya benar. Masalahnya ada di **beban kerja bulanan
 
 | # | Usulan | Saran | Alasan |
 |---|---|---|---|
-| 1 | Posting massal slip satu periode (Keuangan) dan persetujuan massal jurnal gaji satu periode (Kepsek), dengan daftar yang bisa diperiksa sebelum disetujui | Ya, sebelum Januari | Mengurangi 99 klik per bulan jadi 2 tanpa mengubah model akuntansi (tetap satu jurnal per slip, aturan SoD dan kasbon tetap jalan) |
+| 1 | Posting massal slip satu periode (Keuangan) dan persetujuan massal jurnal gaji satu periode (Kepsek), dengan daftar yang bisa diperiksa sebelum disetujui | **Selesai di branch 11/11 (belum dirilis)** | Mengurangi 99 klik per bulan jadi 2 tanpa mengubah model akuntansi (tetap satu jurnal per slip, aturan SoD dan kasbon tetap jalan) |
 | 2 | Impor slip dari spreadsheet bendahara (pratinjau → simpan), lalu "salin dari bulan lalu" untuk bulan berikutnya | Ya; minta contoh format kosong ke bendahara sekarang | Menghilangkan ±400 isian manual; impor butuh format kolomnya, jadi format harus didapat sebelum data gaji pertengahan Desember |
 | 3 | Akun kas untuk gaji | Tanya bendahara; sementara tetap 112 | Bergantung dari rekening mana gaji dibayar; mengubahnya tanpa jawaban sekolah bisa salah arah |
 | 4 | Uang makan/transport dari tarif × absensi | Tunda | Absensi pegawai belum dipakai rutin; manual dulu lebih aman |
 | 5 | Pisah beban gaji per unit | Tunda | Butuh keputusan COA (akun gaji per unit) dan tidak menghambat cut-over |
+
+## Posting dan persetujuan per periode (dibangun 11/11, belum dirilis)
+
+- API: `POST /gaji/posting-periode/` (Keuangan) membuat jurnal untuk semua slip periode yang belum dijurnal dan langsung mengajukannya; `POST /gaji/setujui-periode/` (Kepsek) menyetujui semua jurnal gaji periode yang menunggu. Keduanya pratinjau bila `simpan=false`. Tiap slip diproses di savepoint sendiri: satu slip gagal (mis. SoD, periode ditutup) tidak membatalkan slip lain dan alasannya dilaporkan per slip. SoD dan pelunasan kasbon tetap lewat `post_jurnal`.
+- Slip memuat `jurnal_status`; daftar slip membedakan Belum dijurnal, Draf jurnal, Menunggu persetujuan, Tercatat, Jurnal dibatalkan.
+- Layar Penggajian: panel "Jurnal gaji per periode" (pilih periode, jumlah slip, satu tombol sesuai peran) dengan dialog pratinjau dari server sebelum diproses dan hasil per slip sesudahnya.
+- Verifikasi: tes backend `test_gaji_periode` (pratinjau tidak mengubah; posting+ajukan 3 slip; Keuangan tidak bisa menyetujui; Kepsek menyetujui 3, kasbon terpotong; jurnal buatan Kepsek gagal per slip karena SoD, slip lain tetap tercatat; periode lain tidak ikut). Tes frontend panel dan helper. Backend 198 tes OK, frontend 169 tes OK, build bersih, `makemigrations --check` bersih, tipe API diperbarui. UAT lewat layar: Keuangan memproses 3 slip Februari 2027 (pratinjau 3 slip → "0 belum dijurnal · 3 menunggu"), Kepsek menyetujui sekaligus → ketiganya POSTED; 375 px tanpa geser samping, tombol tinggi 44 px.
