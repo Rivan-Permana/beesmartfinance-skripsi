@@ -48,7 +48,9 @@ SQL
 | Kode aktif tanpa akun | `STR/PG STR/TK` |
 | COA, kode aktif, siswa, jurnal, tagihan | `206`, `60`, `108`, `18`, `7` |
 
-### Hasil cek — (isi saat dijalankan)
+### Hasil cek — 10/11 (web console, read-only)
+
+SHA `242d519` keduanya; backend Up 42 menit, caddy/db Up 3 minggu (db healthy); disk 9%; `github 200`. Migrasi `accounts 0003`, `operations 0023`. Anggota BudgetPlanner 0, username `penyusun.anggaran` 0. Anggaran bulanan 2, plafon 0. Kode aktif tanpa akun `STR/PG STR/TK`. COA 206, kode aktif 60, siswa 108, jurnal 18, tagihan 7. Semua sesuai; tidak ada yang menghalangi backup dan merge.
 
 ## 2. Backup manual sebelum merge
 
