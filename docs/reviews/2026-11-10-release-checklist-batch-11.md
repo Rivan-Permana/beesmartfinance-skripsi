@@ -65,6 +65,8 @@ docker compose --env-file .env.vps -f docker-compose.production.yml exec -T db \
 
 Diharapkan: sekitar `…before-batch10` (288.196 byte), `TABLE DATA` = 53.
 
+Hasil 10/11 17:14 UTC: `backups/db-20261110T171421Z-before-batch11.dump`, 288.263 byte, 53 `TABLE DATA`. Titik pulih rilis Batch 11.
+
 ## 3. Rilis
 
 1. PR `codex/auto-deploy-fe-be` → `main`, merge (atas instruksi pengguna).
