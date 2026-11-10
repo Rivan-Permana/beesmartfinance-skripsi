@@ -27,7 +27,7 @@ const access=computed(()=>({finance:auth.hasRole(["Finance"]),principal:auth.has
 const canDraft=computed(()=>access.value.finance||access.value.drafter)
 const kind=computed(()=>route.query.jenis==='masuk'||route.query.jenis==='keluar'?route.query.jenis:null)
 const title=computed(()=>kind.value==='masuk'?'Pemasukan':kind.value==='keluar'?'Pengeluaran':'Jurnal')
-const subtitle=computed(()=>kind.value==='masuk'?'Jurnal dengan akun pendapatan. Periksa bukti sebelum mencatat.':kind.value==='keluar'?'Jurnal dengan akun beban. Periksa bukti sebelum mencatat.':'Bukti transaksi, rincian akun, dan pencatatan ke buku besar.')
+const subtitle=computed(()=>kind.value==='masuk'?'Jurnal dengan akun pendapatan. Periksa bukti sebelum mencatat.':kind.value==='keluar'?'Jurnal dengan akun beban, atau kode pengeluaran lain yang dibayar dari kas (mis. transfer ke yayasan). Periksa bukti sebelum mencatat.':'Bukti transaksi, rincian akun, dan pencatatan ke buku besar.')
 function errorText(value:unknown,fallback:string){const result=friendlyError(value,fallback);return [result.summary,result.detail].filter(Boolean).join(". ")}
 async function loadAccounts(){
   if(loadingAccounts.value)return

@@ -23,6 +23,7 @@ from .models import (
     MsSubGolongan,
     TrAnggaran,
     TrJurnal,
+    TrJurnalDetail,
 )
 from .serializers import (
     MsCoaSerializer,
@@ -138,6 +139,26 @@ class TolakJurnalInputSerializer(serializers.Serializer):
     alasan = serializers.CharField(max_length=500)
 
 
+def _q_pengeluaran():
+    """Jurnal pengeluaran: memakai akun beban (5…), atau mendebit akun kode pengeluaran non-beban
+    (mis. TMB → 121, DVD → 313) sambil mengkredit akun kas."""
+    from django.db.models import Exists, OuterRef
+
+    from operations.models import KodePengeluaran
+
+    from .kas import akun_kas_q
+
+    akun_kode = KodePengeluaran.objects.exclude(akun__isnull=True).exclude(akun__kode_akun__startswith="5").values("akun")
+    detail = TrJurnalDetail.objects.filter(jurnal=OuterRef("pk"))
+    return (
+        Exists(detail.filter(kode_akun__kode_akun__startswith="5"))
+        | (
+            Exists(detail.filter(debit__gt=0, kode_akun__in=akun_kode))
+            & Exists(detail.filter(kredit__gt=0, kode_akun__in=MsCoa.objects.filter(akun_kas_q())))
+        )
+    )
+
+
 @extend_schema_view(list=extend_schema(parameters=[OpenApiParameter("jenis", str, enum=["masuk", "keluar"])]))
 class TrJurnalViewSet(viewsets.ModelViewSet):
     serializer_class = TrJurnalSerializer
@@ -157,7 +178,10 @@ class TrJurnalViewSet(viewsets.ModelViewSet):
         if jenis:
             if jenis not in ("masuk", "keluar"):
                 raise ValidationError("Jenis jurnal harus masuk atau keluar.")
-            queryset = queryset.filter(detail__kode_akun__kode_akun__startswith="4" if jenis == "masuk" else "5").distinct()
+            if jenis == "masuk":
+                queryset = queryset.filter(detail__kode_akun__kode_akun__startswith="4").distinct()
+            else:
+                queryset = queryset.filter(_q_pengeluaran())
         return queryset
 
     def get_permissions(self):
