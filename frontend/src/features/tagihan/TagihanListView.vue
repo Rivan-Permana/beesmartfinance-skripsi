@@ -474,6 +474,25 @@ async function lihatRiwayat(t: Tagihan) {
   try { riwayatTarget.value = await tagihanApi.get(t.id) }
   catch (e) { notifyError(toast, e, "Gagal memuat riwayat pembayaran.") }
 }
+const batalSaldoAwalSaving = ref(false)
+const batalSaldoAwalError = ref("")
+watch(riwayatTarget, () => { batalSaldoAwalError.value = "" })
+async function batalSaldoAwal(payment: PembayaranTagihan, alasan: string) {
+  const tagihan = riwayatTarget.value
+  if (!tagihan || batalSaldoAwalSaving.value) return
+  batalSaldoAwalSaving.value = true
+  batalSaldoAwalError.value = ""
+  try {
+    riwayatTarget.value = await tagihanApi.batalSaldoAwal(tagihan.id, payment.id, alasan)
+    notifySuccess(toast, "Saldo awal dibatalkan", { detail: `Penerimaan ${payment.no_bukti} tidak lagi mengurangi sisa tagihan.` })
+    await load()
+  } catch (e) {
+    const error = friendlyError(e, "Saldo awal belum berhasil dibatalkan.")
+    batalSaldoAwalError.value = [error.summary, error.detail].filter(Boolean).join(". ")
+  } finally {
+    batalSaldoAwalSaving.value = false
+  }
+}
 
 // --- kwitansi per pembayaran ---
 const kwitansi = ref<{ invoice: StrukTagihan; tagihan: Tagihan; payment: PembayaranTagihan } | null>(null)
@@ -544,7 +563,7 @@ onMounted(async () => {
     <TagihanDirectory :rows="rows" :names="siswaNama" :loading="loading" :error="loadError" @create="openGenerate" @retry="load" @pay="bayar" @edit="editTagihan" @remove="batalkanTagihan" @history="lihatRiwayat" @invoice="lihatStruk" />
     <TagihanPaymentDialog v-model="bayarDialog" v-model:form="bayarForm" :target="bayarTarget" :student-name="bayarTarget ? siswaNama.get(bayarTarget.siswa) ?? bayarTarget.siswa_nama ?? 'Siswa' : ''" :accounts="kasOptions" :saving="bayarSaving" :error="bayarError" @save="simpanPembayaran" @reload-accounts="loadAccounts" />
 
-    <TagihanHistoryDialog v-model:target="riwayatTarget" :student-name="riwayatTarget ? siswaNama.get(riwayatTarget.siswa) : undefined" @receipt="lihatKwitansi" />
+    <TagihanHistoryDialog v-model:target="riwayatTarget" :student-name="riwayatTarget ? siswaNama.get(riwayatTarget.siswa) : undefined" @receipt="lihatKwitansi" :cancelling="batalSaldoAwalSaving" :cancel-error="batalSaldoAwalError" @cancel-opening="batalSaldoAwal" />
     <Dialog v-model:visible="kwitansiDialog" header="Kwitansi pembayaran" modal :draggable="false" :style="{ width: '560px' }" class="struk-dialog" :pt="{ mask: { class: 'struk-print-mask' } }" :close-button-props="{ severity: 'secondary', text: true, 'aria-label': 'Tutup kwitansi' }">
       <template #closeicon><Icon name="x" /></template>
       <PaymentReceipt v-if="kwitansi" :invoice="kwitansi.invoice" :tagihan="kwitansi.tagihan" :payment="kwitansi.payment" :cash-account="kwitansiKas" />

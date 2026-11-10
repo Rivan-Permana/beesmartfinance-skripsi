@@ -83,6 +83,8 @@ export const tagihanApi = {
     api.delete(`/tagihan/${id}/`).then((r) => r.data),
   bayar: (id: number, payload: BayarTagihanInput) =>
     api.post<{ detail: string; tagihan: Tagihan; pembayaran: PembayaranTagihan; jurnal_id: string }>(`/tagihan/${id}/bayar/`, payload).then((r) => r.data),
+  batalSaldoAwal: (id: number, pembayaran: number, alasan: string) =>
+    api.post<Tagihan>(`/tagihan/${id}/batal-saldo-awal/`, { pembayaran, alasan }).then((r) => r.data),
   struk: (id: number) =>
     api.get<StrukTagihan>(`/tagihan/${id}/struk/`).then((r) => r.data),
 }
