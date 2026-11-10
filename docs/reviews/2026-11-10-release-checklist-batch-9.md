@@ -110,10 +110,10 @@ Cara membaca hasilnya:
 Catatan log deploy: poller tiap 5 menit menjalankan `git fetch` ke GitHub. Baris terakhir menunjukkan VPS sempat gagal resolve `github.com` (dulu juga pernah putus-sambung). Kalau masih gagal saat merge, deploy tidak jalan sampai koneksi pulih; produksi tetap di `774d93d`, tidak rusak. Sebelum merge, pastikan koneksi ke GitHub hidup:
 
 ```sh
-getent hosts github.com; git -C /opt/beesmartfinance ls-remote --heads origin main | head -1
+getent hosts github.com; curl -sS -o /dev/null -w "github %{http_code}\n" https://github.com
 ```
 
-Yang diharapkan: alamat IP GitHub dan satu baris `774d93d… refs/heads/main`.
+Yang diharapkan: satu baris alamat IP GitHub dan `github 200`.
 
 Kesimpulan: data dan skema siap untuk migrasi Batch 9. Satu-satunya syarat tambahan: koneksi VPS ke GitHub hidup saat merge.
 
