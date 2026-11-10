@@ -9,6 +9,7 @@ from decimal import Decimal
 
 import django_filters
 from django.db import connection
+from django.db.models import Q
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema
 from rest_framework import mixins, serializers, viewsets
@@ -16,10 +17,10 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from accounts.permissions import IsFinanceOrPrincipal, IsPrincipal
+from accounts.permissions import BUDGET_PLANNER, FINANCE, PRINCIPAL, IsFinanceOrPrincipal, IsPrincipal, role_permission
 
 from .kas import is_akun_kas
-from .models import AuditLog
+from .models import AuditLog, MsPeriodeAkuntansi, TrAnggaran
 
 
 def _rows(sql, params=None):
@@ -146,6 +147,26 @@ class NeracaSaldoView(APIView):
         return Response(_rows("SELECT * FROM v_neraca_saldo ORDER BY kode_akun"))
 
 
+def _kelompok_akun():
+    """kode_akun -> (kode sub-golongan, nama sub-golongan), mis. 51 Beban Kegiatan Sekolah - TK."""
+    return {
+        r["kode_akun"]: (r["kode_sub"], r["nama_sub"])
+        for r in _rows(
+            "SELECT c.kode_akun, s.kode_sub, s.nama_sub FROM ms_coa c "
+            "JOIN ms_sub_golongan s ON s.id = c.sub_golongan_id"
+        )
+    }
+
+
+def _subtotal(rows):
+    """Subtotal per kelompok akun, berurutan sesuai kode kelompok."""
+    hasil = {}
+    for r in rows:
+        k = hasil.setdefault(r["kelompok_kode"], {"kode": r["kelompok_kode"], "nama": r["kelompok_nama"], "total": Decimal(0)})
+        k["total"] += r["saldo_akhir"]
+    return [hasil[k] for k in sorted(hasil)]
+
+
 @extend_schema(responses=OpenApiTypes.OBJECT)
 class LabaRugiView(APIView):
     permission_classes = [IsFinanceOrPrincipal]
@@ -160,9 +181,14 @@ class LabaRugiView(APIView):
         beban = [r for r in data if str(r["kode_akun"]).startswith("5")]
         total_pendapatan = sum((r["saldo_akhir"] for r in pendapatan), Decimal(0))
         total_beban = sum((r["saldo_akhir"] for r in beban), Decimal(0))
+        kelompok = _kelompok_akun()
+        for r in pendapatan + beban:
+            r["kelompok_kode"], r["kelompok_nama"] = kelompok.get(str(r["kode_akun"]), (str(r["kode_akun"])[:2], "Lainnya"))
         return Response({
             "pendapatan": pendapatan,
             "beban": beban,
+            "kelompok_pendapatan": _subtotal(pendapatan),
+            "kelompok_beban": _subtotal(beban),
             "total_pendapatan": total_pendapatan,
             "total_beban": total_beban,
             "laba_rugi": total_pendapatan - total_beban,
@@ -202,6 +228,86 @@ class RealisasiAnggaranView(APIView):
                 "SELECT * FROM v_realisasi_anggaran WHERE tahun_anggaran = %s "
                 "ORDER BY kode_akun", [tahun]))
         return Response(_rows("SELECT * FROM v_realisasi_anggaran ORDER BY kode_akun"))
+
+
+def anggaran_bulanan(periode):
+    """Plafon, anggaran bulanan, dan realisasi (jurnal POSTED) per akun beban untuk satu tahun pelajaran."""
+    bulan_list = []
+    tahun, bulan = periode.tgl_mulai.year, periode.tgl_mulai.month
+    while date(tahun, bulan, 1) <= periode.tgl_selesai:
+        bulan_list.append((tahun, bulan))
+        tahun, bulan = (tahun + 1, 1) if bulan == 12 else (tahun, bulan + 1)
+    realisasi = {}
+    for r in _rows(
+        """
+        SELECT d.kode_akun, EXTRACT(year FROM j.tanggal)::int AS tahun, EXTRACT(month FROM j.tanggal)::int AS bulan,
+               SUM(d.debit - d.kredit) AS nilai
+        FROM tr_jurnal_detail d JOIN tr_jurnal j ON j.id = d.jurnal_id
+        WHERE j.status = 'POSTED' AND NOT j.is_deleted AND d.kode_akun LIKE '5%%'
+          AND j.tanggal BETWEEN %s AND %s
+        GROUP BY 1, 2, 3
+        """, [periode.tgl_mulai, periode.tgl_selesai],
+    ):
+        realisasi[(r["kode_akun"], r["tahun"], r["bulan"])] = r["nilai"]
+    anggaran = TrAnggaran.objects.select_related("kode_akun").filter(
+        kode_akun__kode_akun__startswith="5",
+    ).filter(_q_anggaran_periode(periode, bulan_list))
+    akun = {}
+    for a in anggaran:
+        baris = akun.setdefault(a.kode_akun_id, {"nama_akun": a.kode_akun.nama_akun, "plafon": None, "anggaran": {}})
+        if a.bulan is None:
+            baris["plafon"] = a.nominal_anggaran
+        else:
+            baris["anggaran"][(a.tahun_anggaran, a.bulan)] = a.nominal_anggaran
+    if realisasi:
+        nama = {r["kode_akun"]: r["nama_akun"] for r in _rows("SELECT kode_akun, nama_akun FROM ms_coa WHERE kode_akun LIKE '5%%'")}
+        for kode_akun, _t, _b in realisasi:
+            akun.setdefault(kode_akun, {"nama_akun": nama.get(kode_akun, kode_akun), "plafon": None, "anggaran": {}})
+    hasil = []
+    for kode_akun in sorted(akun):
+        baris = akun[kode_akun]
+        per_bulan = [
+            {"tahun": t, "bulan": b, "anggaran": baris["anggaran"].get((t, b)),
+             "realisasi": realisasi.get((kode_akun, t, b), Decimal(0))}
+            for t, b in bulan_list
+        ]
+        total_anggaran = sum((m["anggaran"] or 0 for m in per_bulan), Decimal(0))
+        total_realisasi = sum((m["realisasi"] for m in per_bulan), Decimal(0))
+        hasil.append({
+            "kode_akun": kode_akun, "nama_akun": baris["nama_akun"], "plafon": baris["plafon"],
+            "total_anggaran": total_anggaran, "total_realisasi": total_realisasi,
+            "sisa_plafon": None if baris["plafon"] is None else baris["plafon"] - total_realisasi,
+            "bulan": per_bulan,
+        })
+    return {
+        "periode": {"id": periode.pk, "kode": periode.kode, "tgl_mulai": periode.tgl_mulai, "tgl_selesai": periode.tgl_selesai},
+        "bulan": [{"tahun": t, "bulan": b} for t, b in bulan_list],
+        "akun": hasil,
+    }
+
+
+def _q_anggaran_periode(periode, bulan_list):
+    q = Q(bulan__isnull=True, periode=periode)
+    for tahun, bulan in bulan_list:
+        q |= Q(tahun_anggaran=tahun, bulan=bulan)
+    return q
+
+
+@extend_schema(responses=OpenApiTypes.OBJECT)
+class AnggaranBulananView(APIView):
+    """Rencana anggaran bulanan vs realisasi per akun beban dalam satu tahun pelajaran."""
+
+    permission_classes = [role_permission(read=(FINANCE, PRINCIPAL, BUDGET_PLANNER))]
+
+    def get(self, request):
+        periode_id = request.query_params.get("periode", "")
+        periode = (
+            MsPeriodeAkuntansi.objects.filter(pk=int(periode_id)).first() if periode_id.isdigit()
+            else MsPeriodeAkuntansi.objects.filter(tgl_mulai__lte=date.today(), tgl_selesai__gte=date.today()).first()
+        )
+        if periode is None:
+            raise ValidationError({"periode": "Tahun pelajaran tidak ditemukan."})
+        return Response(anggaran_bulanan(periode))
 
 
 @extend_schema(responses=OpenApiTypes.OBJECT)

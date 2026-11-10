@@ -35,7 +35,7 @@ class Tagihan(SoftDeleteModel, TimeStampedModel):
     STATUS = [
         ("BELUM", "Belum Lunas"), ("SEBAGIAN", "Sebagian"), ("LUNAS", "Lunas"),
     ]
-    JENIS = [("BULANAN", "Bulanan"), ("BIAYA_MASUK", "Biaya masuk")]
+    JENIS = [("BULANAN", "Bulanan"), ("BIAYA_MASUK", "Biaya masuk"), ("LSU", "Paket LSU")]
     siswa = models.ForeignKey(
         "operations.Siswa", on_delete=models.PROTECT, related_name="tagihan"
     )
@@ -57,7 +57,8 @@ class Tagihan(SoftDeleteModel, TimeStampedModel):
         constraints = [
             models.UniqueConstraint(
                 fields=["siswa", "periode_bulan", "periode_tahun", "jenis"],
-                condition=models.Q(is_deleted=False),
+                # Paket LSU ditagih per paket; dua paket bisa jatuh di bulan yang sama.
+                condition=models.Q(is_deleted=False) & ~models.Q(jenis="LSU"),
                 name="tagihan_siswa_periode_jenis_unik",
             ),
         ]
@@ -118,6 +119,7 @@ class TagihanDetail(models.Model):
         ("SERAGAM", "Seragam"),
         ("KOMITE", "Iuran Komite"),
         ("PORTOFOLIO", "Portofolio & Rapor"),
+        ("LSU", "Paket LSU"),
         ("POTONGAN", "Potongan"),
         ("LAIN", "Lain-lain"),
     ]

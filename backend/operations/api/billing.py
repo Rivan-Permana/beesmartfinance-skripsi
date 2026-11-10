@@ -77,6 +77,8 @@ class TagihanViewSet(viewsets.ModelViewSet):
             instance = Tagihan.objects.select_for_update().get(pk=instance.pk)
             if instance.perlu_rekonsiliasi or instance.jurnal_id or instance.pembayaran.exists():
                 raise ValidationError("Tagihan dengan riwayat pembayaran tidak dapat dihapus.")
+            if instance.jenis == "LSU":
+                raise ValidationError("Tagihan paket LSU dihapus dari halaman LSU bersama paketnya.")
             instance.delete()
 
     @action(detail=False, methods=["post"])

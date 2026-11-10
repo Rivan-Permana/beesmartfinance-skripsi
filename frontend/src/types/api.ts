@@ -12,6 +12,7 @@ export type Role =
   | "SchoolPrincipal"
   | "Administration"
   | "TeacherInCharge"
+  | "BudgetPlanner"
 
 export interface CurrentUser {
   id: number
@@ -361,7 +362,7 @@ export interface TagihanDetail {
   total_terbayar?: string
 }
 
-export type TagihanJenis = "BULANAN" | "BIAYA_MASUK"
+export type TagihanJenis = "BULANAN" | "BIAYA_MASUK" | "LSU"
 
 export interface Tagihan {
   id: number
@@ -578,11 +579,18 @@ export interface SaldoRow {
   total_debit: string
   total_kredit: string
   saldo_akhir: string
+  /** Laba rugi: kelompok akun (sub-golongan), mis. 51 Beban Kegiatan Sekolah - TK. */
+  kelompok_kode?: string
+  kelompok_nama?: string
 }
+
+export interface KelompokSubtotal { kode: string; nama: string; total: string | number }
 
 export interface LabaRugiResult {
   pendapatan: SaldoRow[]
   beban: SaldoRow[]
+  kelompok_pendapatan?: KelompokSubtotal[]
+  kelompok_beban?: KelompokSubtotal[]
   total_pendapatan: string
   total_beban: string
   laba_rugi: string
@@ -621,6 +629,37 @@ export interface Anggaran {
   keterangan: string | null
   carry_over: boolean
   periode: number | null
+}
+
+export interface PaketLSU {
+  id: number
+  siswa: number
+  siswa_nama: string
+  jumlah_sesi: 8 | 16
+  harga: string
+  tanggal_mulai: string
+  keterangan: string
+  sesi_terpakai: number
+  tagihan: number | null
+  tagihan_status: TagihanStatus | null
+  tagihan_sisa: string | null
+  pertemuan: { id: number; tanggal: string; catatan: string }[]
+}
+export type PaketLSUInput = Pick<PaketLSU, "siswa" | "jumlah_sesi" | "harga" | "tanggal_mulai" | "keterangan">
+
+export interface AnggaranBulananAkun {
+  kode_akun: string
+  nama_akun: string
+  plafon: string | number | null
+  total_anggaran: string | number
+  total_realisasi: string | number
+  sisa_plafon: string | number | null
+  bulan: { tahun: number; bulan: number; anggaran: string | number | null; realisasi: string | number }[]
+}
+export interface AnggaranBulanan {
+  periode: { id: number; kode: string; tgl_mulai: string; tgl_selesai: string }
+  bulan: { tahun: number; bulan: number }[]
+  akun: AnggaranBulananAkun[]
 }
 
 export interface PeriodeAkuntansi {

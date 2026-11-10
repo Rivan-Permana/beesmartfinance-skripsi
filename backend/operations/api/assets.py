@@ -5,7 +5,7 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 
-from accounts.permissions import IsFinanceOrReadOnly
+from accounts.permissions import IsFinanceOrReadOnly, IsNotBudgetPlannerOnly
 
 from operations.models import FixedAsset
 from operations.serializers import FixedAssetSerializer
@@ -15,7 +15,7 @@ from operations.services import post_penyusutan
 class FixedAssetViewSet(viewsets.ModelViewSet):
     queryset = FixedAsset.objects.all().order_by("nama")
     serializer_class = FixedAssetSerializer
-    permission_classes = [IsFinanceOrReadOnly]
+    permission_classes = [IsFinanceOrReadOnly, IsNotBudgetPlannerOnly]
 
     @action(detail=True, methods=["post"])
     def susutkan(self, request, pk=None):

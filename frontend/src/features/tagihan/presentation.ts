@@ -13,14 +13,15 @@ export function tagihanState(row: Tagihan) {
 }
 export function canEditTagihan(row: Tagihan) {
   // Biaya masuk diubah lewat Data Siswa agar tetap sama dengan isian siswa.
-  return row.jenis !== "BIAYA_MASUK" && row.status === "BELUM" && !perluDicocokkan(row) && row.pembayaran.length === 0
+  return row.jenis === "BULANAN" && row.status === "BELUM" && !perluDicocokkan(row) && row.pembayaran.length === 0
 }
 export function canPayTagihan(row: Tagihan) {
   return !perluDicocokkan(row) && Number(row.sisa_tagihan) > 0
 }
 export function tagihanPeriod(row: Pick<Tagihan, "periode_bulan" | "periode_tahun"> & Partial<Pick<Tagihan, "jenis">>) {
   const bulan = new Date(row.periode_tahun, row.periode_bulan - 1, 1).toLocaleDateString("id-ID", { month: "long", year: "numeric" })
-  return row.jenis === "BIAYA_MASUK" ? `Biaya masuk · ${bulan}` : bulan
+  if (row.jenis === "BIAYA_MASUK") return `Biaya masuk · ${bulan}`
+  return row.jenis === "LSU" ? `Paket LSU · ${bulan}` : bulan
 }
 export function paymentCancelled(payment: Pick<PembayaranTagihan, "dibatalkan" | "jurnal_status">) {
   return payment.dibatalkan || payment.jurnal_status === "VOID"
