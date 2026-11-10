@@ -42,6 +42,8 @@ TAGIHAN_COMPONENT_ACCOUNTS: dict[str, list[str]] = {
     "KEGIATAN": ["417"],
     "SERAGAM": ["417", "413"],
     "PORTOFOLIO": ["417"],
+    # 418 dibuat Keuangan di COA; sebelum ada, LSU tetap masuk Pendapatan Lain-lain.
+    "LSU": ["418", "417"],
     "LAIN": ["417", "412"],
 }
 REGISTRASI_COMPONENT_ACCOUNTS: dict[str, list[str]] = {
@@ -64,6 +66,7 @@ _KOMPONEN_LABEL: dict[str, str] = {
     "SERAGAM": "Seragam",
     "KOMITE": "Iuran Komite",
     "PORTOFOLIO": "Portofolio",
+    "LSU": "Learning Support Unit",
     "LAIN": "Komponen Lain",
     "SITIN": "Sit In / Observasi",
     "PENDAFTARAN": "Biaya Pendaftaran",
@@ -237,7 +240,7 @@ def seed_system_posting_rules() -> dict[str, str]:
     if fallback_pendapatan:
         tagihan_komponen = [
             "SPP", "KATERING", "JEMPUTAN", "UANG_MASUK", "KEGIATAN",
-            "PENGEMBANGAN", "SERAGAM", "KOMITE", "PORTOFOLIO", "LAIN",
+            "PENGEMBANGAN", "SERAGAM", "KOMITE", "PORTOFOLIO", "LSU", "LAIN",
         ]
         for komp in tagihan_komponen:
             kredit = _pick_active(TAGIHAN_COMPONENT_ACCOUNTS.get(komp, ["411"])) or fallback_pendapatan

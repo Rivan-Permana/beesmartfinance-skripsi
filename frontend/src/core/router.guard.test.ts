@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import router from "./router"
 import { useAuthStore } from "@/stores/auth"
@@ -69,5 +69,21 @@ describe("router guard", () => {
     expect(router.currentRoute.value.name).toBe("pegawai")
     await router.push("/absensi-pegawai")
     expect(router.currentRoute.value.name).toBe("absensi-pegawai")
+  })
+
+  it("sends a restored session at / to the role home, not login", async () => {
+    const auth = useAuthStore()
+    auth.ready = false
+    vi.spyOn(auth, "init").mockImplementation(async () => {
+      auth.user = { id: 2, username: "keuangan", nama: "Staff Keuangan", is_superuser: false, groups: ["Finance"] }
+      auth.ready = true
+    })
+    await router.push("/")
+    expect(router.currentRoute.value.path).toBe("/dashboard")
+  })
+
+  it("sends a visitor without a session at / to login", async () => {
+    await router.push("/")
+    expect(router.currentRoute.value.name).toBe("login")
   })
 })

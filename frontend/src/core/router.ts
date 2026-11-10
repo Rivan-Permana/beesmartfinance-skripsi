@@ -17,7 +17,8 @@ const router = createRouter({
       path: "/",
       component: () => import("@/shared/layout/AppShell.vue"),
       children: [
-        { path: "", redirect: () => roleHome(useAuthStore().roles) },
+        // beforeEnter (bukan redirect) supaya jalan setelah beforeEach memuat sesi; redirect dievaluasi sebelum peran diketahui.
+        { path: "", name: "home", component: { render: () => null }, beforeEnter: () => roleHome(useAuthStore().roles) },
         {
           path: "dashboard",
           name: "dashboard",

@@ -166,6 +166,27 @@ Hasil 10/11 15:24 UTC: koneksi GitHub hidup (`github.com` resolve, `github 200`)
    - **Guru:** Absensi tetap jalan, tanpa nominal; menu LSU tidak ada.
    - **Penyusun anggaran:** belum ada user di produksi. Dilewati sampai superuser membuatnya (lihat bagian 4).
 
+### Hasil rilis — 10 November 2026
+
+- PR #27 di-merge ke `main` pukul 15:25:56 UTC (`7cd5b97`) dari sesi Claude atas instruksi pengguna, setelah cek read-only, cek koneksi GitHub, dan backup `before-batch9`.
+- Backend baru terlihat dari luar 15:31:57 UTC (schema memuat `paket-lsu`, `anggaran-bulanan`, `impor-biaya-masuk`, `batal-saldo-awal`, `uang_komite`, `uang_portofolio`, `saldo_awal`).
+- Worker baru terlihat 15:33:33 UTC, bundle `index-Bq0ut_6a.js`: chunk SiswaListView memuat "Impor biaya masuk", LsuView ada, AnggaranListView memuat plafon.
+- Cek dari luar: `/login` 200; API tanpa token 401, lewat Worker maupun origin.
+- Cek read-only pasca-rilis (web console):
+  - SHA backend dan frontend `7cd5b97`; Worker version `1e0e2cab…`; backend Up 6 menit, db healthy, disk 9%.
+  - Dump deploy `db-20261110T153005Z.dump` (278.077 byte, sama dengan `before-batch9`); 32 dump, total 7,5 MB.
+  - Migrasi `accounts 0003_budget_planner_group` dan `operations 0023_lsu`; grup `BudgetPlanner` ada; tabel LSU ada (kosong).
+  - Tidak berubah: pembayaran 3 / 0 / 0; tagihan BULANAN 7, perlu dicocokkan 3; anggaran 2 / 0 / 0; akun tanpa sub-golongan 0; COA 205; kode pengeluaran 74 / 58 / 60; siswa 108 aktif; jurnal 18 (DRAFT/PENDING 7); periode 2026/2027 OPEN.
+
+  Tidak ada data yang berubah selain skema dan grup baru.
+- Smoke test produksi per role (10/11; pengguna login di browser bawaan, Claude memeriksa tanpa menyimpan data, lalu logout tiap role):
+  - **Staf TU:** LSU terbuka (0 paket), form "Paket LSU baru" lengkap lalu Batal; form Tambah siswa menampilkan Iuran Komite dan Portofolio beserta teks bantu; dialog "Impor biaya masuk dari tab master" terbuka (tanggal saldo awal, berkas CSV) lalu ditutup; riwayat pembayaran tagihan lama tetap menampilkan kwitansi dan pembatalan. API: 3 pembayaran lama tetap punya jurnal, `saldo_awal` false.
+  - **Keuangan:** laba rugi menampilkan 6 kelompok dan 6 subtotal; subtotal = jumlah baris, total pendapatan/beban = jumlah akun, tidak ada akun "Lainnya". Panel anggaran bulanan 12 bulan. Form Tambah anggaran menampilkan plafon dan tahun pelajaran, lalu Batal.
+  - **Kepsek:** Beranda tanpa error (9 panel); laba rugi dan anggaran bulanan 200; menu Anggaran hanya baca (tanpa tombol tambah/ubah/hapus); menu LSU tidak tampil.
+  - **Guru:** menu hanya Absensi Siswa, Rekap Absensi, Kegiatan; Absensi siswa tanpa error dan tanpa rupiah; API siswa tanpa field nominal; LSU, tagihan, anggaran bulanan 403.
+
+  Semua lulus. Catatan: sekali muncul 401 saat token sesi diperbarui di tengah aksi (riwayat pembayaran tidak terbuka pada klik pertama, klik kedua normal). Perilaku lama, bukan dari Batch 9.
+
 ## 4. Setelah rilis
 
 1. **Superuser** membuat user penyusun anggaran dan memasukkannya ke grup `BudgetPlanner` (Django admin). Lalu smoke test: login masuk ke Anggaran, menu lain tidak ada, jurnal dan tagihan ditolak.

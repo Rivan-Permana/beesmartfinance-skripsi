@@ -33,6 +33,10 @@ export function paymentState(payment: Pick<PembayaranTagihan, "dibatalkan" | "ju
   if (payment.jurnal_status === "POSTED") return { label: "Sudah dicatat", severity: "success" }
   return { label: "Menunggu pencatatan keuangan", severity: "info" }
 }
+/** Saldo awal yang belum dibatalkan boleh dibatalkan TU (mis. salah impor). Pembayaran biasa dibatalkan lewat jurnal pembalik. */
+export function bisaBatalSaldoAwal(payment: Pick<PembayaranTagihan, "dibatalkan" | "jurnal_status" | "saldo_awal">) {
+  return payment.saldo_awal && !paymentCancelled(payment)
+}
 /** Rincian kwitansi: komponen tagihan yang dilunasi oleh satu pembayaran. */
 export function receiptLines(tagihan: Pick<Tagihan, "detail">, payment: Pick<PembayaranTagihan, "alokasi">) {
   return payment.alokasi.map(line => {

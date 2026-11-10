@@ -49,6 +49,12 @@ class LsuTests(APITestCase):
         self.assertIn("sudah terpakai", str(habis.data))
         self.assertEqual(self.client.get(f"/api/v1/paket-lsu/{pid}/").data["sesi_terpakai"], 8)
 
+    def test_pendapatan_lsu_masuk_418_setelah_akunnya_dibuat(self):
+        _coa("418", "Pendapatan LSU", "K")
+        res = self.buat()
+        self.assertEqual(res.status_code, 201, res.data)
+        self.assertEqual(Tagihan.objects.get(pk=res.data["tagihan"]).detail.get().akun_pendapatan_id, "418")
+
     def test_paket_baru_ditolak_selama_sesi_lama_tersisa_dan_bulan_sama_boleh(self):
         pid = self.buat().data["id"]
         ditolak = self.buat(sesi=16, mulai="2027-01-25")
