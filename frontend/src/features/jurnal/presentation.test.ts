@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { journalAccounts, journalSamples } from "@/design-system/journal-fixtures"
-import { journalActions, journalFormValid, journalPayload, journalState, journalTotals, resolveKodePengeluaran, type JournalForm } from "./presentation"
+import { journalActions, journalFormValid, journalPayload, journalState, journalTotals, petunjukKode, resolveKodePengeluaran, type JournalForm } from "./presentation"
 import type { KodePengeluaran } from "@/types/api"
 
 const finance={finance:true,principal:false,userId:1}
@@ -59,5 +59,13 @@ describe("resolveKodePengeluaran", () => {
     expect(resolveKodePengeluaran("OLD", codes).status).toBe("unknown")
     expect(resolveKodePengeluaran("XYZ", codes).status).toBe("unknown")
     expect(resolveKodePengeluaran("  ", codes).status).toBe("empty")
+  })
+  it("memberi petunjuk netral untuk kode yang akunnya dipilih per transaksi", () => {
+    const sentra = { ...code("STR", "TK", null), nama: "Sentra" }
+    expect(petunjukKode("str tk", [...codes, sentra])).toEqual({ warn: false, text: "STR TK (Sentra) tidak punya akun tetap. Pilih akun Sentra yang sesuai untuk transaksi ini." })
+    expect(petunjukKode("PLN", codes)).toEqual({ warn: false, text: "PLN → 5406 Akun 5406" })
+    expect(petunjukKode("AB3", codes)?.warn).toBe(true)
+    expect(petunjukKode("XYZ", codes)?.warn).toBe(true)
+    expect(petunjukKode("", codes)).toBeNull()
   })
 })

@@ -89,7 +89,7 @@ function remove(row: KodePengeluaran) {
 <template>
   <section class="kode-panel" aria-label="Kode pengeluaran sekolah" :aria-busy="loading">
     <header class="kode-heading">
-      <div><h2>Kode pengeluaran sekolah</h2><p>Kode singkat dari buku kas (ATK, PLN, AB3 TK) yang otomatis memilih akun saat Staf TU membuat draf pengeluaran. Kode tanpa akun belum dikonfirmasi artinya.</p></div>
+      <div><h2>Kode pengeluaran sekolah</h2><p>Kode singkat dari buku kas (ATK, PLN, AB3 TK) yang otomatis memilih akun saat Staf TU membuat draf pengeluaran. Kode tanpa akun tetap dipilih akunnya per transaksi, misalnya STR (Sentra) yang tidak dirinci per sentra di buku kas.</p></div>
       <Button v-if="canWrite" label="Tambah kode" :disabled="loading" @click="open()"><template #icon><Icon name="plus" /></template></Button>
     </header>
     <div class="kode-toolbar"><SearchField input-id="kode-search" v-model="query" placeholder="Cari kode, nama, atau akun" hint="Cari kode, nama, atau akun" /><p v-if="!loading && !error" role="status">{{ mapped }} dari {{ rows.length }} kode sudah dipetakan</p></div>
@@ -102,7 +102,7 @@ function remove(row: KodePengeluaran) {
         <tbody><tr v-for="row in pageRows" :key="row.id">
           <td><strong>{{ row.kode }}</strong><small>{{ row.unit === "UMUM" ? "Umum" : row.unit }}</small></td>
           <td>{{ row.nama || "—" }}</td>
-          <td><template v-if="row.akun">{{ row.akun }} <small>{{ row.akun_nama }}</small></template><Tag v-else value="Belum dipetakan" severity="warn" /></td>
+          <td><template v-if="row.akun">{{ row.akun }} <small>{{ row.akun_nama }}</small></template><Tag v-else-if="row.aktif" value="Akun per transaksi" severity="secondary" /><template v-else>—</template></td>
           <td><Tag :value="row.aktif ? 'Aktif' : 'Nonaktif'" :severity="row.aktif ? 'success' : 'secondary'" /></td>
           <td v-if="canWrite" class="kode-actions"><Button label="Ubah" severity="secondary" :aria-label="`Ubah kode ${row.kode} ${row.unit}`" @click="open(row)" /><Button severity="secondary" text :aria-label="`Hapus kode ${row.kode} ${row.unit}`" @click="remove(row)"><template #icon><Icon name="trash" /></template></Button></td>
         </tr></tbody>
@@ -110,7 +110,7 @@ function remove(row: KodePengeluaran) {
       <ul class="kode-cards" aria-label="Kode pengeluaran sekolah"><li v-for="row in pageRows" :key="row.id">
         <div class="kode-card-title"><strong>{{ row.kode }}</strong><span>{{ row.unit === "UMUM" ? "Umum" : row.unit }}</span><Tag v-if="!row.aktif" value="Nonaktif" severity="secondary" /></div>
         <p>{{ row.nama || "Tanpa nama" }}</p>
-        <p v-if="row.akun" class="kode-card-akun">{{ row.akun }} · {{ row.akun_nama }}</p><Tag v-else value="Belum dipetakan" severity="warn" />
+        <p v-if="row.akun" class="kode-card-akun">{{ row.akun }} · {{ row.akun_nama }}</p><Tag v-else-if="row.aktif" value="Akun per transaksi" severity="secondary" />
         <div v-if="canWrite" class="kode-card-actions"><Button label="Ubah kode" severity="secondary" @click="open(row)" /><Button label="Hapus" severity="secondary" text @click="remove(row)" /></div>
       </li></ul>
       <BeePaginator v-if="filtered.length > 10" v-model:first="first" :rows="10" :total-records="filtered.length" />
@@ -121,7 +121,7 @@ function remove(row: KodePengeluaran) {
         <div class="kode-field"><label for="kode-kode">Kode <span>(wajib, satu kata)</span></label><InputText id="kode-kode" v-model="form.kode" maxlength="20" :invalid="!!form.kode && kodeInvalid" :disabled="saving" fluid placeholder="Contoh: ATK" /></div>
         <div class="kode-field"><label for="kode-unit">Unit</label><Select input-id="kode-unit" v-model="form.unit" :options="UNIT_OPTIONS" option-label="label" option-value="value" :disabled="saving" fluid><template #dropdownicon><Icon name="caret-down" /></template></Select><small>Pakai TK/PG bila akunnya berbeda per jenjang, misalnya AB3.</small></div>
         <div class="kode-field kode-wide"><label for="kode-nama">Nama</label><InputText id="kode-nama" v-model="form.nama" maxlength="120" :disabled="saving" fluid placeholder="Contoh: Alat tulis kantor" /></div>
-        <div class="kode-field kode-wide"><label for="kode-akun">Akun</label><Select input-id="kode-akun" v-model="form.akun" :options="accountOptions" option-label="label" option-value="value" placeholder="Belum dipetakan" show-clear filter :disabled="saving" fluid><template #dropdownicon><Icon name="caret-down" /></template><template #filtericon><Icon name="magnifying-glass" /></template></Select><small>Kosongkan bila arti kode belum pasti.</small></div>
+        <div class="kode-field kode-wide"><label for="kode-akun">Akun</label><Select input-id="kode-akun" v-model="form.akun" :options="accountOptions" option-label="label" option-value="value" placeholder="Akun per transaksi" show-clear filter :disabled="saving" fluid><template #dropdownicon><Icon name="caret-down" /></template><template #filtericon><Icon name="magnifying-glass" /></template></Select><small>Kosongkan bila akunnya dipilih per transaksi (mis. Sentra) atau arti kode belum pasti.</small></div>
         <label class="kode-toggle kode-wide"><ToggleSwitch v-model="form.aktif" :disabled="saving" />Aktif untuk input cepat</label>
         <Message v-if="formError" severity="error" :closable="false" class="kode-wide" role="alert">{{ formError }}</Message>
       </form>

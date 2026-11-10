@@ -100,3 +100,12 @@ export function resolveKodePengeluaran(input: string, codes: KodePengeluaran[]):
 export function kodeLabel(code: KodePengeluaran) {
   return code.unit === "UMUM" ? code.kode : `${code.kode} ${code.unit}`
 }
+/** Petunjuk di bawah kolom kode sekolah. Kode tanpa akun tetap (mis. STR Sentra) bukan kesalahan: akunnya dipilih per transaksi. */
+export function petunjukKode(input: string, codes: KodePengeluaran[]): { warn: boolean; text: string } | null {
+  const hasil = resolveKodePengeluaran(input, codes)
+  if (hasil.status === "ok") return { warn: false, text: `${kodeLabel(hasil.kode)} → ${hasil.kode.akun} ${hasil.kode.akun_nama ?? ""}`.trim() }
+  if (hasil.status === "unmapped") return { warn: false, text: `${kodeLabel(hasil.kode)} (${hasil.kode.nama}) tidak punya akun tetap. Pilih akun ${hasil.kode.nama} yang sesuai untuk transaksi ini.` }
+  if (hasil.status === "ambiguous") return { warn: true, text: `Tambahkan unit: ${hasil.pilihan.join(" atau ")}.` }
+  if (hasil.status === "unknown") return { warn: true, text: "Kode belum terdaftar. Pilih akun manual." }
+  return null
+}

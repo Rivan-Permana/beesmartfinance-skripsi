@@ -111,6 +111,20 @@ Hasil 10/11 16:27 UTC: `backups/db-20261110T162737Z-before-batch10.dump`, 288.19
    - **Kepsek:** `/` → Beranda tanpa error.
    - **Guru:** `/` → Kegiatan; Absensi tanpa nominal.
 
+### Hasil rilis — 10 November 2026
+
+- PR #28 di-merge ke `main` pukul 16:29:01 UTC (`242d519`) dari sesi Claude atas instruksi pengguna, setelah cek read-only dan backup `before-batch10`.
+- Worker baru terlihat dari luar 16:31:21 UTC, bundle `index-x02cqMm3.js`: chunk TagihanListView memuat "Batalkan saldo awal", JurnalListView memuat teks Pengeluaran "transfer ke yayasan".
+- Cek dari luar: `/login` 200; API tanpa token 401, lewat Worker maupun origin.
+- Cek read-only pasca-rilis (web console): SHA backend dan frontend `242d519`; Worker version `cfc17d85…`; backend Up 5 menit, db healthy, disk 9%. Migrasi tetap `0003`/`0023`. Tidak berubah: posting rule LSU 0, akun 418 0, paket/tagihan LSU 0/0, pembayaran 3/0, jurnal pengeluaran 5/0, COA 205, kode aktif 60, siswa 108, jurnal 18, tagihan 7.
+- Smoke test produksi per role (10/11; pengguna login di browser bawaan, Claude memeriksa lalu logout tiap role):
+  - **Staf TU:** `/` setelah muat ulang → `/siswa` (Data siswa). Riwayat pembayaran lama: 2 tombol kwitansi, pembayaran batal tetap "Dibatalkan", tidak ada tombol batal saldo awal.
+  - **Keuangan:** `/` → `/dashboard`. Pengeluaran tetap 5 jurnal. Atas persetujuan pengguna, akun `418 Pendapatan LSU` dibuat (sub-golongan 41, posisi K, aktif, bukan kas); COA 205 → 206. Satu-satunya penulisan data di rilis ini.
+  - **Kepsek:** `/` → `/dashboard`, 9 panel tanpa error.
+  - **Guru:** `/` → `/kegiatan`; Absensi siswa tanpa error dan tanpa rupiah.
+
+  Semua lulus.
+
 ## Rollback
 
 - **Kode:** revert merge commit di `main`, lalu push. Tidak ada migrasi yang perlu dibalik. Saldo awal yang sudah dibatalkan tetap dibatalkan (data, bukan kode). Tagihan LSU yang sudah tercatat ke 418 tetap di 418.

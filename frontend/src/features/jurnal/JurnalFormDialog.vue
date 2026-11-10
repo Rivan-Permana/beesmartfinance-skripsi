@@ -10,7 +10,7 @@ import Select from "primevue/select"
 import Icon from "@/shared/components/PhosphorIcon.vue"
 import { calendarTextMatches, formatRp } from "@/core/format"
 import type { Coa, Jurnal, JurnalInput, KodePengeluaran } from "@/types/api"
-import { journalFormValid, journalLineValid, journalPayload, journalTotals, kodeLabel, resolveKodePengeluaran, type JournalForm } from "./presentation"
+import { journalFormValid, journalLineValid, journalPayload, journalTotals, petunjukKode, resolveKodePengeluaran, type JournalForm } from "./presentation"
 const props=defineProps<{journal:Jurnal|null;accounts:Coa[];saving?:boolean;error?:string;accountsLoading?:boolean;accountsError?:boolean;
   /** Kode buku kas sekolah untuk input cepat di Pengeluaran; kosong = kolom kode tidak tampil. */
   codes?:KodePengeluaran[]}>()
@@ -38,14 +38,7 @@ function setCode(line:Line,value:string|undefined){
   if(hasil.status==="ok"){line.kode_akun=hasil.kode.akun;line.akun_dari_kode=true}
   else if(line.akun_dari_kode){line.kode_akun=null;line.akun_dari_kode=false}  // akun pilihan manual tidak dihapus
 }
-function codeHint(line:Line){
-  const hasil=resolveKodePengeluaran(line.kode_sekolah??"",codes.value)
-  if(hasil.status==="ok")return {warn:false,text:`${kodeLabel(hasil.kode)} → ${hasil.kode.akun} ${hasil.kode.akun_nama??""}`}
-  if(hasil.status==="unmapped")return {warn:true,text:`Kode ${kodeLabel(hasil.kode)} belum dipetakan ke akun. Pilih akun manual.`}
-  if(hasil.status==="ambiguous")return {warn:true,text:`Tambahkan unit: ${hasil.pilihan.join(" atau ")}.`}
-  if(hasil.status==="unknown")return {warn:true,text:"Kode belum terdaftar. Pilih akun manual."}
-  return null
-}
+function codeHint(line:Line){return petunjukKode(line.kode_sekolah??"",codes.value)}
 function checkDate(event:Event){if(event.target instanceof HTMLInputElement)invalidDate.value=!calendarTextMatches(event.target.value,form.tanggal)}
 async function submit(){
   if(props.saving||props.accountsLoading||props.accountsError)return
