@@ -15,11 +15,12 @@ import SiswaKelengkapan from "./SiswaKelengkapan.vue"
 import InvoiceGabunganDialog from "@/features/tagihan/InvoiceGabunganDialog.vue"
 import SiswaImportDialog from "./SiswaImportDialog.vue"
 import SppImportDialog from "./SppImportDialog.vue"
+import BiayaMasukImportDialog from "./BiayaMasukImportDialog.vue"
 import TagihanPaymentDialog from "@/features/tagihan/TagihanPaymentDialog.vue"
 import { tagihanApi } from "@/features/tagihan/api"
 import { paymentFormFor, paymentPayload, paymentValid, type TagihanPaymentForm } from "@/features/tagihan/payment"
 import { coaApi } from "@/features/jurnal/api"
-import type { Coa, ImporBiodataHasil, ImporSppHasil, KelengkapanHasil, Kelompok, Siswa, SiswaInput, Tagihan } from "@/types/api"
+import type { Coa, ImporBiayaMasukHasil, ImporBiodataHasil, ImporSppHasil, KelengkapanHasil, Kelompok, Siswa, SiswaInput, Tagihan } from "@/types/api"
 import { useAuthStore } from '@/stores/auth'
 
 const toast = useToast()
@@ -47,6 +48,13 @@ async function sppImported(result: ImporSppHasil) {
   const { cek, beda, galat } = result.ringkasan
   const lewat = cek + beda + galat
   notifySuccess(toast, `SPP diisi untuk ${result.diisi} siswa${lewat ? `, ${lewat} baris tidak diubah` : ""}`)
+  await load()
+}
+
+const biayaMasukDialog = ref(false)
+async function biayaMasukImported(result: ImporBiayaMasukHasil) {
+  const { cek, galat } = result.ringkasan
+  notifySuccess(toast, `Biaya masuk diimpor untuk ${result.diisi} siswa${cek + galat ? `, ${cek + galat} baris perlu dicek` : ""}`)
   await load()
 }
 
@@ -175,9 +183,10 @@ const canWrite = computed(() => useAuthStore().hasRole(['Administration']))
       <RouterLink :to="{ query: { ...route.query, tab: 'lengkapi' } }" :aria-current="tab === 'lengkapi' ? 'page' : undefined"><Icon name="warning-circle" />Perlu dilengkapi<span v-if="kelengkapan?.baris.length" class="siswa-tabs-count">{{ kelengkapan.baris.length }}</span></RouterLink>
     </nav>
     <SiswaKelengkapan v-if="tab === 'lengkapi'" :result="kelengkapan" :loading="loading && !kelengkapan" :error="kelengkapanError" :readonly="!canWrite" @edit="editById" @retry="load" />
-    <SiswaDirectory v-else :rows="rows" :initial-group="initialGroup" :kelompok="kelompokList" :loading="loading" :error="loadError" :group-error="groupError" :readonly="!canWrite" @create="openCreate" @edit="openEdit" @remove="confirmDelete" @receive="openReceive" @retry="load" @manage-groups="router.push('/kelompok')" @import="importDialog = true" @import-spp="sppDialog = true" @invoice="invoiceSiswa = $event.id" />
+    <SiswaDirectory v-else :rows="rows" :initial-group="initialGroup" :kelompok="kelompokList" :loading="loading" :error="loadError" :group-error="groupError" :readonly="!canWrite" @create="openCreate" @edit="openEdit" @remove="confirmDelete" @receive="openReceive" @retry="load" @manage-groups="router.push('/kelompok')" @import="importDialog = true" @import-spp="sppDialog = true" @import-biaya-masuk="biayaMasukDialog = true" @invoice="invoiceSiswa = $event.id" />
     <InvoiceGabunganDialog :siswa-id="invoiceSiswa" @close="invoiceSiswa = null" />
     <SppImportDialog v-if="canWrite" v-model="sppDialog" @saved="sppImported" />
+    <BiayaMasukImportDialog v-if="canWrite" v-model="biayaMasukDialog" @saved="biayaMasukImported" />
     <SiswaImportDialog v-if="canWrite" v-model="importDialog" :kelompok="kelompokList" @saved="imported" />
     <TagihanPaymentDialog v-if="canWrite" v-model="receiveDialog" v-model:form="receiveForm" :target="receiveTarget" :student-name="receiveStudent" :accounts="kasOptions" :saving="receiveSaving" :error="receiveError" @save="saveReceive" @reload-accounts="loadAccounts" />
     <SiswaFormDialog v-model="dialog" :student="editing" :kelompok="kelompokList" :saving="saving" :error="saveError" :group-error="groupError" @save="save" />

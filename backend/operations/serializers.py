@@ -338,6 +338,52 @@ class ImporSppHasilSerializer(serializers.Serializer):
     baris = ImporSppBarisSerializer(many=True)
 
 
+class ImporBiayaMasukInputSerializer(serializers.Serializer):
+    berkas = serializers.FileField()
+    tanggal = serializers.DateField(help_text="Tanggal saldo awal, mis. 31/12 sebelum cut-over.")
+    simpan = serializers.BooleanField(default=False)
+
+
+class ImporBiayaMasukKomponenSerializer(serializers.Serializer):
+    uang_masuk = serializers.IntegerField(allow_null=True)
+    uang_portofolio = serializers.IntegerField(allow_null=True)
+    uang_kegiatan = serializers.IntegerField(allow_null=True)
+    uang_pengembangan = serializers.IntegerField(allow_null=True)
+    uang_komite = serializers.IntegerField(allow_null=True)
+    uang_seragam = serializers.IntegerField(allow_null=True)
+
+
+class ImporBiayaMasukBarisSerializer(serializers.Serializer):
+    baris = serializers.IntegerField()
+    nama = serializers.CharField()
+    kelas = serializers.CharField(allow_blank=True)
+    aksi = serializers.ChoiceField(choices=["isi", "sudah", "lewati", "cek", "galat"])
+    siswa = serializers.IntegerField(allow_null=True)
+    kategori = serializers.CharField(allow_blank=True)
+    diskon = serializers.IntegerField()
+    komponen = ImporBiayaMasukKomponenSerializer()
+    ditagih = serializers.IntegerField()
+    terbayar = serializers.IntegerField()
+    alasan = serializers.CharField(allow_null=True)
+
+
+class ImporBiayaMasukRingkasanSerializer(serializers.Serializer):
+    isi = serializers.IntegerField()
+    sudah = serializers.IntegerField()
+    lewati = serializers.IntegerField()
+    cek = serializers.IntegerField()
+    galat = serializers.IntegerField()
+    total_ditagih = serializers.IntegerField()
+    total_terbayar = serializers.IntegerField()
+
+
+class ImporBiayaMasukHasilSerializer(serializers.Serializer):
+    disimpan = serializers.BooleanField()
+    diisi = serializers.IntegerField()
+    ringkasan = ImporBiayaMasukRingkasanSerializer()
+    baris = ImporBiayaMasukBarisSerializer(many=True)
+
+
 class SiswaSerializer(serializers.ModelSerializer):
     diskon_kategori = serializers.ListField(
         child=serializers.ChoiceField(choices=Siswa.DISKON_KATEGORI), required=False, allow_empty=True,
@@ -347,6 +393,8 @@ class SiswaSerializer(serializers.ModelSerializer):
     uang_kegiatan = serializers.DecimalField(max_digits=18, decimal_places=2, min_value=Decimal(0), required=False, allow_null=True)
     uang_pengembangan = serializers.DecimalField(max_digits=18, decimal_places=2, min_value=Decimal(0), required=False, allow_null=True)
     uang_seragam = serializers.DecimalField(max_digits=18, decimal_places=2, min_value=Decimal(0), required=False, allow_null=True)
+    uang_komite = serializers.DecimalField(max_digits=18, decimal_places=2, min_value=Decimal(0), required=False, allow_null=True)
+    uang_portofolio = serializers.DecimalField(max_digits=18, decimal_places=2, min_value=Decimal(0), required=False, allow_null=True)
     biaya_masuk = serializers.SerializerMethodField()
 
     class Meta:
@@ -357,14 +405,16 @@ class SiswaSerializer(serializers.ModelSerializer):
             "nama_ayah", "kontak_ayah", "nama_ibu", "kontak_ibu",
             "spp_nominal", "status", "periode",
             "diskon_kategori", "diskon_nominal",
-            "uang_masuk", "uang_kegiatan", "uang_pengembangan", "uang_seragam", "biaya_masuk",
+            "uang_masuk", "uang_kegiatan", "uang_pengembangan", "uang_seragam", "uang_komite", "uang_portofolio",
+            "biaya_masuk",
             "ukuran_seragam_putih", "ukuran_seragam_olga",
         ]
 
     # Guru membaca daftar siswa untuk absensi; nominal biaya hanya untuk TU, Keuangan, Kepsek.
     NOMINAL_FIELDS = (
         "spp_nominal", "diskon_kategori", "diskon_nominal",
-        "uang_masuk", "uang_kegiatan", "uang_pengembangan", "uang_seragam", "biaya_masuk",
+        "uang_masuk", "uang_kegiatan", "uang_pengembangan", "uang_seragam", "uang_komite", "uang_portofolio",
+        "biaya_masuk",
     )
 
     def to_representation(self, instance):
@@ -429,16 +479,24 @@ class AlokasiPembayaranTagihanSerializer(serializers.ModelSerializer):
 
 class PembayaranTagihanSerializer(serializers.ModelSerializer):
     alokasi = AlokasiPembayaranTagihanSerializer(many=True, read_only=True)
-    jurnal_status = serializers.CharField(source="jurnal.status", read_only=True)
+    jurnal_status = serializers.CharField(source="jurnal.status", read_only=True, allow_null=True, default=None)
 
     class Meta:
         model = PembayaranTagihan
-        fields = ["id", "tanggal", "no_bukti", "nominal", "akun_kas", "jurnal", "jurnal_status", "created_by", "dibatalkan", "alasan_batal", "dibatalkan_pada", "alokasi"]
+        fields = [
+            "id", "tanggal", "no_bukti", "nominal", "akun_kas", "jurnal", "jurnal_status", "saldo_awal",
+            "created_by", "dibatalkan", "alasan_batal", "dibatalkan_pada", "alokasi",
+        ]
 
 
 class AlokasiPembayaranInputSerializer(serializers.Serializer):
     detail = serializers.IntegerField(min_value=1)
     nominal = serializers.DecimalField(max_digits=18, decimal_places=2, min_value=Decimal("0.01"))
+
+
+class BatalSaldoAwalInputSerializer(serializers.Serializer):
+    pembayaran = serializers.IntegerField(min_value=1)
+    alasan = serializers.CharField(max_length=500)
 
 
 class BayarTagihanInputSerializer(serializers.Serializer):

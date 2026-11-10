@@ -1261,6 +1261,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/siswa/impor-biaya-masuk/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Pratinjau (simpan=false) atau simpan biaya masuk + penerimaan saldo awal dari tab master (cut-over). */
+        post: operations["v1_siswa_impor_biaya_masuk_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/siswa/impor-biodata/": {
         parameters: {
             query?: never;
@@ -1374,6 +1391,23 @@ export interface paths {
         options?: never;
         head?: never;
         patch: operations["v1_tagihan_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/tagihan/{id}/batal-saldo-awal/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Batalkan penerimaan saldo awal cut-over pada tagihan ini (tanpa jurnal yang perlu dibalik). */
+        post: operations["v1_tagihan_batal_saldo_awal_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/tagihan/{id}/bayar/": {
@@ -1542,6 +1576,10 @@ export interface components {
         BatalPenerimaanInput: {
             alasan: string;
         };
+        BatalSaldoAwalInput: {
+            pembayaran: number;
+            alasan: string;
+        };
         BayarPendaftaranInput: {
             komponen: components["schemas"]["BayarPendaftaranInputKomponenEnum"][];
             /** Format: date */
@@ -1667,6 +1705,62 @@ export interface components {
             readonly total_netto: number;
             /** Format: uuid */
             readonly jurnal: string | null;
+        };
+        ImporBiayaMasukBaris: {
+            baris: number;
+            nama: string;
+            kelas: string;
+            aksi: components["schemas"]["ImporBiayaMasukBarisAksiEnum"];
+            siswa: number | null;
+            kategori: string;
+            diskon: number;
+            komponen: components["schemas"]["ImporBiayaMasukKomponen"];
+            ditagih: number;
+            terbayar: number;
+            alasan: string | null;
+        };
+        /**
+         * @description * `isi` - isi
+         *     * `sudah` - sudah
+         *     * `lewati` - lewati
+         *     * `cek` - cek
+         *     * `galat` - galat
+         * @enum {string}
+         */
+        ImporBiayaMasukBarisAksiEnum: "isi" | "sudah" | "lewati" | "cek" | "galat";
+        ImporBiayaMasukHasil: {
+            disimpan: boolean;
+            diisi: number;
+            ringkasan: components["schemas"]["ImporBiayaMasukRingkasan"];
+            baris: components["schemas"]["ImporBiayaMasukBaris"][];
+        };
+        ImporBiayaMasukInput: {
+            /** Format: uri */
+            berkas: string;
+            /**
+             * Format: date
+             * @description Tanggal saldo awal, mis. 31/12 sebelum cut-over.
+             */
+            tanggal: string;
+            /** @default false */
+            simpan: boolean;
+        };
+        ImporBiayaMasukKomponen: {
+            uang_masuk: number | null;
+            uang_portofolio: number | null;
+            uang_kegiatan: number | null;
+            uang_pengembangan: number | null;
+            uang_komite: number | null;
+            uang_seragam: number | null;
+        };
+        ImporBiayaMasukRingkasan: {
+            isi: number;
+            sudah: number;
+            lewati: number;
+            cek: number;
+            galat: number;
+            total_ditagih: number;
+            total_terbayar: number;
         };
         ImporBiodataBaris: {
             baris: number;
@@ -2599,6 +2693,10 @@ export interface components {
             uang_pengembangan?: string | null;
             /** Format: decimal */
             uang_seragam?: string | null;
+            /** Format: decimal */
+            uang_komite?: string | null;
+            /** Format: decimal */
+            uang_portofolio?: string | null;
             readonly biaya_masuk?: components["schemas"]["BiayaMasukRingkas"] | null;
             ukuran_seragam_putih?: string;
             ukuran_seragam_olga?: string;
@@ -2681,10 +2779,11 @@ export interface components {
             no_bukti: string;
             /** Format: decimal */
             nominal: string;
-            akun_kas: string;
+            akun_kas?: string | null;
             /** Format: uuid */
-            jurnal: string;
-            readonly jurnal_status: string;
+            jurnal?: string | null;
+            readonly jurnal_status: string | null;
+            saldo_awal?: boolean;
             created_by?: number | null;
             dibatalkan?: boolean;
             alasan_batal?: string;
@@ -2792,6 +2891,10 @@ export interface components {
             uang_pengembangan?: string | null;
             /** Format: decimal */
             uang_seragam?: string | null;
+            /** Format: decimal */
+            uang_komite?: string | null;
+            /** Format: decimal */
+            uang_portofolio?: string | null;
             readonly biaya_masuk: components["schemas"]["BiayaMasukRingkas"] | null;
             ukuran_seragam_putih?: string;
             ukuran_seragam_olga?: string;
@@ -6938,6 +7041,29 @@ export interface operations {
             };
         };
     };
+    v1_siswa_impor_biaya_masuk_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["ImporBiayaMasukInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImporBiayaMasukHasil"];
+                };
+            };
+        };
+    };
     v1_siswa_impor_biodata_create: {
         parameters: {
             query?: never;
@@ -7303,6 +7429,34 @@ export interface operations {
                 "application/json": components["schemas"]["PatchedTagihan"];
                 "application/x-www-form-urlencoded": components["schemas"]["PatchedTagihan"];
                 "multipart/form-data": components["schemas"]["PatchedTagihan"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Tagihan"];
+                };
+            };
+        };
+    };
+    v1_tagihan_batal_saldo_awal_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A unique integer value identifying this tagihan. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BatalSaldoAwalInput"];
+                "application/x-www-form-urlencoded": components["schemas"]["BatalSaldoAwalInput"];
+                "multipart/form-data": components["schemas"]["BatalSaldoAwalInput"];
             };
         };
         responses: {

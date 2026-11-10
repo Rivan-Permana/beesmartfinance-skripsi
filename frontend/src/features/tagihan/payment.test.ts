@@ -41,7 +41,7 @@ describe("tagihan payment contract",()=>{
   it("prints one payment as a receipt with its allocated components",()=>{
     const invoice: StrukTagihan={no_tagihan:7,sekolah:"Contoh",siswa:"Siswa Contoh",nis:"LM-1",kelompok:null,periode:"Oktober 2026",periode_bulan:10,periode_tahun:2026,status:"SEBAGIAN",sections:[],rincian:[],total:"300000",no_jurnal:null,total_terbayar:"100000",sisa_tagihan:"200000",perlu_rekonsiliasi:false}
     const tagihan={id:7,detail:[{id:1,komponen:"SPP",keterangan:"SPP Oktober",nominal:"200000"},{id:2,komponen:"KATERING",keterangan:"",nominal:"100000"}],perlu_rekonsiliasi:false,sisa_tagihan:"200000",total:"300000"} as unknown as Tagihan
-    const payment: PembayaranTagihan={id:3,tanggal:"2026-10-16",no_bukti:"KW-01",nominal:"100000",akun_kas:"111",jurnal:"j",jurnal_status:"DRAFT",created_by:1,dibatalkan:false,alasan_batal:"",dibatalkan_pada:null,alokasi:[{detail:1,nominal:"60000"},{detail:2,nominal:"40000"}]}
+    const payment: PembayaranTagihan={id:3,tanggal:"2026-10-16",no_bukti:"KW-01",nominal:"100000",akun_kas:"111",jurnal:"j",jurnal_status:"DRAFT",saldo_awal:false,created_by:1,dibatalkan:false,alasan_batal:"",dibatalkan_pada:null,alokasi:[{detail:1,nominal:"60000"},{detail:2,nominal:"40000"}]}
     expect(receiptLines(tagihan,payment).map(l=>l.label)).toEqual(["SPP Oktober","KATERING"])
     const view=mount(PaymentReceipt,{props:{invoice,tagihan,payment,cashAccount:"Kas di Tangan"}})
     expect(view.text()).toContain("KW-01");expect(view.text()).toContain("16/10/2026");expect(view.text()).toContain("Kas di Tangan")

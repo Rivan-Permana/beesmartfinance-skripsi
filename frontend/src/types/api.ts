@@ -54,6 +54,8 @@ export interface Siswa {
   uang_kegiatan: string | null
   uang_pengembangan: string | null
   uang_seragam: string | null
+  uang_komite: string | null
+  uang_portofolio: string | null
   /** Ringkasan tagihan biaya masuk; null bila belum ada isian biaya masuk. */
   biaya_masuk: { tagihan: number; status: TagihanStatus; total: string; sisa: string | null } | null
   ukuran_seragam_putih: string
@@ -155,7 +157,27 @@ export interface ImporSppHasil {
   baris: ImporSppBaris[]
 }
 export type DiskonKategori = "PG" | "SIPG" | "SIB" | "SIKBR" | "SBD" | "KHUSUS" | "PINDAHAN"
-export type BiayaMasukField = "uang_masuk" | "uang_pengembangan" | "uang_kegiatan" | "uang_seragam"
+export type BiayaMasukField = "uang_masuk" | "uang_pengembangan" | "uang_kegiatan" | "uang_seragam" | "uang_komite" | "uang_portofolio"
+export type ImporBiayaMasukAksi = "isi" | "sudah" | "lewati" | "cek" | "galat"
+export interface ImporBiayaMasukBaris {
+  baris: number
+  nama: string
+  kelas: string
+  aksi: ImporBiayaMasukAksi
+  siswa: number | null
+  kategori: string
+  diskon: number
+  komponen: Record<BiayaMasukField, number | null>
+  ditagih: number
+  terbayar: number
+  alasan: string | null
+}
+export interface ImporBiayaMasukHasil {
+  disimpan: boolean
+  diisi: number
+  ringkasan: Record<ImporBiayaMasukAksi, number> & { total_ditagih: number; total_terbayar: number }
+  baris: ImporBiayaMasukBaris[]
+}
 export type SiswaInput = Omit<Siswa, "id" | "biaya_masuk">
 
 export type PendaftaranSiswaStatus = "TRIAL" | "REGISTERED" | "BATAL"
@@ -363,9 +385,11 @@ export interface PembayaranTagihan {
   tanggal: string
   no_bukti: string
   nominal: string
-  akun_kas: string
-  jurnal: string
-  jurnal_status: JurnalStatus
+  /** Kosong untuk penerimaan saldo awal cut-over (tanpa jurnal). */
+  akun_kas: string | null
+  jurnal: string | null
+  jurnal_status: JurnalStatus | null
+  saldo_awal: boolean
   created_by: number | null
   dibatalkan: boolean
   alasan_batal: string

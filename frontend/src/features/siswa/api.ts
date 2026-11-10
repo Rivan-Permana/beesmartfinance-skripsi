@@ -1,5 +1,5 @@
 import { api } from "@/core/api"
-import type { BiayaMasukField, ImporBiodataHasil, ImporSppHasil, InvoiceGabungan, KelengkapanHasil, Paginated, Siswa, SiswaInput } from "@/types/api"
+import type { BiayaMasukField, ImporBiayaMasukHasil, ImporBiodataHasil, ImporSppHasil, InvoiceGabungan, KelengkapanHasil, Paginated, Siswa, SiswaInput } from "@/types/api"
 
 export const siswaApi = {
   list: (params?: Record<string, unknown>) =>
@@ -36,6 +36,14 @@ export const siswaApi = {
     fd.append("berkas", berkas)
     fd.append("simpan", simpan ? "true" : "false")
     return api.post<ImporSppHasil>("/siswa/impor-spp/", fd).then((r) => r.data)
+  },
+  /** Pratinjau (simpan=false) atau simpan biaya masuk + saldo awal per siswa dari tab master (cut-over). */
+  imporBiayaMasuk(berkas: File, tanggal: string, simpan: boolean) {
+    const fd = new FormData()
+    fd.append("berkas", berkas)
+    fd.append("tanggal", tanggal)
+    fd.append("simpan", simpan ? "true" : "false")
+    return api.post<ImporBiayaMasukHasil>("/siswa/impor-biaya-masuk/", fd).then((r) => r.data)
   },
   /** Nominal daftar harga sesuai jenjang kelompok, untuk mengisi awal biaya masuk. */
   biayaMasukDefault: (kelompok: number) =>

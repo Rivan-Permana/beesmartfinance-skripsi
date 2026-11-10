@@ -372,6 +372,60 @@ def post_pembayaran_tagihan(tagihan, *, tanggal, no_bukti, nominal, alokasi, req
         return pembayaran
 
 
+def catat_saldo_awal_tagihan(tagihan, *, tanggal, nominal, user=None):
+    """Penerimaan sebelum cut-over yang sudah tercatat di spreadsheet. Tanpa jurnal, karena uangnya
+    sudah masuk saldo awal akun kas di COA. Dialokasikan ke rincian berurutan sampai habis."""
+    import uuid
+
+    from operations.models import AlokasiPembayaranTagihan, PembayaranTagihan, Tagihan
+
+    with transaction.atomic(), audit_user(user):
+        tagihan = Tagihan.all_objects.select_for_update().get(pk=tagihan.pk)
+        if tagihan.is_deleted or tagihan.perlu_rekonsiliasi:
+            raise ValueError("Tagihan sudah dibatalkan atau perlu direkonsiliasi.")
+        if not nominal.is_finite() or nominal <= 0 or nominal > tagihan.sisa_tagihan:
+            raise ValueError("Penerimaan saldo awal harus positif dan tidak melebihi sisa tagihan.")
+        no_bukti = f"SALDO-AWAL-{tanggal:%Y%m%d}"
+        if PembayaranTagihan.objects.filter(tagihan=tagihan, no_bukti=no_bukti).exists():
+            raise ValueError("Saldo awal tagihan ini untuk tanggal tersebut sudah dicatat.")
+        pembayaran = PembayaranTagihan.objects.create(
+            tagihan=tagihan, tanggal=tanggal, no_bukti=no_bukti, nominal=nominal,
+            request_id=uuid.uuid4(), saldo_awal=True, created_by=user,
+        )
+        sisa = nominal
+        for detail in tagihan.detail.prefetch_related("alokasi__pembayaran").order_by("pk"):
+            bagian = min(sisa, detail.nominal - detail.total_terbayar)
+            if bagian > 0:
+                AlokasiPembayaranTagihan.objects.create(pembayaran=pembayaran, detail=detail, nominal=bagian)
+                sisa -= bagian
+        if sisa:
+            raise ValueError("Rincian tagihan tidak cukup untuk menampung saldo awal.")
+        perbarui_status_tagihan(tagihan)
+        return pembayaran
+
+
+def batalkan_saldo_awal(pembayaran, user, alasan):
+    """Batalkan penerimaan saldo awal (mis. impor salah). Tidak ada jurnal yang perlu dibalik."""
+    from operations.models import PembayaranTagihan, Tagihan
+
+    with transaction.atomic(), audit_user(user):
+        pembayaran = PembayaranTagihan.objects.select_for_update().get(pk=pembayaran.pk)
+        if not pembayaran.saldo_awal:
+            raise ValueError("Hanya penerimaan saldo awal yang dibatalkan di sini.")
+        if pembayaran.dibatalkan:
+            raise ValueError("Penerimaan saldo awal sudah dibatalkan.")
+        if not (alasan or "").strip():
+            raise ValueError("Isi alasan pembatalan.")
+        tagihan = Tagihan.objects.select_for_update().get(pk=pembayaran.tagihan_id)
+        pembayaran.dibatalkan = True
+        pembayaran.alasan_batal = alasan.strip()
+        pembayaran.dibatalkan_pada = timezone.now()
+        pembayaran.dibatalkan_oleh = user
+        pembayaran.save(update_fields=["dibatalkan", "alasan_batal", "dibatalkan_pada", "dibatalkan_oleh", "updated_at"])
+        perbarui_status_tagihan(tagihan)
+        return pembayaran
+
+
 def batalkan_pembayaran_jurnal(jurnal, user, alasan):
     """Dipanggil dalam transaksi pembatalan/reversal jurnal."""
     from operations.models import PembayaranTagihan, Tagihan

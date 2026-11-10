@@ -25,6 +25,13 @@ export function tagihanPeriod(row: Pick<Tagihan, "periode_bulan" | "periode_tahu
 export function paymentCancelled(payment: Pick<PembayaranTagihan, "dibatalkan" | "jurnal_status">) {
   return payment.dibatalkan || payment.jurnal_status === "VOID"
 }
+/** Label riwayat pembayaran. Saldo awal = penerimaan sebelum cut-over, tanpa jurnal dan tanpa kwitansi. */
+export function paymentState(payment: Pick<PembayaranTagihan, "dibatalkan" | "jurnal_status" | "saldo_awal">) {
+  if (paymentCancelled(payment)) return { label: "Dibatalkan", severity: "danger" }
+  if (payment.saldo_awal) return { label: "Saldo awal dari spreadsheet", severity: "secondary" }
+  if (payment.jurnal_status === "POSTED") return { label: "Sudah dicatat", severity: "success" }
+  return { label: "Menunggu pencatatan keuangan", severity: "info" }
+}
 /** Rincian kwitansi: komponen tagihan yang dilunasi oleh satu pembayaran. */
 export function receiptLines(tagihan: Pick<Tagihan, "detail">, payment: Pick<PembayaranTagihan, "alokasi">) {
   return payment.alokasi.map(line => {

@@ -4379,6 +4379,28 @@ paths:
               schema:
                 $ref: '#/components/schemas/BiayaMasukDefault'
           description: ''
+  /api/v1/siswa/impor-biaya-masuk/:
+    post:
+      operationId: v1_siswa_impor_biaya_masuk_create
+      description: Pratinjau (simpan=false) atau simpan biaya masuk + penerimaan saldo
+        awal dari tab master (cut-over).
+      tags:
+      - v1
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ImporBiayaMasukInput'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImporBiayaMasukHasil'
+          description: ''
   /api/v1/siswa/impor-biodata/:
     post:
       operationId: v1_siswa_impor_biodata_create
@@ -4791,6 +4813,41 @@ paths:
       responses:
         '204':
           description: No response body
+  /api/v1/tagihan/{id}/batal-saldo-awal/:
+    post:
+      operationId: v1_tagihan_batal_saldo_awal_create
+      description: Batalkan penerimaan saldo awal cut-over pada tagihan ini (tanpa
+        jurnal yang perlu dibalik).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this tagihan.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatalSaldoAwalInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/BatalSaldoAwalInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BatalSaldoAwalInput'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tagihan'
+          description: ''
   /api/v1/tagihan/{id}/bayar/:
     post:
       operationId: v1_tagihan_bayar_create
@@ -5107,6 +5164,18 @@ components:
           maxLength: 500
       required:
       - alasan
+    BatalSaldoAwalInput:
+      type: object
+      properties:
+        pembayaran:
+          type: integer
+          minimum: 1
+        alasan:
+          type: string
+          maxLength: 500
+      required:
+      - alasan
+      - pembayaran
     BayarPendaftaranInput:
       type: object
       properties:
@@ -5417,6 +5486,146 @@ components:
       - total_bruto
       - total_netto
       - total_potongan
+    ImporBiayaMasukBaris:
+      type: object
+      properties:
+        baris:
+          type: integer
+        nama:
+          type: string
+        kelas:
+          type: string
+        aksi:
+          $ref: '#/components/schemas/ImporBiayaMasukBarisAksiEnum'
+        siswa:
+          type: integer
+          nullable: true
+        kategori:
+          type: string
+        diskon:
+          type: integer
+        komponen:
+          $ref: '#/components/schemas/ImporBiayaMasukKomponen'
+        ditagih:
+          type: integer
+        terbayar:
+          type: integer
+        alasan:
+          type: string
+          nullable: true
+      required:
+      - aksi
+      - alasan
+      - baris
+      - diskon
+      - ditagih
+      - kategori
+      - kelas
+      - komponen
+      - nama
+      - siswa
+      - terbayar
+    ImporBiayaMasukBarisAksiEnum:
+      enum:
+      - isi
+      - sudah
+      - lewati
+      - cek
+      - galat
+      type: string
+      description: |-
+        * `isi` - isi
+        * `sudah` - sudah
+        * `lewati` - lewati
+        * `cek` - cek
+        * `galat` - galat
+    ImporBiayaMasukHasil:
+      type: object
+      properties:
+        disimpan:
+          type: boolean
+        diisi:
+          type: integer
+        ringkasan:
+          $ref: '#/components/schemas/ImporBiayaMasukRingkasan'
+        baris:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImporBiayaMasukBaris'
+      required:
+      - baris
+      - diisi
+      - disimpan
+      - ringkasan
+    ImporBiayaMasukInput:
+      type: object
+      properties:
+        berkas:
+          type: string
+          format: uri
+        tanggal:
+          type: string
+          format: date
+          description: Tanggal saldo awal, mis. 31/12 sebelum cut-over.
+        simpan:
+          type: boolean
+          default: false
+      required:
+      - berkas
+      - tanggal
+    ImporBiayaMasukKomponen:
+      type: object
+      properties:
+        uang_masuk:
+          type: integer
+          nullable: true
+        uang_portofolio:
+          type: integer
+          nullable: true
+        uang_kegiatan:
+          type: integer
+          nullable: true
+        uang_pengembangan:
+          type: integer
+          nullable: true
+        uang_komite:
+          type: integer
+          nullable: true
+        uang_seragam:
+          type: integer
+          nullable: true
+      required:
+      - uang_kegiatan
+      - uang_komite
+      - uang_masuk
+      - uang_pengembangan
+      - uang_portofolio
+      - uang_seragam
+    ImporBiayaMasukRingkasan:
+      type: object
+      properties:
+        isi:
+          type: integer
+        sudah:
+          type: integer
+        lewati:
+          type: integer
+        cek:
+          type: integer
+        galat:
+          type: integer
+        total_ditagih:
+          type: integer
+        total_terbayar:
+          type: integer
+      required:
+      - cek
+      - galat
+      - isi
+      - lewati
+      - sudah
+      - total_ditagih
+      - total_terbayar
     ImporBiodataBaris:
       type: object
       properties:
@@ -7404,6 +7613,16 @@ components:
           format: decimal
           pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
           nullable: true
+        uang_komite:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+          nullable: true
+        uang_portofolio:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+          nullable: true
         biaya_masuk:
           allOf:
           - $ref: '#/components/schemas/BiayaMasukRingkas'
@@ -7626,12 +7845,17 @@ components:
           pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
         akun_kas:
           type: string
+          nullable: true
         jurnal:
           type: string
           format: uuid
+          nullable: true
         jurnal_status:
           type: string
           readOnly: true
+          nullable: true
+        saldo_awal:
+          type: boolean
         created_by:
           type: integer
           nullable: true
@@ -7649,10 +7873,8 @@ components:
             $ref: '#/components/schemas/AlokasiPembayaranTagihan'
           readOnly: true
       required:
-      - akun_kas
       - alokasi
       - id
-      - jurnal
       - jurnal_status
       - no_bukti
       - nominal
@@ -7928,6 +8150,16 @@ components:
           pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
           nullable: true
         uang_seragam:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+          nullable: true
+        uang_komite:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+          nullable: true
+        uang_portofolio:
           type: string
           format: decimal
           pattern: ^-?\d{0,16}(?:\.\d{0,2})?$

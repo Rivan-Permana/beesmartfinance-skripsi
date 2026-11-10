@@ -13,7 +13,12 @@ KOMPONEN_BIAYA_MASUK = [
     ("PENGEMBANGAN", "uang_pengembangan", "Uang Pengembangan"),
     ("KEGIATAN", "uang_kegiatan", "Uang Kegiatan"),
     ("SERAGAM", "uang_seragam", "Uang Seragam"),
+    ("KOMITE", "uang_komite", "Iuran Komite"),
+    ("PORTOFOLIO", "uang_portofolio", "Portofolio"),
 ]
+# Komite dan Portofolio biasanya ikut tagihan Juli dari daftar harga; isian siswa hanya untuk nominal
+# per anak (PINDAHAN, impor cut-over), jadi tidak diisi otomatis dari daftar harga.
+TANPA_PREFILL = {"uang_komite", "uang_portofolio"}
 
 
 def _rp(nominal):
@@ -30,7 +35,7 @@ def default_biaya_masuk(kelompok, tipe_tp="baru"):
 
     kode_jenjang = kelompok.jenjang.kode if kelompok else None
     jenjang = "PG" if kode_jenjang == "PG" else "RA" if kode_jenjang in ("TKA", "TKB") else None
-    hasil = {field: None for _kode, field, _label in KOMPONEN_BIAYA_MASUK}
+    hasil = {field: None for _kode, field, _label in KOMPONEN_BIAYA_MASUK if field not in TANPA_PREFILL}
     if not jenjang:
         return hasil
     templates = KomponenBiayaTemplate.objects.filter(
@@ -39,12 +44,13 @@ def default_biaya_masuk(kelompok, tipe_tp="baru"):
     )
     by_kode = {t.kode: t.nominal for t in templates}
     for kode, field, _label in KOMPONEN_BIAYA_MASUK:
-        hasil[field] = by_kode.get(kode)
+        if field in hasil:
+            hasil[field] = by_kode.get(kode)
     return hasil
 
 
 def rincian_biaya_masuk(siswa):
-    """Baris netto setelah diskon, berurutan Uang Masuk -> Pengembangan -> Kegiatan -> Seragam."""
+    """Baris netto setelah diskon, berurutan sesuai KOMPONEN_BIAYA_MASUK."""
     sisa_diskon = Decimal(siswa.diskon_nominal or 0)
     if sisa_diskon < 0:
         raise ValueError("Nominal diskon tidak boleh negatif.")
@@ -79,8 +85,11 @@ def _sudah_ditagih_bulanan(siswa, kode, bulan, tahun):
     return None
 
 
-def sinkron_tagihan_biaya_masuk(siswa, user=None, today=None, diskon_berubah=False):
-    """Buat/perbarui tagihan biaya masuk dari isian siswa. Komponen yang sudah dibayar dikunci."""
+def sinkron_tagihan_biaya_masuk(siswa, user=None, today=None, diskon_berubah=False, periode=None):
+    """Buat/perbarui tagihan biaya masuk dari isian siswa. Komponen yang sudah dibayar dikunci.
+
+    `periode` (bulan, tahun) hanya dipakai saat tagihan baru dibuat; impor cut-over memakai awal TP.
+    """
     from operations.models import Tagihan, TagihanDetail
     from operations.services.billing import perbarui_status_tagihan
     from operations.services.tp_templates import _akun_for_komponen
@@ -92,7 +101,9 @@ def sinkron_tagihan_biaya_masuk(siswa, user=None, today=None, diskon_berubah=Fal
             .filter(siswa=siswa, jenis="BIAYA_MASUK").order_by("-pk").first()
         )
         lines = rincian_biaya_masuk(siswa)
-        bulan, tahun = (tagihan.periode_bulan, tagihan.periode_tahun) if tagihan else (today.month, today.year)
+        bulan, tahun = (
+            (tagihan.periode_bulan, tagihan.periode_tahun) if tagihan else periode or (today.month, today.year)
+        )
         labels = {kode: label for kode, _f, label in KOMPONEN_BIAYA_MASUK}
         for line in lines:
             ditagih = _sudah_ditagih_bulanan(siswa, line["komponen"], bulan, tahun)
