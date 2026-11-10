@@ -166,6 +166,14 @@ Hasil 10/11 15:24 UTC: koneksi GitHub hidup (`github.com` resolve, `github 200`)
    - **Guru:** Absensi tetap jalan, tanpa nominal; menu LSU tidak ada.
    - **Penyusun anggaran:** belum ada user di produksi. Dilewati sampai superuser membuatnya (lihat bagian 4).
 
+### Hasil rilis — 10 November 2026
+
+- PR #27 di-merge ke `main` pukul 15:25:56 UTC (`7cd5b97`) dari sesi Claude atas instruksi pengguna, setelah cek read-only, cek koneksi GitHub, dan backup `before-batch9`.
+- Backend baru terlihat dari luar 15:31:57 UTC (schema memuat `paket-lsu`, `anggaran-bulanan`, `impor-biaya-masuk`, `batal-saldo-awal`, `uang_komite`, `uang_portofolio`, `saldo_awal`).
+- Worker baru terlihat 15:33:33 UTC, bundle `index-Bq0ut_6a.js`: chunk SiswaListView memuat "Impor biaya masuk", LsuView ada, AnggaranListView memuat plafon.
+- Cek dari luar: `/login` 200; API tanpa token 401, lewat Worker maupun origin.
+- Cek read-only pasca-rilis dan smoke test per role: menunggu pengguna.
+
 ## 4. Setelah rilis
 
 1. **Superuser** membuat user penyusun anggaran dan memasukkannya ke grup `BudgetPlanner` (Django admin). Lalu smoke test: login masuk ke Anggaran, menu lain tidak ada, jurnal dan tagihan ditolak.
