@@ -43,6 +43,6 @@ describe("laba rugi per kelompok", () => {
     const wrapper = mount(AccountReportTable, { props: { caption: "Beban", rows: [row("5101", "51", "100"), row("5401", "54", "25")], groups: [{ kode: "51", nama: "Kelompok 51", total: "100" }, { kode: "54", nama: "Kelompok 54", total: "25" }], totalLabel: "Total", total: "125" } })
     expect(wrapper.findAll(".report-group-row").map((r) => r.text())).toEqual(["Kelompok 51", "Kelompok 54"])
     expect(wrapper.findAll(".report-subtotal-row")).toHaveLength(2)
-    expect(wrapper.find(".report-subtotal-row").text()).toContain("Subtotal kelompok 51")
+    expect(wrapper.find(".report-subtotal-row").text()).toContain("Subtotal Kelompok 51")
   })
 })

@@ -175,7 +175,7 @@ onMounted(load)
       </ul>
     </section>
 
-    <Dialog v-model:visible="paketDialog" header="Paket LSU baru" modal :draggable="false" :closable="!saving" class="lsu-dialog" :close-button-props="{ severity: 'secondary', text: true, 'aria-label': 'Tutup' }">
+    <Dialog v-model:visible="paketDialog" header="Paket LSU baru" modal :draggable="false" :closable="!saving" class="lsu-dialog" :style="{ width: '560px' }" :close-button-props="{ severity: 'secondary', text: true, 'aria-label': 'Tutup' }">
       <template #closeicon><Icon name="x" /></template>
       <form id="lsu-paket-form" class="lsu-form" novalidate @submit.prevent="simpanPaket">
         <div class="lsu-field lsu-full"><label for="lsu-siswa">Siswa (wajib)</label><Select input-id="lsu-siswa" v-model="paketForm.siswa" :options="siswaOptions" option-label="label" option-value="value" filter placeholder="Pilih siswa aktif" :disabled="saving" fluid><template #dropdownicon><Icon name="caret-down" /></template></Select>
@@ -189,7 +189,7 @@ onMounted(load)
       <template #footer><Button label="Batal" severity="secondary" :disabled="saving" @click="paketDialog = false" /><Button label="Buat paket dan tagihan" type="submit" form="lsu-paket-form" :loading="saving" :disabled="masihBerjalan" /></template>
     </Dialog>
 
-    <Dialog :visible="!!sesiTarget" header="Catat pertemuan" modal :draggable="false" :closable="!saving" class="lsu-dialog" :close-button-props="{ severity: 'secondary', text: true, 'aria-label': 'Tutup' }" @update:visible="v => { if (!v && !saving) sesiTarget = null }">
+    <Dialog :visible="!!sesiTarget" header="Catat pertemuan" modal :draggable="false" :closable="!saving" class="lsu-dialog" :style="{ width: '560px' }" :close-button-props="{ severity: 'secondary', text: true, 'aria-label': 'Tutup' }" @update:visible="v => { if (!v && !saving) sesiTarget = null }">
       <template #closeicon><Icon name="x" /></template>
       <form v-if="sesiTarget" id="lsu-sesi-form" class="lsu-form" novalidate @submit.prevent="simpanSesi">
         <p class="lsu-full lsu-context"><strong>{{ sesiTarget.siswa_nama }}</strong> · pertemuan ke-{{ sesiTarget.sesi_terpakai + 1 }} dari {{ sesiTarget.jumlah_sesi }}</p>
@@ -234,7 +234,6 @@ onMounted(load)
 .lsu-history small { color: var(--app-text-muted); }
 .lsu-history-no { color: var(--app-text-muted); font-size: var(--bee-type-caption); min-width: 2ch; }
 .lsu-history-empty { color: var(--app-text-muted); padding: var(--bee-space-3) !important; }
-.lsu-dialog { width: min(560px, calc(100vw - 32px)); }
 .lsu-form { display: grid; grid-template-columns: 1fr 1fr; gap: var(--bee-space-4); }
 .lsu-full { grid-column: 1 / -1; }
 .lsu-context { margin: 0; }
