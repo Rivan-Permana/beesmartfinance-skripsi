@@ -21,7 +21,7 @@ Mulai semester 2 (Januari 2027), penerimaan dan pengeluaran sekolah dicatat di B
 
 | Bagian | Cara | Jurnal |
 |---|---|---|
-| Kas per unit | Keuangan membuat akun Kas PG, Kas TK, Kas ADM, dan Kas kecil rekening di COA (kode berawalan 1, nama berawalan "Kas "), lalu mengisi saldo awal per 1/1/2027 dari saldo akhir sheet 31/12 | Saldo awal COA (`0003_opening_balance`), bukan jurnal |
+| Kas per unit | Akun 115–118 sudah dibuat (10/11). **Diubah setelah gladi 11/11:** satu jurnal saldo awal cut-over per 31/12/2026, lawan 312 Laba Ditahan; 115–118 sebesar saldo sheet, 112 sebesar selisih sheet − sistem. Kolom saldo awal COA tidak dipakai karena menolak akun yang sudah bertransaksi dan tidak punya lawan ([gladi](./2026-11-11-gladi-cutover.md)) | Jurnal saldo awal, disetujui Kepsek |
 | Biaya masuk per siswa | Impor dari tab master: komponen, kategori diskon, nominal diskon, dan total terbayar s.d. 31/12. Tagihan `BIAYA_MASUK` dibuat lengkap, ditambah satu **penerimaan saldo awal** per siswa | Penerimaan saldo awal **tanpa jurnal kas**, karena uangnya sudah masuk saldo awal kas |
 | SPP, katering, jemputan, LSU Juli–Desember | Tidak dibuat tagihan per bulan. Sisa tunggakan per 31/12 (bila ada) dicatat sebagai satu tagihan per siswa | Tanpa jurnal sampai dibayar |
 | Mulai Januari | Tagihan bulanan dibuat dari sistem (generate per kelompok), penerimaan dicatat TU, dan Keuangan mencatat jurnal | Normal |

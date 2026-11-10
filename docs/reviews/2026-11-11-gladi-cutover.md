@@ -40,15 +40,15 @@ Dokumen publik: hanya lulus/gagal, jumlah, dan durasi. Tanpa nama siswa/pegawai 
 3. TU: impor biodata (pratinjau → simpan bila ada siswa baru). Galat nama → perbaiki dulu.
 4. TU: impor tarif SPP; isi tarif manual untuk baris "cek".
 5. TU: impor biaya masuk, tanggal 31/12/2026: pratinjau → selesaikan "cek" dengan Bendahara → simpan.
-6. Keuangan: jurnal saldo awal cut-over 31/12 (temuan 1) → ajukan → Kepsek setujui. Cek neraca.
+6. Keuangan: satu jurnal saldo awal cut-over bertanggal 31/12/2026: debit 115–118 sebesar saldo sheet, debit/kredit 112 sebesar selisih sheet − sistem (lihat buku besar 112 per 31/12), lawan 312 Laba Ditahan → ajukan → Kepsek setujui. Cek: saldo 112 dan 115–118 di neraca 31/12 sama dengan sheet.
 7. TU: tunggakan SPP per siswa per bulan lewat "Buat tagihan" → "Periksa rincian" → buat.
 8. TU: tunggakan katering/jemputan/LSU dari daftar TU.
 9. TU: tagihan Januari: pratinjau → buat sekaligus. Jumlah dilewati harus 0 untuk siswa aktif yang bayar SPP.
 10. Cek: Tunggakan Tagihan, invoice gabungan 2–3 siswa, neraca, laba rugi Januari.
 11. Kunci sheet jadi hanya baca.
 
-## Keputusan yang dibutuhkan
+## Keputusan (diputuskan pengguna 11/11)
 
-1. Lawan akun jurnal saldo awal cut-over: 312 Laba Ditahan (saran) atau 311 Modal.
-2. Saldo kas 112 di sistem vs sheet: jurnal selisih per 31/12 (saran) atau saldo sheet penuh dengan pembalikan jurnal 2026.
+1. Lawan akun jurnal saldo awal cut-over: **312 Laba Ditahan**. Alasan: saldo kas 31/12 adalah akumulasi yang belum pernah dibukukan; 311 Modal tetap untuk setoran modal. Bagian yang ternyata modal yayasan dipindah dengan jurnal reklasifikasi biasa.
+2. Akun kas yang sudah dipakai di sistem (112): **jurnal selisih** = saldo sheet 31/12 − saldo sistem 31/12. Jurnal 2026 yang sudah POSTED tidak dibalik. Akun kas unit baru (115–118) diisi saldo sheet penuh di jurnal yang sama.
 3. ~~Perbaiki temuan 2~~ selesai di branch; ikut rilis berikutnya sebelum hari-H.
