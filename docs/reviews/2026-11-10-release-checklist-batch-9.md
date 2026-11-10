@@ -172,7 +172,14 @@ Hasil 10/11 15:24 UTC: koneksi GitHub hidup (`github.com` resolve, `github 200`)
 - Backend baru terlihat dari luar 15:31:57 UTC (schema memuat `paket-lsu`, `anggaran-bulanan`, `impor-biaya-masuk`, `batal-saldo-awal`, `uang_komite`, `uang_portofolio`, `saldo_awal`).
 - Worker baru terlihat 15:33:33 UTC, bundle `index-Bq0ut_6a.js`: chunk SiswaListView memuat "Impor biaya masuk", LsuView ada, AnggaranListView memuat plafon.
 - Cek dari luar: `/login` 200; API tanpa token 401, lewat Worker maupun origin.
-- Cek read-only pasca-rilis dan smoke test per role: menunggu pengguna.
+- Cek read-only pasca-rilis (web console):
+  - SHA backend dan frontend `7cd5b97`; Worker version `1e0e2cab…`; backend Up 6 menit, db healthy, disk 9%.
+  - Dump deploy `db-20261110T153005Z.dump` (278.077 byte, sama dengan `before-batch9`); 32 dump, total 7,5 MB.
+  - Migrasi `accounts 0003_budget_planner_group` dan `operations 0023_lsu`; grup `BudgetPlanner` ada; tabel LSU ada (kosong).
+  - Tidak berubah: pembayaran 3 / 0 / 0; tagihan BULANAN 7, perlu dicocokkan 3; anggaran 2 / 0 / 0; akun tanpa sub-golongan 0; COA 205; kode pengeluaran 74 / 58 / 60; siswa 108 aktif; jurnal 18 (DRAFT/PENDING 7); periode 2026/2027 OPEN.
+
+  Tidak ada data yang berubah selain skema dan grup baru.
+- Smoke test per role: menunggu pengguna.
 
 ## 4. Setelah rilis
 
