@@ -111,6 +111,8 @@ Hasil 10/11: `dibuat penyusun.anggaran ['BudgetPlanner']`; password acak dicetak
 
 Smoke test penyusun (pengguna login, Claude memeriksa tanpa menyimpan): `/` → `/anggaran`; menu hanya Anggaran; jurnal, tagihan, aset, laba rugi 403; panel anggaran bulanan tampil; form tambah tanpa pilihan plafon.
 
+Hasil smoke test penyusun (10/11, produksi): login `penyusun.anggaran` (grup BudgetPlanner); `/` → `/anggaran`; menu hanya "Anggaran bulanan"; panel "Anggaran bulanan dan realisasi" tanpa error; API anggaran 200, jurnal/tagihan/aset/laba rugi 403; form Tambah anggaran hanya Bulan + Tahun kalender + Anggaran, tanpa pilihan plafon (ditutup dengan Batal). Lulus; lalu logout.
+
 ## 5. Plafon tahunan (Keuangan)
 
 Menu Anggaran → Tambah anggaran → kosongkan Bulan → pilih TP 2026/2027 → isi Plafon per akun beban. Nominal dari anggaran sekolah. Setelah itu penyusun bisa mengisi anggaran bulanan di bawah plafon tersebut.
