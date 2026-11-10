@@ -86,9 +86,10 @@ def parse_master(berkas):
 def susun(baris_mentah, siswa_qs):
     """Cocokkan baris berkas dengan siswa dan periksa angkanya. Tidak menyimpan apa pun.
 
-    aksi: isi, sudah (saldo awal sudah tercatat), lewati (tanpa biaya masuk), cek, galat.
+    aksi: isi, sudah (saldo awal sudah tercatat, atau tagihan sudah ada dan berkas belum mencatat
+    pembayaran), lewati (tanpa biaya masuk), cek, galat.
     """
-    from operations.models import PembayaranTagihan, Siswa
+    from operations.models import PembayaranTagihan, Siswa, Tagihan
 
     kategori_valid = {kode for kode, _label in Siswa.DISKON_KATEGORI}
     per_nama = {}
@@ -98,6 +99,9 @@ def susun(baris_mentah, siswa_qs):
     sudah_dibayar = dict(
         PembayaranTagihan.objects.filter(tagihan__jenis="BIAYA_MASUK", tagihan__is_deleted=False, dibatalkan=False)
         .values_list("tagihan__siswa_id", "saldo_awal")
+    )
+    punya_tagihan = set(
+        Tagihan.objects.filter(jenis="BIAYA_MASUK", is_deleted=False).values_list("siswa_id", flat=True)
     )
 
     hasil = []
@@ -125,6 +129,9 @@ def susun(baris_mentah, siswa_qs):
                 ("sudah", "Saldo awal biaya masuk sudah tercatat.") if sudah_dibayar[siswa_id]
                 else ("cek", "Sudah ada penerimaan biaya masuk di sistem. Cocokkan manual.")
             )
+        elif siswa_id in punya_tagihan and not mentah["terbayar"]:
+            # Impor ulang: tanpa pembayaran di berkas tidak ada saldo awal yang menandai baris ini.
+            item["aksi"], item["alasan"] = "sudah", "Tagihan biaya masuk sudah ada; berkas belum mencatat pembayaran."
         elif bruto == 0 and not mentah["terbayar"]:
             item["aksi"], item["alasan"] = "lewati", "Tidak ada biaya masuk di berkas."
         elif mentah["kategori"] not in TANPA_DISKON and mentah["kategori"] not in kategori_valid:
