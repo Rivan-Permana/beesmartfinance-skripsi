@@ -10,7 +10,9 @@ from django.utils import timezone
 from .models import MsPeriodeAkuntansi, TrJurnal, TrJurnalDetail
 from .utils import audit_user
 
-FINANCE_POST_SOURCES = {"MANUAL", "AUTO_BILLING", "AUTO_PENDAFTARAN", "AUTO_SITIN"}
+# Keuangan mencatat pemasukan/pengeluaran tanpa persetujuan Kepsek. AUTO_KEGIATAN ikut: realisasi kegiatan
+# yang diinput Kepsek tidak bisa disetujui Kepsek sendiri (SoD), sehingga Keuangan yang mencatat.
+FINANCE_POST_SOURCES = {"MANUAL", "AUTO_BILLING", "AUTO_PENDAFTARAN", "AUTO_SITIN", "AUTO_KEGIATAN"}
 
 
 def periode_tertutup(tanggal):
