@@ -18,6 +18,7 @@ from .assets import FixedAssetViewSet
 from .activities import KegiatanViewSet
 from .registration import PendaftaranSiswaViewSet
 from .expenses import KodePengeluaranViewSet
+from .lsu import PaketLSUViewSet
 
 __all__ = [
     "JenjangViewSet", "KelompokViewSet", "SiswaViewSet", "KehadiranSiswaViewSet",
@@ -29,4 +30,5 @@ __all__ = [
     "KegiatanViewSet",
     "PendaftaranSiswaViewSet",
     "KodePengeluaranViewSet",
+    "PaketLSUViewSet",
 ]

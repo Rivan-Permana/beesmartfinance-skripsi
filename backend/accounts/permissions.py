@@ -6,6 +6,8 @@ FINANCE = "Finance"
 PRINCIPAL = "SchoolPrincipal"
 ADMINISTRATION = "Administration"
 TEACHER = "TeacherInCharge"
+# Penyusun anggaran bulanan: tulis anggaran bulanan, baca realisasi; tanpa jurnal/pembayaran.
+BUDGET_PLANNER = "BudgetPlanner"
 
 
 def _in_groups(user, groups):
@@ -94,6 +96,18 @@ class IsFinanceWriteFinancePrincipalRead(BasePermission):
         if request.method in ("GET", "HEAD", "OPTIONS"):
             return _in_groups(request.user, (FINANCE, PRINCIPAL))
         return _in_groups(request.user, (FINANCE,))
+
+
+class IsNotBudgetPlannerOnly(BasePermission):
+    """Tolak pengguna yang hanya berperan penyusun anggaran (mis. untuk membaca jurnal)."""
+
+    def has_permission(self, request, view):
+        user = request.user
+        if not user or not user.is_authenticated:
+            return False
+        if user.is_superuser:
+            return True
+        return set(user.groups.values_list("name", flat=True)) != {BUDGET_PLANNER}
 
 
 def role_permission(read=(), write=()):

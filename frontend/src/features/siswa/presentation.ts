@@ -1,4 +1,5 @@
-import type { BiayaMasukField, DiskonKategori, JenisKelamin, KelengkapanKode, Kelompok, Siswa, SiswaStatus } from "@/types/api"
+import { formatRp } from "@/core/format"
+import type { BiayaMasukField, DiskonKategori, ImporBiayaMasukBaris, JenisKelamin, KelengkapanKode, Kelompok, Siswa, SiswaStatus } from "@/types/api"
 
 export const SISWA_STATUS = {
   aktif: { label: "Aktif", severity: "success" },
@@ -39,13 +40,17 @@ export function kelompokLabel(kelompok: Kelompok) {
 }
 
 export const DISKON_KATEGORI: DiskonKategori[] = ["PG", "SIPG", "SIB", "SIKBR", "SBD", "KHUSUS", "PINDAHAN"]
-/** Urutan ini juga urutan pemotongan diskon di backend. */
-export const BIAYA_MASUK_FIELDS: { field: BiayaMasukField; label: string }[] = [
+/** Urutan ini juga urutan pemotongan diskon di backend. `perAnak`: kosong = ikut daftar harga di tagihan Juli. */
+export const BIAYA_MASUK_FIELDS: { field: BiayaMasukField; label: string; perAnak?: boolean }[] = [
   { field: "uang_masuk", label: "Uang Masuk" },
   { field: "uang_pengembangan", label: "Uang Pengembangan" },
   { field: "uang_kegiatan", label: "Uang Kegiatan" },
   { field: "uang_seragam", label: "Uang Seragam" },
+  { field: "uang_komite", label: "Iuran Komite", perAnak: true },
+  { field: "uang_portofolio", label: "Portofolio", perAnak: true },
 ]
+/** Komponen yang diisi otomatis oleh tombol "Isi dari daftar harga". */
+export const BIAYA_MASUK_PREFILL = BIAYA_MASUK_FIELDS.filter((item) => !item.perAnak)
 export function biayaMasukBruto(form: Partial<Record<BiayaMasukField, string | null>>) {
   return BIAYA_MASUK_FIELDS.reduce((sum, { field }) => sum + Number(form[field] || 0), 0)
 }
@@ -70,3 +75,14 @@ export const KELENGKAPAN_LABEL = {
   kontak_kosong: "HP orang tua kosong",
   hp_janggal: "HP perlu dicek",
 } as const satisfies Record<KelengkapanKode, string>
+
+/** Default tanggal saldo awal impor cut-over: hari terakhir bulan lalu (1 Januari -> 31 Desember). */
+export function tanggalSaldoAwalDefault(today = new Date()) {
+  return new Date(today.getFullYear(), today.getMonth(), 0)
+}
+export function imporBiayaMasukDetail(row: ImporBiayaMasukBaris) {
+  if (row.aksi === "galat" || row.aksi === "lewati") return row.alasan ?? ""
+  const angka = `Ditagihkan ${formatRp(row.ditagih)} · terbayar ${formatRp(row.terbayar)} · sisa ${formatRp(row.ditagih - row.terbayar)}`
+  const diskon = row.diskon ? ` · diskon ${row.kategori} ${formatRp(row.diskon)}` : ""
+  return row.aksi === "isi" ? angka + diskon : `${row.alasan ?? ""} ${angka}${diskon}`
+}

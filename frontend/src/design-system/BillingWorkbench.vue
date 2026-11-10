@@ -33,7 +33,7 @@ function save() {
   const amount=paymentTotal(form.value)
   const payload=paymentPayload(form.value)
   const remaining=Math.round(Number(current.sisa_tagihan)*100)-Math.round(amount*100)
-  const entry: PembayaranTagihan = {id:Date.now(),tanggal:payload.tanggal,no_bukti:payload.no_bukti,nominal:payload.nominal,akun_kas:form.value.akun_kas,jurnal:"CONTOH",jurnal_status:"DRAFT",created_by:null,dibatalkan:false,alasan_batal:"",dibatalkan_pada:null,alokasi:form.value.alokasi.filter(line => line.nominal>0).map(line => ({detail:line.detail,nominal:line.nominal.toFixed(2)}))}
+  const entry: PembayaranTagihan = {id:Date.now(),tanggal:payload.tanggal,no_bukti:payload.no_bukti,nominal:payload.nominal,akun_kas:form.value.akun_kas,jurnal:"CONTOH",jurnal_status:"DRAFT",saldo_awal:false,created_by:null,dibatalkan:false,alasan_batal:"",dibatalkan_pada:null,alokasi:form.value.alokasi.filter(line => line.nominal>0).map(line => ({detail:line.detail,nominal:line.nominal.toFixed(2)}))}
   rows.value=rows.value.map(row => row.id!==current.id ? row : {...row,total_terbayar:((Math.round(Number(row.total_terbayar)*100)+Math.round(amount*100))/100).toFixed(2),sisa_tagihan:(remaining/100).toFixed(2),status:remaining===0?"LUNAS":"SEBAGIAN",pembayaran:[...row.pembayaran,entry],detail:row.detail.map(line => ({...line,total_terbayar:((Math.round(Number(line.total_terbayar ?? 0)*100)+Math.round((form.value.alokasi.find(item => item.detail===line.id)?.nominal ?? 0)*100))/100).toFixed(2)}))})
   visible.value=false
   toast.add({severity:"success",summary:"Pembayaran contoh dicatat",detail:"Hanya mengubah data contoh di halaman ini.",life:4000})

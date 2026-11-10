@@ -1,5 +1,5 @@
 import { api } from "@/core/api"
-import type { Anggaran, Paginated, PeriodeAkuntansi } from "@/types/api"
+import type { Anggaran, AnggaranBulanan, Paginated, PeriodeAkuntansi } from "@/types/api"
 
 async function allPages<T>(path: string): Promise<T[]> {
   const rows: T[] = []
@@ -23,6 +23,9 @@ export const anggaranApi = {
   update: (id: number, payload: Partial<Anggaran>) =>
     api.put<Anggaran>(`/anggaran/${id}/`, payload).then((r) => r.data),
   remove: (id: number) => api.delete(`/anggaran/${id}/`),
+  /** Plafon, anggaran bulanan, dan realisasi per akun beban dalam satu tahun pelajaran. */
+  bulanan: (periode: number) =>
+    api.get<AnggaranBulanan>("/laporan/anggaran-bulanan/", { params: { periode } }).then((r) => r.data),
 }
 
 export const periodeApi = {

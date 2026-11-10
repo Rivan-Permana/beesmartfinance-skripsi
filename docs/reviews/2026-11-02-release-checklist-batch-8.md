@@ -131,6 +131,28 @@ Hasil 2/11 15:55 UTC: `backups/db-20261102T155556Z-before-batch8.dump`, 276.879 
    - **Kepsek:** Beranda, angka Kas dan bank sama dengan sebelum rilis.
    - **Guru:** Absensi tetap jalan, tanpa nominal.
 
+### Hasil rilis — 2 November 2026
+
+- PR #26 di-merge ke `main` pukul 15:57:39 UTC (`774d93d`) dari sesi Claude atas instruksi pengguna, setelah cek read-only dan backup `before-batch8`.
+- Backend baru aktif 16:00:35 UTC (schema produksi memuat `is_kas`, `PINDAHAN`, `KHUSUS`).
+- Worker baru: version `744f5c50…`, bundle `index-BdwqBEdX.js`. Chunk CoaListView memuat teks bantu "Akun kas baru", SiswaListView memuat `PINDAHAN`, dan chunk Siswa/Tagihan/Pendaftaran memakai `is_kas`.
+- Cek dari luar: `/login` 200; API tanpa token 401, lewat Worker maupun origin.
+- Cek read-only pasca-rilis (web console):
+  - SHA backend dan frontend `774d93d`; backend Up 23 menit, db healthy, disk 8%.
+  - Dump deploy `db-20261102T160005Z.dump` (276.879 byte); 29 dump, total 6,7 MB.
+  - Migrasi `0021_harga_tp_2026_27`. Tiga baris template sasaran sudah harga 26/27; dua baris lain tetap.
+  - Akun kas masih `111` dan `112`.
+  - Kode pengeluaran 60 / 42 / 51; 108 siswa aktif, 0 berkategori diskon; tagihan 7 / 0 / 3; jurnal 18 (DRAFT/PENDING 7); periode 2026/2027 OPEN.
+
+  Tidak ada data selain tiga baris template yang berubah.
+- Smoke test produksi per role (2/11; pengguna login di browser bawaan, Claude memeriksa tanpa menyimpan data, lalu logout tiap role):
+  - **Staf TU:** form Tambah siswa menampilkan 7 kategori dan teks bantu SBD/KHUSUS/PINDAHAN; default daftar harga TK baru (Kegiatan, Seragam) dan PG baru (Seragam) sudah 26/27; dropdown Kas/Bank di Catat pembayaran tetap Kas di Tangan dan Kas di Bank.
+  - **Keuangan:** form Tambah akun COA menampilkan teks bantu akun kas (terhubung lewat `aria-describedby`); panel kode "42 dari 60 kode sudah dipetakan".
+  - **Kepsek:** Beranda tanpa error; Kas dan bank, Pendapatan, Beban sama dengan sebelum rilis.
+  - **Guru:** Absensi siswa tanpa error dan tanpa nominal; API siswa tidak mengirim field nominal.
+
+  Semua lulus. Catatan: Kas dan bank di Beranda negatif sejak sebelum rilis (saldo awal kas belum diisi); diselesaikan saat cut-over Januari.
+
 ## 4. Setelah rilis (Keuangan)
 
 1. Buat akun kas per unit di COA sesuai keputusan kas: kode berawalan `1…`, nama berawalan "Kas ", misalnya Kas PG, Kas TK, Kas ADM. Saldo awal diisi saat cut-over Januari, bukan sekarang.

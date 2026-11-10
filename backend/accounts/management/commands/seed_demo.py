@@ -47,6 +47,12 @@ DEMO_USERS = [
         "last_name": "Desi",
         "group": "TeacherInCharge",
     },
+    {
+        "username": "penyusun.anggaran",
+        "first_name": "Penyusun",
+        "last_name": "Anggaran",
+        "group": "BudgetPlanner",
+    },
 ]
 
 JENJANG = [
@@ -152,7 +158,7 @@ class Command(BaseCommand):
         self.stdout.write(self.style.SUCCESS("seed_demo: selesai."))
 
     def _ensure_groups(self):
-        for name in ["Finance", "SchoolPrincipal", "Administration", "TeacherInCharge"]:
+        for name in ["Finance", "SchoolPrincipal", "Administration", "TeacherInCharge", "BudgetPlanner"]:
             Group.objects.get_or_create(name=name)
 
     def _seed_users(self, passwords: dict[str, str]):

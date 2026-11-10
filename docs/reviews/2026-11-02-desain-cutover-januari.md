@@ -32,7 +32,7 @@ Mulai semester 2 (Januari 2027), penerimaan dan pengeluaran sekolah dicatat di B
 
 ## Keputusan terbuka
 
-1. **Pendapatan Juli–Desember di laporan TA 2026/27.** Model di atas hanya mencatat saldo awal, sehingga laba rugi TA 2026/27 di sistem hanya berisi Januari–Juni. Alternatifnya: jurnal ringkasan pendapatan per bulan per pos (SPP, katering, jemputan, LSU, biaya masuk) untuk Juli–Desember, dengan lawan akun saldo awal. Rekomendasi: saldo awal saja, kecuali sekolah atau penguji skripsi meminta laba rugi satu tahun penuh dari sistem.
+1. **Pendapatan Juli–Desember di laporan TA 2026/27.** Model di atas hanya mencatat saldo awal, sehingga laba rugi TA 2026/27 di sistem hanya berisi Januari–Juni. Alternatifnya: jurnal ringkasan pendapatan per bulan per pos (SPP, katering, jemputan, LSU, biaya masuk) untuk Juli–Desember, dengan lawan akun saldo awal. Rekomendasi: saldo awal saja, kecuali sekolah meminta laba rugi satu tahun penuh dari sistem.
 2. **Kas kecil di rekening pribadi:** dicatat sebagai akun kas tersendiri atau digabung ke Kas ADM.
 3. **Kategori tarif khusus (SBD/KHUSUS/PINDAHAN):** sudah bisa dipilih di form siswa sebagai label. Nominal mengikuti kesepakatan dan diketik langsung. Siapa yang menyetujui kesepakatan belum dijawab sekolah.
 

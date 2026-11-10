@@ -19,6 +19,7 @@ from .assets import FixedAsset
 from .activities import Kegiatan, RealisasiKegiatan
 from .registration import PendaftaranSiswa
 from .expenses import KodePengeluaran
+from .lsu import PaketLSU, PertemuanLSU
 
 __all__ = [
     "TimeStampedModel", "SoftDeleteModel", "SoftDeleteManager", "SoftDeleteQuerySet",
@@ -32,4 +33,5 @@ __all__ = [
     "Kegiatan", "RealisasiKegiatan",
     "PendaftaranSiswa",
     "KodePengeluaran",
+    "PaketLSU", "PertemuanLSU",
 ]

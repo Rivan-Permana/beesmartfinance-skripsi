@@ -2878,6 +2878,23 @@ paths:
       responses:
         '204':
           description: No response body
+  /api/v1/laporan/anggaran-bulanan/:
+    get:
+      operationId: v1_laporan_anggaran_bulanan_retrieve
+      description: Rencana anggaran bulanan vs realisasi per akun beban dalam satu
+        tahun pelajaran.
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
   /api/v1/laporan/buku-besar/{kode_akun}/:
     get:
       operationId: v1_laporan_buku_besar_retrieve
@@ -3130,6 +3147,177 @@ paths:
         schema:
           type: integer
         description: A unique integer value identifying this menu katering.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/paket-lsu/:
+    get:
+      operationId: v1_paket_lsu_list
+      description: Paket tidak diubah setelah dibuat (tagihan sudah terbentuk); hapus
+        lalu buat ulang bila salah.
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      - in: query
+        name: siswa
+        schema:
+          type: integer
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPaketLSUList'
+          description: ''
+    post:
+      operationId: v1_paket_lsu_create
+      description: Paket tidak diubah setelah dibuat (tagihan sudah terbentuk); hapus
+        lalu buat ulang bila salah.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaketLSU'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PaketLSU'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PaketLSU'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaketLSU'
+          description: ''
+  /api/v1/paket-lsu/{id}/:
+    get:
+      operationId: v1_paket_lsu_retrieve
+      description: Paket tidak diubah setelah dibuat (tagihan sudah terbentuk); hapus
+        lalu buat ulang bila salah.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this paket lsu.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaketLSU'
+          description: ''
+    delete:
+      operationId: v1_paket_lsu_destroy
+      description: Paket tidak diubah setelah dibuat (tagihan sudah terbentuk); hapus
+        lalu buat ulang bila salah.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this paket lsu.
+        required: true
+      tags:
+      - v1
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/paket-lsu/{id}/pertemuan/:
+    post:
+      operationId: v1_paket_lsu_pertemuan_create
+      description: Catat satu pertemuan (rekap dari terapis).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this paket lsu.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PertemuanInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PertemuanInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PertemuanInput'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaketLSU'
+          description: ''
+  /api/v1/paket-lsu/{id}/pertemuan/{pertemuan_id}/:
+    delete:
+      operationId: v1_paket_lsu_pertemuan_destroy
+      description: Hapus catatan pertemuan yang salah input.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this paket lsu.
+        required: true
+      - in: path
+        name: pertemuan_id
+        schema:
+          type: string
+          pattern: ^\d+$
         required: true
       tags:
       - v1
@@ -4379,6 +4567,28 @@ paths:
               schema:
                 $ref: '#/components/schemas/BiayaMasukDefault'
           description: ''
+  /api/v1/siswa/impor-biaya-masuk/:
+    post:
+      operationId: v1_siswa_impor_biaya_masuk_create
+      description: Pratinjau (simpan=false) atau simpan biaya masuk + penerimaan saldo
+        awal dari tab master (cut-over).
+      tags:
+      - v1
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ImporBiayaMasukInput'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImporBiayaMasukHasil'
+          description: ''
   /api/v1/siswa/impor-biodata/:
     post:
       operationId: v1_siswa_impor_biodata_create
@@ -4791,6 +5001,41 @@ paths:
       responses:
         '204':
           description: No response body
+  /api/v1/tagihan/{id}/batal-saldo-awal/:
+    post:
+      operationId: v1_tagihan_batal_saldo_awal_create
+      description: Batalkan penerimaan saldo awal cut-over pada tagihan ini (tanpa
+        jurnal yang perlu dibalik).
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this tagihan.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatalSaldoAwalInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/BatalSaldoAwalInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/BatalSaldoAwalInput'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tagihan'
+          description: ''
   /api/v1/tagihan/{id}/bayar/:
     post:
       operationId: v1_tagihan_bayar_create
@@ -5107,6 +5352,18 @@ components:
           maxLength: 500
       required:
       - alasan
+    BatalSaldoAwalInput:
+      type: object
+      properties:
+        pembayaran:
+          type: integer
+          minimum: 1
+        alasan:
+          type: string
+          maxLength: 500
+      required:
+      - alasan
+      - pembayaran
     BayarPendaftaranInput:
       type: object
       properties:
@@ -5417,6 +5674,146 @@ components:
       - total_bruto
       - total_netto
       - total_potongan
+    ImporBiayaMasukBaris:
+      type: object
+      properties:
+        baris:
+          type: integer
+        nama:
+          type: string
+        kelas:
+          type: string
+        aksi:
+          $ref: '#/components/schemas/ImporBiayaMasukBarisAksiEnum'
+        siswa:
+          type: integer
+          nullable: true
+        kategori:
+          type: string
+        diskon:
+          type: integer
+        komponen:
+          $ref: '#/components/schemas/ImporBiayaMasukKomponen'
+        ditagih:
+          type: integer
+        terbayar:
+          type: integer
+        alasan:
+          type: string
+          nullable: true
+      required:
+      - aksi
+      - alasan
+      - baris
+      - diskon
+      - ditagih
+      - kategori
+      - kelas
+      - komponen
+      - nama
+      - siswa
+      - terbayar
+    ImporBiayaMasukBarisAksiEnum:
+      enum:
+      - isi
+      - sudah
+      - lewati
+      - cek
+      - galat
+      type: string
+      description: |-
+        * `isi` - isi
+        * `sudah` - sudah
+        * `lewati` - lewati
+        * `cek` - cek
+        * `galat` - galat
+    ImporBiayaMasukHasil:
+      type: object
+      properties:
+        disimpan:
+          type: boolean
+        diisi:
+          type: integer
+        ringkasan:
+          $ref: '#/components/schemas/ImporBiayaMasukRingkasan'
+        baris:
+          type: array
+          items:
+            $ref: '#/components/schemas/ImporBiayaMasukBaris'
+      required:
+      - baris
+      - diisi
+      - disimpan
+      - ringkasan
+    ImporBiayaMasukInput:
+      type: object
+      properties:
+        berkas:
+          type: string
+          format: uri
+        tanggal:
+          type: string
+          format: date
+          description: Tanggal saldo awal, mis. 31/12 sebelum cut-over.
+        simpan:
+          type: boolean
+          default: false
+      required:
+      - berkas
+      - tanggal
+    ImporBiayaMasukKomponen:
+      type: object
+      properties:
+        uang_masuk:
+          type: integer
+          nullable: true
+        uang_portofolio:
+          type: integer
+          nullable: true
+        uang_kegiatan:
+          type: integer
+          nullable: true
+        uang_pengembangan:
+          type: integer
+          nullable: true
+        uang_komite:
+          type: integer
+          nullable: true
+        uang_seragam:
+          type: integer
+          nullable: true
+      required:
+      - uang_kegiatan
+      - uang_komite
+      - uang_masuk
+      - uang_pengembangan
+      - uang_portofolio
+      - uang_seragam
+    ImporBiayaMasukRingkasan:
+      type: object
+      properties:
+        isi:
+          type: integer
+        sudah:
+          type: integer
+        lewati:
+          type: integer
+        cek:
+          type: integer
+        galat:
+          type: integer
+        total_ditagih:
+          type: integer
+        total_terbayar:
+          type: integer
+      required:
+      - cek
+      - galat
+      - isi
+      - lewati
+      - sudah
+      - total_ditagih
+      - total_terbayar
     ImporBiodataBaris:
       type: object
       properties:
@@ -5801,10 +6198,12 @@ components:
       enum:
       - BULANAN
       - BIAYA_MASUK
+      - LSU
       type: string
       description: |-
         * `BULANAN` - Bulanan
         * `BIAYA_MASUK` - Biaya masuk
+        * `LSU` - Paket LSU
     JenisKelaminEnum:
       enum:
       - L
@@ -5847,6 +6246,14 @@ components:
       - id
       - kode
       - nama
+    JumlahSesiEnum:
+      enum:
+      - 8
+      - 16
+      type: integer
+      description: |-
+        * `8` - 8 pertemuan
+        * `16` - 16 pertemuan
     Kegiatan:
       type: object
       properties:
@@ -6555,6 +6962,29 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/MsSubGolongan'
+    PaginatedPaketLSUList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/PaketLSU'
     PaginatedPegawaiList:
       type: object
       required:
@@ -6739,6 +7169,66 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/TrJurnal'
+    PaketLSU:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        siswa:
+          type: integer
+        siswa_nama:
+          type: string
+          readOnly: true
+        jumlah_sesi:
+          allOf:
+          - $ref: '#/components/schemas/JumlahSesiEnum'
+          minimum: 0
+          maximum: 32767
+        harga:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+        tanggal_mulai:
+          type: string
+          format: date
+        keterangan:
+          type: string
+          maxLength: 255
+        sesi_terpakai:
+          type: integer
+          readOnly: true
+        tagihan:
+          type: integer
+          readOnly: true
+          nullable: true
+        tagihan_status:
+          type: string
+          readOnly: true
+          nullable: true
+        tagihan_sisa:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+          readOnly: true
+          nullable: true
+        pertemuan:
+          type: array
+          items:
+            $ref: '#/components/schemas/PertemuanLSU'
+          readOnly: true
+      required:
+      - harga
+      - id
+      - jumlah_sesi
+      - pertemuan
+      - sesi_terpakai
+      - siswa
+      - siswa_nama
+      - tagihan
+      - tagihan_sisa
+      - tagihan_status
+      - tanggal_mulai
     PatchedAbsenPegawai:
       type: object
       properties:
@@ -7404,6 +7894,16 @@ components:
           format: decimal
           pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
           nullable: true
+        uang_komite:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+          nullable: true
+        uang_portofolio:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+          nullable: true
         biaya_masuk:
           allOf:
           - $ref: '#/components/schemas/BiayaMasukRingkas'
@@ -7478,6 +7978,9 @@ components:
           readOnly: true
     PatchedTrAnggaran:
       type: object
+      description: |-
+        Baris tanpa bulan = plafon tahunan per tahun pelajaran (wajib periode). Baris berbulan = anggaran
+        bulanan; tahun_anggaran + bulan adalah bulan kalender, dan jumlahnya tidak boleh melewati plafon.
       properties:
         id:
           type: integer
@@ -7486,8 +7989,6 @@ components:
           type: string
         tahun_anggaran:
           type: integer
-          maximum: 2147483647
-          minimum: -2147483648
         bulan:
           type: integer
           maximum: 2147483647
@@ -7626,12 +8127,17 @@ components:
           pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
         akun_kas:
           type: string
+          nullable: true
         jurnal:
           type: string
           format: uuid
+          nullable: true
         jurnal_status:
           type: string
           readOnly: true
+          nullable: true
+        saldo_awal:
+          type: boolean
         created_by:
           type: integer
           nullable: true
@@ -7649,10 +8155,8 @@ components:
             $ref: '#/components/schemas/AlokasiPembayaranTagihan'
           readOnly: true
       required:
-      - akun_kas
       - alokasi
       - id
-      - jurnal
       - jurnal_status
       - no_bukti
       - nominal
@@ -7784,6 +8288,33 @@ components:
         * `TRIAL` - Sit-in/Trial
         * `REGISTERED` - Terdaftar
         * `BATAL` - Batal
+    PertemuanInput:
+      type: object
+      properties:
+        tanggal:
+          type: string
+          format: date
+        catatan:
+          type: string
+          default: ''
+          maxLength: 255
+      required:
+      - tanggal
+    PertemuanLSU:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        tanggal:
+          type: string
+          format: date
+        catatan:
+          type: string
+          maxLength: 255
+      required:
+      - id
+      - tanggal
     PinjamanPegawai:
       type: object
       properties:
@@ -7928,6 +8459,16 @@ components:
           pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
           nullable: true
         uang_seragam:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+          nullable: true
+        uang_komite:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+          nullable: true
+        uang_portofolio:
           type: string
           format: decimal
           pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
@@ -8089,6 +8630,7 @@ components:
       - SERAGAM
       - KOMITE
       - PORTOFOLIO
+      - LSU
       - POTONGAN
       - LAIN
       type: string
@@ -8102,6 +8644,7 @@ components:
         * `SERAGAM` - Seragam
         * `KOMITE` - Iuran Komite
         * `PORTOFOLIO` - Portofolio & Rapor
+        * `LSU` - Paket LSU
         * `POTONGAN` - Potongan
         * `LAIN` - Lain-lain
     TagihanStatusEnum:
@@ -8183,6 +8726,9 @@ components:
       - alasan
     TrAnggaran:
       type: object
+      description: |-
+        Baris tanpa bulan = plafon tahunan per tahun pelajaran (wajib periode). Baris berbulan = anggaran
+        bulanan; tahun_anggaran + bulan adalah bulan kalender, dan jumlahnya tidak boleh melewati plafon.
       properties:
         id:
           type: integer
@@ -8191,8 +8737,6 @@ components:
           type: string
         tahun_anggaran:
           type: integer
-          maximum: 2147483647
-          minimum: -2147483648
         bulan:
           type: integer
           maximum: 2147483647
@@ -8213,7 +8757,6 @@ components:
       required:
       - id
       - kode_akun
-      - tahun_anggaran
     TrJurnal:
       type: object
       properties:

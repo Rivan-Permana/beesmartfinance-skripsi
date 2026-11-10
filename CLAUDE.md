@@ -1,4 +1,4 @@
-# BeeSmart Finance — SIA TK Lebah Madu (skripsi)
+# BeeSmart Finance — SIA TK Lebah Madu
 
 Django 5.2 REST + PostgreSQL 16 (`backend/`: accounts, accounting, operations).
 Vue 3 + PrimeVue 4 + Vite + Pinia (`frontend/src/`: core, features, shared, stores).

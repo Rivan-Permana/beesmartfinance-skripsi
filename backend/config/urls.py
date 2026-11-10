@@ -26,6 +26,7 @@ from accounting.api import (
     TrJurnalViewSet,
 )
 from accounting.reports import (
+    AnggaranBulananView,
     AuditLogViewSet,
     BukuBesarView,
     DashboardRingkasanView,
@@ -48,6 +49,7 @@ from operations.api import (
     KelompokViewSet,
     KodePengeluaranViewSet,
     MenuKateringViewSet,
+    PaketLSUViewSet,
     PegawaiViewSet,
     PendaftaranJemputanViewSet,
     PendaftaranSiswaViewSet,
@@ -83,6 +85,7 @@ router.register("pinjaman", PinjamanPegawaiViewSet, basename="pinjaman")
 router.register("gaji", GajiPegawaiViewSet, basename="gaji")
 router.register("aset", FixedAssetViewSet, basename="aset")
 router.register("kode-pengeluaran", KodePengeluaranViewSet, basename="kode-pengeluaran")
+router.register("paket-lsu", PaketLSUViewSet, basename="paket-lsu")
 
 # Semua resource & aksi di bawah versi /api/v1/
 api_v1 = [
@@ -101,6 +104,7 @@ api_v1 = [
     path("laporan/laba-rugi/", LabaRugiView.as_view()),
     path("laporan/posisi-keuangan/", PosisiKeuanganView.as_view()),
     path("laporan/realisasi-anggaran/", RealisasiAnggaranView.as_view()),
+    path("laporan/anggaran-bulanan/", AnggaranBulananView.as_view()),
     path("laporan/buku-besar/<str:kode_akun>/", BukuBesarView.as_view()),
     path("dashboard/ringkasan/", DashboardRingkasanView.as_view()),
     path("dashboard/prediksi-kas/", PrediksiKasView.as_view()),

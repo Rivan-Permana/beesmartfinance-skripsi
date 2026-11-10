@@ -14,7 +14,9 @@ import { useConfirm } from "primevue/useconfirm"
 import { useToast } from "primevue/usetoast"
 import { computed, onMounted, reactive, ref, watch } from "vue"
 
-import { anggaranApi } from "./api"
+import { anggaranApi, periodeApi } from "./api"
+import AnggaranBulananPanel from "./AnggaranBulananPanel.vue"
+import { NAMA_BULAN } from "./presentation"
 import { friendlyError, notifyError, notifySuccess } from "@/core/errors"
 import { coaApi } from "@/features/jurnal/api"
 import PageLayout from "@/shared/components/PageLayout.vue"
@@ -23,7 +25,7 @@ import Icon from "@/shared/components/PhosphorIcon.vue"
 import SearchField from "@/shared/components/SearchField.vue"
 import SelectClearButton from "@/shared/components/SelectClearButton.vue"
 import { useAuthStore } from "@/stores/auth"
-import type { Anggaran, Coa } from "@/types/api"
+import type { Anggaran, Coa, PeriodeAkuntansi } from "@/types/api"
 
 const auth = useAuthStore()
 const toast = useToast()
@@ -37,15 +39,24 @@ const coaError = ref("")
 const query = ref("")
 const year = ref<number | null>(null)
 const tableFirst = ref(0)
-const canWrite = computed(() => auth.hasRole(["Finance"]))
+const isFinance = computed(() => auth.hasRole(["Finance"]))
+const canWrite = computed(() => auth.hasRole(["Finance", "BudgetPlanner"]))
+/** Penyusun anggaran hanya mengisi anggaran bulanan; plafon tahunan ditetapkan Keuangan. */
+const canEditRow = (row: Anggaran) => canWrite.value && (row.bulan != null || isFinance.value)
+const periodeList = ref<PeriodeAkuntansi[]>([])
+const periodeKode = computed(() => new Map(periodeList.value.map((p) => [p.id, p.kode])))
+const periodeOptions = computed(() => periodeList.value.map((p) => ({ label: `TP ${p.kode}`, value: p.id })))
+const reloadKey = ref(0)
 
 const BULAN_OPTS = [
-  { label: "Tahunan (semua bulan)", value: null },
-  ...Array.from({ length: 12 }, (_, i) => ({
-    label: ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"][i],
-    value: i + 1,
-  })),
+  { label: "Plafon tahunan (tahun pelajaran)", value: null },
+  ...NAMA_BULAN.map((label, i) => ({ label, value: i + 1 })),
 ]
+const bulanOptions = computed(() => isFinance.value ? BULAN_OPTS : BULAN_OPTS.slice(1))
+function bulanText(row: Anggaran) {
+  if (row.bulan) return BULAN_OPTS[row.bulan]?.label ?? "Bulan tidak dikenal"
+  return row.periode ? `Plafon TP ${periodeKode.value.get(row.periode) ?? ""}`.trim() : "Tahunan (lama)"
+}
 
 const coaNama = computed(() => {
   const m = new Map<string, string>()
@@ -81,6 +92,9 @@ async function load() {
   }
   finally { loading.value = false }
 }
+async function loadPeriode() {
+  try { periodeList.value = await periodeApi.listAll() } catch { periodeList.value = [] }
+}
 async function loadCoa() {
   coaError.value = ""
   try { coaList.value = await coaApi.list() }
@@ -99,6 +113,7 @@ const form = reactive<{
   kode_akun: string | null
   tahun_anggaran: number
   bulan: number | null
+  periode: number | null
   nominal_anggaran: number
   keterangan: string
   carry_over: boolean
@@ -106,6 +121,7 @@ const form = reactive<{
   kode_akun: null,
   tahun_anggaran: new Date().getFullYear(),
   bulan: null,
+  periode: null,
   nominal_anggaran: 0,
   keterangan: "",
   carry_over: false,
@@ -116,7 +132,8 @@ function openCreate() {
   editingId.value = null
   form.kode_akun = null
   form.tahun_anggaran = new Date().getFullYear()
-  form.bulan = null
+  form.bulan = isFinance.value ? null : new Date().getMonth() + 1
+  form.periode = null
   form.nominal_anggaran = 0
   form.keterangan = ""
   form.carry_over = false
@@ -128,6 +145,7 @@ function openEdit(row: Anggaran) {
   form.kode_akun = row.kode_akun
   form.tahun_anggaran = row.tahun_anggaran
   form.bulan = row.bulan
+  form.periode = row.periode
   form.nominal_anggaran = Number(row.nominal_anggaran)
   form.keterangan = row.keterangan ?? ""
   form.carry_over = row.carry_over
@@ -135,17 +153,18 @@ function openEdit(row: Anggaran) {
 }
 
 const formValid = computed(
-  () => !!form.kode_akun && Number.isInteger(form.tahun_anggaran) && form.tahun_anggaran >= 2020 && form.tahun_anggaran <= 2100 && form.nominal_anggaran > 0 && Number.isSafeInteger(Math.round(form.nominal_anggaran * 100)),
+  () => !!form.kode_akun && form.nominal_anggaran > 0 && Number.isSafeInteger(Math.round(form.nominal_anggaran * 100))
+    && (form.bulan == null ? form.periode != null : Number.isInteger(form.tahun_anggaran) && form.tahun_anggaran >= 2020 && form.tahun_anggaran <= 2100),
 )
 
 async function save() {
   if (saving.value || !canWrite.value || coaError.value) return
-  if (!formValid.value) { formError.value = "Pilih akun beban, tahun 2020–2100, dan pagu positif yang dapat dihitung tepat hingga dua desimal."; return }
+  if (!formValid.value) { formError.value = form.bulan == null ? "Pilih akun beban, tahun pelajaran, dan plafon positif." : "Pilih akun beban, tahun 2020–2100, dan anggaran positif."; return }
   formError.value = ""
   saving.value = true
   const payload = {
     kode_akun: form.kode_akun as string,
-    tahun_anggaran: form.tahun_anggaran,
+    ...(form.bulan == null ? { periode: form.periode } : { tahun_anggaran: form.tahun_anggaran }),
     bulan: form.bulan,
     nominal_anggaran: form.nominal_anggaran.toFixed(2),
     keterangan: form.keterangan || null,
@@ -160,6 +179,7 @@ async function save() {
       notifySuccess(toast, "Anggaran ditambahkan")
     }
     dialog.value = false
+    reloadKey.value++
     await load()
   } catch (e) {
     notifyError(toast, e, "Belum dapat memastikan anggaran tersimpan. Periksa daftar sebelum mencoba lagi.")
@@ -170,7 +190,7 @@ async function save() {
 
 function confirmDelete(row: Anggaran) {
   confirm.require({
-    message: `Hapus pagu ${coaNama.value.get(row.kode_akun) ?? row.kode_akun} untuk ${row.tahun_anggaran} (${row.bulan ? BULAN_OPTS[row.bulan]?.label : "Tahunan"})? Baris ini tidak lagi masuk total pagu laporan.`,
+    message: `Hapus ${row.bulan ? "anggaran" : "plafon"} ${coaNama.value.get(row.kode_akun) ?? row.kode_akun} (${bulanText(row)}${row.bulan ? " " + row.tahun_anggaran : ""})?`,
     header: "Hapus anggaran?",
     rejectLabel: "Batal",
     acceptLabel: "Hapus",
@@ -179,6 +199,7 @@ function confirmDelete(row: Anggaran) {
       try {
         await anggaranApi.remove(row.id)
         notifySuccess(toast, "Anggaran dihapus")
+        reloadKey.value++
         await load()
       } catch (e) {
         notifyError(toast, e, "Belum dapat memastikan anggaran terhapus. Periksa daftar sebelum mencoba lagi.")
@@ -188,18 +209,19 @@ function confirmDelete(row: Anggaran) {
 }
 
 onMounted(async () => {
-  await Promise.all([load(), loadCoa()])
+  await Promise.all([load(), loadCoa(), loadPeriode()])
 })
 </script>
 
 <template>
-  <PageLayout title="Anggaran Kegiatan" subtitle="Pagu beban per akun dan tahun kalender untuk laporan realisasi." :surface="false">
+  <PageLayout :title="isFinance || auth.hasRole(['SchoolPrincipal']) ? 'Anggaran Kegiatan' : 'Anggaran bulanan'" subtitle="Plafon tahunan per tahun pelajaran dan anggaran bulanan per akun beban." :surface="false">
     <template #actions>
       <Button v-if="canWrite" label="Tambah anggaran" :disabled="loading || !!error || !!coaError || !bebanCoaList.length" @click="openCreate"><template #icon><Icon name="plus" /></template></Button>
     </template>
-    <BudgetTabs current="akun" />
+    <BudgetTabs v-if="auth.hasRole(['Finance', 'SchoolPrincipal'])" current="akun" />
 
-    <div class="budget-scope"><Icon name="info" /><p>Laporan realisasi menjumlah seluruh pagu akun pada <strong>tahun kalender</strong> yang sama, termasuk baris tahunan dan bulanan. Bulan dan penanda carry-over belum membatasi atau memindahkan pagu laporan secara otomatis.</p></div>
+    <div class="budget-scope"><Icon name="info" /><p><strong>Plafon tahunan</strong> ditetapkan Keuangan per tahun pelajaran. <strong>Anggaran bulanan</strong> disusun per bulan kalender, dan jumlahnya per akun tidak bisa melebihi plafon akun itu.</p></div>
+    <AnggaranBulananPanel :periode-list="periodeList" :reload-key="reloadKey" />
     <div v-if="coaError && canWrite" class="budget-notice"><Message severity="warn" :closable="false">{{ coaError }} Daftar tetap dapat dibaca, tetapi penambahan dan pengubahan anggaran ditahan.</Message><Button label="Muat ulang akun" severity="secondary" @click="loadCoa" /></div>
     <section class="budget-panel" aria-label="Daftar anggaran" :aria-busy="loading">
       <div class="budget-toolbar"><div class="budget-field budget-search"><label for="budget-search">Cari anggaran</label><SearchField input-id="budget-search" v-model="query" placeholder="Kode, akun, atau keterangan" hint="Mencari seluruh anggaran yang dimuat" /></div><div class="budget-field"><label for="budget-year">Tahun anggaran</label><Select input-id="budget-year" v-model="year" :options="yearOptions" option-label="label" option-value="value" placeholder="Semua tahun" show-clear :disabled="loading || !!error" fluid><template #dropdownicon><Icon name="caret-down" /></template><template #clearicon="slotProps"><SelectClearButton v-bind="slotProps" /></template></Select></div><Button label="Muat ulang" severity="secondary" :disabled="loading" :loading="loading" @click="load"><template #icon><Icon name="arrows-clockwise" /></template></Button></div>
@@ -219,7 +241,7 @@ onMounted(async () => {
       <Column header="Tahun"><template #body="{ data }">{{ data.tahun_anggaran }}</template></Column>
       <Column header="Bulan">
         <template #body="{ data }">
-          {{ data.bulan ? BULAN_OPTS[data.bulan]?.label ?? "Bulan tidak dikenal" : "Tahunan" }}
+          {{ bulanText(data) }}
         </template>
       </Column>
       <Column header="Pagu"><template #body="{ data }">{{ rp(data.nominal_anggaran) }}</template></Column>
@@ -228,7 +250,7 @@ onMounted(async () => {
       </Column>
       <Column v-if="canWrite" header="Tindakan" headerClass="bee-col-actions--md" bodyClass="bee-col-actions--md">
         <template #body="{ data }">
-          <div v-if="canWrite" class="bee-actions">
+          <div v-if="canEditRow(data)" class="bee-actions">
             <Button label="Ubah" text severity="secondary" :disabled="!!coaError" @click="openEdit(data)" />
             <Button label="Hapus" text severity="danger" @click="confirmDelete(data)" />
           </div>
@@ -249,7 +271,7 @@ onMounted(async () => {
       :close-on-escape="!saving"
     >
       <div class="form-grid">
-        <p class="budget-form-intro span2">Pagu masuk ke laporan realisasi sesuai tahun kalender. Jika ada baris tahunan dan bulanan pada akun yang sama, nominalnya dijumlahkan.</p>
+        <p class="budget-form-intro span2">{{ form.bulan == null ? 'Plafon membatasi jumlah anggaran bulanan akun ini selama satu tahun pelajaran.' : 'Anggaran bulan kalender. Jumlah anggaran bulanan akun ini tidak bisa melebihi plafonnya.' }}</p>
         <div class="field span2">
           <label for="budget-account">Akun beban (wajib)</label>
           <Select input-id="budget-account" v-model="form.kode_akun" :options="bebanCoaList" option-label="nama_akun" option-value="kode_akun" filter placeholder="Pilih akun beban" :disabled="saving" fluid>
@@ -259,15 +281,19 @@ onMounted(async () => {
           </Select>
         </div>
         <div class="field">
+          <label for="budget-form-month">Bulan</label>
+          <Select input-id="budget-form-month" v-model="form.bulan" :options="bulanOptions" option-label="label" option-value="value" :disabled="saving || (!!editingId && !isFinance)" fluid />
+        </div>
+        <div v-if="form.bulan == null" class="field">
+          <label for="budget-form-periode">Tahun pelajaran (wajib)</label>
+          <Select input-id="budget-form-periode" v-model="form.periode" :options="periodeOptions" option-label="label" option-value="value" placeholder="Pilih" :disabled="saving" fluid />
+        </div>
+        <div v-else class="field">
           <label for="budget-form-year">Tahun kalender (wajib)</label>
           <InputNumber input-id="budget-form-year" v-model="form.tahun_anggaran" :min="2020" :max="2100" :use-grouping="false" :disabled="saving" fluid />
         </div>
-        <div class="field">
-          <label for="budget-form-month">Bulan</label>
-          <Select input-id="budget-form-month" v-model="form.bulan" :options="BULAN_OPTS" option-label="label" option-value="value" placeholder="Tahunan" :disabled="saving" fluid />
-        </div>
         <div class="field span2">
-          <label for="budget-amount">Pagu (wajib)</label>
+          <label for="budget-amount">{{ form.bulan == null ? 'Plafon' : 'Anggaran' }} (wajib)</label>
           <InputNumber input-id="budget-amount" v-model="form.nominal_anggaran" mode="currency" currency="IDR" locale="id-ID" :min="0" :max-fraction-digits="2" :disabled="saving" fluid />
         </div>
         <div class="field span2">

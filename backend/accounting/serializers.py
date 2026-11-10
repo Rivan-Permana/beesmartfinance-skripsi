@@ -84,12 +84,60 @@ class MsPeriodeAkuntansiSerializer(serializers.ModelSerializer):
 
 
 class TrAnggaranSerializer(serializers.ModelSerializer):
+    """Baris tanpa bulan = plafon tahunan per tahun pelajaran (wajib periode). Baris berbulan = anggaran
+    bulanan; tahun_anggaran + bulan adalah bulan kalender, dan jumlahnya tidak boleh melewati plafon."""
+
+    tahun_anggaran = serializers.IntegerField(required=False)
+
     class Meta:
         model = TrAnggaran
         fields = [
             "id", "kode_akun", "tahun_anggaran", "bulan",
             "nominal_anggaran", "keterangan", "carry_over", "periode",
         ]
+
+    def validate(self, attrs):
+        from datetime import date
+        from decimal import Decimal
+
+        get = lambda field: attrs.get(field, getattr(self.instance, field, None))  # noqa: E731
+        akun, bulan, periode, nominal = get("kode_akun"), get("bulan"), get("periode"), get("nominal_anggaran")
+        if akun is None or not akun.kode_akun.startswith("5") or not akun.is_active:
+            raise serializers.ValidationError({"kode_akun": "Pilih akun beban (kode 5) yang masih aktif."})
+        if nominal is None or nominal < 0:
+            raise serializers.ValidationError({"nominal_anggaran": "Nominal anggaran tidak boleh negatif."})
+        sama = TrAnggaran.objects.filter(kode_akun=akun)
+        if self.instance:
+            sama = sama.exclude(pk=self.instance.pk)
+        if bulan is None:
+            if periode is None:
+                raise serializers.ValidationError({"periode": "Pilih tahun pelajaran untuk plafon tahunan."})
+            attrs["tahun_anggaran"] = periode.tgl_mulai.year
+            if sama.filter(bulan__isnull=True, periode=periode).exists():
+                raise serializers.ValidationError({"kode_akun": "Plafon akun ini untuk tahun pelajaran tersebut sudah ada."})
+            terpakai = sum((a.nominal_anggaran for a in sama.filter(bulan__isnull=False, periode=periode)), Decimal(0))
+            if nominal < terpakai:
+                raise serializers.ValidationError({
+                    "nominal_anggaran": f"Plafon lebih kecil dari anggaran bulanan yang sudah disusun (Rp {terpakai:,.0f}).".replace(",", "."),
+                })
+            return attrs
+        tahun = get("tahun_anggaran")
+        if not tahun or not 1 <= bulan <= 12:
+            raise serializers.ValidationError({"bulan": "Isi bulan 1–12 dan tahun anggaran."})
+        if sama.filter(tahun_anggaran=tahun, bulan=bulan).exists():
+            raise serializers.ValidationError({"bulan": "Anggaran akun ini untuk bulan tersebut sudah ada. Ubah baris yang ada."})
+        awal = date(tahun, bulan, 1)
+        periode = MsPeriodeAkuntansi.objects.filter(tgl_mulai__lte=awal, tgl_selesai__gte=awal).first()
+        attrs["periode"] = periode
+        plafon = sama.filter(bulan__isnull=True, periode=periode).first() if periode else None
+        if plafon is not None:
+            terpakai = sum((a.nominal_anggaran for a in sama.filter(bulan__isnull=False, periode=periode)), Decimal(0))
+            if terpakai + nominal > plafon.nominal_anggaran:
+                sisa = plafon.nominal_anggaran - terpakai
+                raise serializers.ValidationError({
+                    "nominal_anggaran": f"Melebihi plafon tahunan. Sisa plafon akun ini Rp {sisa:,.0f}.".replace(",", "."),
+                })
+        return attrs
 
 
 class TrJurnalDetailSerializer(serializers.ModelSerializer):

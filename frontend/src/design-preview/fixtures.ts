@@ -13,6 +13,7 @@ export const navigationGroupOrder: Record<Role, string[]> = {
   SchoolPrincipal: ["Ringkasan", "Transaksi", "Kegiatan", "Perencanaan dan laporan", "Pengaturan keuangan"],
   Administration: ["Siswa", "Tagihan dan pendaftaran", "Kehadiran dan layanan", "Pegawai"],
   TeacherInCharge: ["Kegiatan", "Kehadiran dan layanan"],
+  BudgetPlanner: ["Perencanaan dan laporan"],
 }
 
 // Presentation metadata only; allowed destinations still come from navForRoles.

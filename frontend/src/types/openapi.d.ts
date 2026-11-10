@@ -840,6 +840,23 @@ export interface paths {
         patch: operations["v1_kode_pengeluaran_partial_update"];
         trace?: never;
     };
+    "/api/v1/laporan/anggaran-bulanan/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Rencana anggaran bulanan vs realisasi per akun beban dalam satu tahun pelajaran. */
+        get: operations["v1_laporan_anggaran_bulanan_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/laporan/buku-besar/{kode_akun}/": {
         parameters: {
             query?: never;
@@ -950,6 +967,76 @@ export interface paths {
         options?: never;
         head?: never;
         patch: operations["v1_menu_katering_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/paket-lsu/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Paket tidak diubah setelah dibuat (tagihan sudah terbentuk); hapus lalu buat ulang bila salah. */
+        get: operations["v1_paket_lsu_list"];
+        put?: never;
+        /** @description Paket tidak diubah setelah dibuat (tagihan sudah terbentuk); hapus lalu buat ulang bila salah. */
+        post: operations["v1_paket_lsu_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/paket-lsu/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description Paket tidak diubah setelah dibuat (tagihan sudah terbentuk); hapus lalu buat ulang bila salah. */
+        get: operations["v1_paket_lsu_retrieve"];
+        put?: never;
+        post?: never;
+        /** @description Paket tidak diubah setelah dibuat (tagihan sudah terbentuk); hapus lalu buat ulang bila salah. */
+        delete: operations["v1_paket_lsu_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/paket-lsu/{id}/pertemuan/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Catat satu pertemuan (rekap dari terapis). */
+        post: operations["v1_paket_lsu_pertemuan_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/paket-lsu/{id}/pertemuan/{pertemuan_id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** @description Hapus catatan pertemuan yang salah input. */
+        delete: operations["v1_paket_lsu_pertemuan_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/pegawai/": {
@@ -1261,6 +1348,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/siswa/impor-biaya-masuk/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Pratinjau (simpan=false) atau simpan biaya masuk + penerimaan saldo awal dari tab master (cut-over). */
+        post: operations["v1_siswa_impor_biaya_masuk_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/siswa/impor-biodata/": {
         parameters: {
             query?: never;
@@ -1374,6 +1478,23 @@ export interface paths {
         options?: never;
         head?: never;
         patch: operations["v1_tagihan_partial_update"];
+        trace?: never;
+    };
+    "/api/v1/tagihan/{id}/batal-saldo-awal/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Batalkan penerimaan saldo awal cut-over pada tagihan ini (tanpa jurnal yang perlu dibalik). */
+        post: operations["v1_tagihan_batal_saldo_awal_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/tagihan/{id}/bayar/": {
@@ -1542,6 +1663,10 @@ export interface components {
         BatalPenerimaanInput: {
             alasan: string;
         };
+        BatalSaldoAwalInput: {
+            pembayaran: number;
+            alasan: string;
+        };
         BayarPendaftaranInput: {
             komponen: components["schemas"]["BayarPendaftaranInputKomponenEnum"][];
             /** Format: date */
@@ -1667,6 +1792,62 @@ export interface components {
             readonly total_netto: number;
             /** Format: uuid */
             readonly jurnal: string | null;
+        };
+        ImporBiayaMasukBaris: {
+            baris: number;
+            nama: string;
+            kelas: string;
+            aksi: components["schemas"]["ImporBiayaMasukBarisAksiEnum"];
+            siswa: number | null;
+            kategori: string;
+            diskon: number;
+            komponen: components["schemas"]["ImporBiayaMasukKomponen"];
+            ditagih: number;
+            terbayar: number;
+            alasan: string | null;
+        };
+        /**
+         * @description * `isi` - isi
+         *     * `sudah` - sudah
+         *     * `lewati` - lewati
+         *     * `cek` - cek
+         *     * `galat` - galat
+         * @enum {string}
+         */
+        ImporBiayaMasukBarisAksiEnum: "isi" | "sudah" | "lewati" | "cek" | "galat";
+        ImporBiayaMasukHasil: {
+            disimpan: boolean;
+            diisi: number;
+            ringkasan: components["schemas"]["ImporBiayaMasukRingkasan"];
+            baris: components["schemas"]["ImporBiayaMasukBaris"][];
+        };
+        ImporBiayaMasukInput: {
+            /** Format: uri */
+            berkas: string;
+            /**
+             * Format: date
+             * @description Tanggal saldo awal, mis. 31/12 sebelum cut-over.
+             */
+            tanggal: string;
+            /** @default false */
+            simpan: boolean;
+        };
+        ImporBiayaMasukKomponen: {
+            uang_masuk: number | null;
+            uang_portofolio: number | null;
+            uang_kegiatan: number | null;
+            uang_pengembangan: number | null;
+            uang_komite: number | null;
+            uang_seragam: number | null;
+        };
+        ImporBiayaMasukRingkasan: {
+            isi: number;
+            sudah: number;
+            lewati: number;
+            cek: number;
+            galat: number;
+            total_ditagih: number;
+            total_terbayar: number;
         };
         ImporBiodataBaris: {
             baris: number;
@@ -1819,9 +2000,10 @@ export interface components {
         /**
          * @description * `BULANAN` - Bulanan
          *     * `BIAYA_MASUK` - Biaya masuk
+         *     * `LSU` - Paket LSU
          * @enum {string}
          */
-        JenisEnum: "BULANAN" | "BIAYA_MASUK";
+        JenisEnum: "BULANAN" | "BIAYA_MASUK" | "LSU";
         /**
          * @description * `L` - Laki-laki
          *     * `P` - Perempuan
@@ -1839,6 +2021,12 @@ export interface components {
             kontak_wa?: string;
             catatan_invoice?: string;
         };
+        /**
+         * @description * `8` - 8 pertemuan
+         *     * `16` - 16 pertemuan
+         * @enum {integer}
+         */
+        JumlahSesiEnum: 8 | 16;
         Kegiatan: {
             readonly id: number;
             nama: string;
@@ -2205,6 +2393,21 @@ export interface components {
             previous?: string | null;
             results: components["schemas"]["MsSubGolongan"][];
         };
+        PaginatedPaketLSUList: {
+            /** @example 123 */
+            count: number;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=4
+             */
+            next?: string | null;
+            /**
+             * Format: uri
+             * @example http://api.example.org/accounts/?page=2
+             */
+            previous?: string | null;
+            results: components["schemas"]["PaketLSU"][];
+        };
         PaginatedPegawaiList: {
             /** @example 123 */
             count: number;
@@ -2324,6 +2527,23 @@ export interface components {
              */
             previous?: string | null;
             results: components["schemas"]["TrJurnal"][];
+        };
+        PaketLSU: {
+            readonly id: number;
+            siswa: number;
+            readonly siswa_nama: string;
+            jumlah_sesi: components["schemas"]["JumlahSesiEnum"];
+            /** Format: decimal */
+            harga: string;
+            /** Format: date */
+            tanggal_mulai: string;
+            keterangan?: string;
+            readonly sesi_terpakai: number;
+            readonly tagihan: number | null;
+            readonly tagihan_status: string | null;
+            /** Format: decimal */
+            readonly tagihan_sisa: string | null;
+            readonly pertemuan: components["schemas"]["PertemuanLSU"][];
         };
         PatchedAbsenPegawai: {
             readonly id?: number;
@@ -2599,6 +2819,10 @@ export interface components {
             uang_pengembangan?: string | null;
             /** Format: decimal */
             uang_seragam?: string | null;
+            /** Format: decimal */
+            uang_komite?: string | null;
+            /** Format: decimal */
+            uang_portofolio?: string | null;
             readonly biaya_masuk?: components["schemas"]["BiayaMasukRingkas"] | null;
             ukuran_seragam_putih?: string;
             ukuran_seragam_olga?: string;
@@ -2623,6 +2847,10 @@ export interface components {
             readonly perlu_rekonsiliasi?: boolean;
             readonly pembayaran?: components["schemas"]["PembayaranTagihan"][];
         };
+        /**
+         * @description Baris tanpa bulan = plafon tahunan per tahun pelajaran (wajib periode). Baris berbulan = anggaran
+         *     bulanan; tahun_anggaran + bulan adalah bulan kalender, dan jumlahnya tidak boleh melewati plafon.
+         */
         PatchedTrAnggaran: {
             readonly id?: number;
             kode_akun?: string;
@@ -2681,10 +2909,11 @@ export interface components {
             no_bukti: string;
             /** Format: decimal */
             nominal: string;
-            akun_kas: string;
+            akun_kas?: string | null;
             /** Format: uuid */
-            jurnal: string;
-            readonly jurnal_status: string;
+            jurnal?: string | null;
+            readonly jurnal_status: string | null;
+            saldo_awal?: boolean;
             created_by?: number | null;
             dibatalkan?: boolean;
             alasan_batal?: string;
@@ -2737,6 +2966,18 @@ export interface components {
          * @enum {string}
          */
         PendaftaranSiswaStatusEnum: "TRIAL" | "REGISTERED" | "BATAL";
+        PertemuanInput: {
+            /** Format: date */
+            tanggal: string;
+            /** @default  */
+            catatan: string;
+        };
+        PertemuanLSU: {
+            readonly id: number;
+            /** Format: date */
+            tanggal: string;
+            catatan?: string;
+        };
         PinjamanPegawai: {
             readonly id: number;
             pegawai: number;
@@ -2792,6 +3033,10 @@ export interface components {
             uang_pengembangan?: string | null;
             /** Format: decimal */
             uang_seragam?: string | null;
+            /** Format: decimal */
+            uang_komite?: string | null;
+            /** Format: decimal */
+            uang_portofolio?: string | null;
             readonly biaya_masuk: components["schemas"]["BiayaMasukRingkas"] | null;
             ukuran_seragam_putih?: string;
             ukuran_seragam_olga?: string;
@@ -2854,11 +3099,12 @@ export interface components {
          *     * `SERAGAM` - Seragam
          *     * `KOMITE` - Iuran Komite
          *     * `PORTOFOLIO` - Portofolio & Rapor
+         *     * `LSU` - Paket LSU
          *     * `POTONGAN` - Potongan
          *     * `LAIN` - Lain-lain
          * @enum {string}
          */
-        TagihanDetailKomponenEnum: "SPP" | "KATERING" | "JEMPUTAN" | "UANG_MASUK" | "KEGIATAN" | "PENGEMBANGAN" | "SERAGAM" | "KOMITE" | "PORTOFOLIO" | "POTONGAN" | "LAIN";
+        TagihanDetailKomponenEnum: "SPP" | "KATERING" | "JEMPUTAN" | "UANG_MASUK" | "KEGIATAN" | "PENGEMBANGAN" | "SERAGAM" | "KOMITE" | "PORTOFOLIO" | "LSU" | "POTONGAN" | "LAIN";
         /**
          * @description * `BELUM` - Belum Lunas
          *     * `SEBAGIAN` - Sebagian
@@ -2888,10 +3134,14 @@ export interface components {
         TolakJurnalInput: {
             alasan: string;
         };
+        /**
+         * @description Baris tanpa bulan = plafon tahunan per tahun pelajaran (wajib periode). Baris berbulan = anggaran
+         *     bulanan; tahun_anggaran + bulan adalah bulan kalender, dan jumlahnya tidak boleh melewati plafon.
+         */
         TrAnggaran: {
             readonly id: number;
             kode_akun: string;
-            tahun_anggaran: number;
+            tahun_anggaran?: number;
             bulan?: number | null;
             /** Format: decimal */
             nominal_anggaran?: string;
@@ -5562,6 +5812,27 @@ export interface operations {
             };
         };
     };
+    v1_laporan_anggaran_bulanan_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
     v1_laporan_buku_besar_retrieve: {
         parameters: {
             query?: never;
@@ -5821,6 +6092,153 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["MenuKatering"];
                 };
+            };
+        };
+    };
+    v1_paket_lsu_list: {
+        parameters: {
+            query?: {
+                /** @description Which field to use when ordering the results. */
+                ordering?: string;
+                /** @description A page number within the paginated result set. */
+                page?: number;
+                /** @description Number of results to return per page. */
+                page_size?: number;
+                /** @description A search term. */
+                search?: string;
+                siswa?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedPaketLSUList"];
+                };
+            };
+        };
+    };
+    v1_paket_lsu_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PaketLSU"];
+                "application/x-www-form-urlencoded": components["schemas"]["PaketLSU"];
+                "multipart/form-data": components["schemas"]["PaketLSU"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaketLSU"];
+                };
+            };
+        };
+    };
+    v1_paket_lsu_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A unique integer value identifying this paket lsu. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaketLSU"];
+                };
+            };
+        };
+    };
+    v1_paket_lsu_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A unique integer value identifying this paket lsu. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    v1_paket_lsu_pertemuan_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A unique integer value identifying this paket lsu. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PertemuanInput"];
+                "application/x-www-form-urlencoded": components["schemas"]["PertemuanInput"];
+                "multipart/form-data": components["schemas"]["PertemuanInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaketLSU"];
+                };
+            };
+        };
+    };
+    v1_paket_lsu_pertemuan_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A unique integer value identifying this paket lsu. */
+                id: number;
+                pertemuan_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -6938,6 +7356,29 @@ export interface operations {
             };
         };
     };
+    v1_siswa_impor_biaya_masuk_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["ImporBiayaMasukInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImporBiayaMasukHasil"];
+                };
+            };
+        };
+    };
     v1_siswa_impor_biodata_create: {
         parameters: {
             query?: never;
@@ -7303,6 +7744,34 @@ export interface operations {
                 "application/json": components["schemas"]["PatchedTagihan"];
                 "application/x-www-form-urlencoded": components["schemas"]["PatchedTagihan"];
                 "multipart/form-data": components["schemas"]["PatchedTagihan"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Tagihan"];
+                };
+            };
+        };
+    };
+    v1_tagihan_batal_saldo_awal_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description A unique integer value identifying this tagihan. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BatalSaldoAwalInput"];
+                "application/x-www-form-urlencoded": components["schemas"]["BatalSaldoAwalInput"];
+                "multipart/form-data": components["schemas"]["BatalSaldoAwalInput"];
             };
         };
         responses: {

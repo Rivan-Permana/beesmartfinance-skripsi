@@ -19,6 +19,7 @@ export const ROLE_LABEL: Record<Role, string> = {
   SchoolPrincipal: "Kepala Sekolah",
   Administration: "Staf TU",
   TeacherInCharge: "Guru PIC Kegiatan",
+  BudgetPlanner: "Penyusun Anggaran",
 }
 
 export const NAV_GROUP_LABELS: Record<NavGroup, string> = {
@@ -36,6 +37,7 @@ export const ALL_NAV: NavItem[] = [
   { label: "Tunggakan Tagihan", icon: "pi pi-exclamation-circle", to: "/tunggakan-tagihan", roles: ["Finance", "SchoolPrincipal"], group: "KEUANGAN" },
   { label: "Daftar Akun", icon: "pi pi-sitemap", to: "/coa", roles: ["Finance", "SchoolPrincipal"], group: "KEUANGAN" },
   { label: "Anggaran Kegiatan", icon: "pi pi-chart-pie", to: "/kegiatan", match: ["/anggaran"], roles: ["Finance", "SchoolPrincipal"], group: "KEUANGAN" },
+  { label: "Anggaran bulanan", icon: "pi pi-chart-pie", to: "/anggaran", roles: ["BudgetPlanner"], group: "KEUANGAN" },
   { label: "Aset", icon: "pi pi-box", to: "/aset", roles: ["Finance"], group: "KEUANGAN" },
   { label: "Periode", icon: "pi pi-calendar", to: "/periode", roles: ["Finance", "SchoolPrincipal"], group: "KEUANGAN" },
   { label: "Laporan", icon: "pi pi-file", to: "/laporan", roles: ["Finance", "SchoolPrincipal"], group: "KEUANGAN" },
@@ -47,6 +49,7 @@ export const ALL_NAV: NavItem[] = [
   { label: "Katering", icon: "pi pi-apple", to: "/katering", roles: ["Administration"], group: "SISWA" },
   { label: "Jemputan", icon: "pi pi-car", to: "/jemputan", roles: ["Administration"], group: "SISWA" },
   { label: "Tagihan", icon: "pi pi-receipt", to: "/tagihan", roles: ["Administration"], group: "SISWA" },
+  { label: "LSU", icon: "student", to: "/lsu", roles: ["Administration"], group: "SISWA" },
   { label: "Pendaftaran", icon: "pi pi-user-plus", to: "/pendaftaran", roles: ["Administration", "Finance"], group: "SISWA" },
   { label: "Pegawai", icon: "pi pi-id-card", to: "/pegawai", roles: ["Administration", "SchoolPrincipal"], group: "PEGAWAI" },
   { label: "Absensi Pegawai", icon: "pi pi-calendar-plus", to: "/absensi-pegawai", roles: ["Administration", "SchoolPrincipal"], group: "PEGAWAI" },
@@ -79,12 +82,14 @@ export const ROUTE_TITLES: Record<string, string> = {
   coa: "Daftar Akun",
   "tunggakan-tagihan": "Tunggakan Tagihan",
   "absensi-pegawai": "Absensi Pegawai",
+  lsu: "Learning Support Unit",
 }
 
 export function roleHome(roles: Role[]): string {
   if (roles.includes("Finance") || roles.includes("SchoolPrincipal")) return "/dashboard"
   if (roles.includes("Administration")) return "/siswa"
   if (roles.includes("TeacherInCharge")) return "/kegiatan"
+  if (roles.includes("BudgetPlanner")) return "/anggaran"
   return "/login"
 }
 

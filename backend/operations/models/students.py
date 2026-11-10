@@ -68,6 +68,9 @@ class Siswa(SoftDeleteModel, TimeStampedModel):
     uang_kegiatan = models.DecimalField(max_digits=18, decimal_places=2, blank=True, null=True)
     uang_pengembangan = models.DecimalField(max_digits=18, decimal_places=2, blank=True, null=True)
     uang_seragam = models.DecimalField(max_digits=18, decimal_places=2, blank=True, null=True)
+    # Kosong = mengikuti daftar harga di tagihan Juli. Diisi bila berbeda per anak (PINDAHAN, impor cut-over).
+    uang_komite = models.DecimalField(max_digits=18, decimal_places=2, blank=True, null=True)
+    uang_portofolio = models.DecimalField(max_digits=18, decimal_places=2, blank=True, null=True)
     periode = models.ForeignKey(
         "accounting.MsPeriodeAkuntansi", on_delete=models.SET_NULL,
         db_constraint=False, blank=True, null=True, related_name="siswa",

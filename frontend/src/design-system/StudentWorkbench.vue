@@ -34,7 +34,7 @@ const samples: Siswa[] = recordInfo.map((record, i) => ({
   nama_ayah: "", kontak_ayah: "", nama_ibu: "", kontak_ibu: "",
   nama_panggilan: null, jenis_kelamin: null, tempat_lahir: null,
   diskon_kategori: [], diskon_nominal: "0.00", uang_masuk: null, uang_kegiatan: null,
-  uang_pengembangan: null, uang_seragam: null, biaya_masuk: null, ukuran_seragam_putih: "", ukuran_seragam_olga: "",
+  uang_pengembangan: null, uang_seragam: null, uang_komite: null, uang_portofolio: null, biaya_masuk: null, ukuran_seragam_putih: "", ukuran_seragam_olga: "",
 }))
 const rows = ref<Siswa[]>(structuredClone(samples))
 const editing = ref<Siswa | null>(null)

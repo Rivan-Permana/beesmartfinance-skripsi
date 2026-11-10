@@ -13,6 +13,8 @@ from accounts.permissions import ADMINISTRATION, FINANCE, PRINCIPAL, TEACHER, ro
 from operations.models import Jenjang, KehadiranSiswa, Kelompok, Siswa, Tagihan
 from operations.serializers import (
     BiayaMasukDefaultSerializer,
+    ImporBiayaMasukHasilSerializer,
+    ImporBiayaMasukInputSerializer,
     ImporBiodataHasilSerializer,
     ImporBiodataInputSerializer,
     ImporSppHasilSerializer,
@@ -24,7 +26,7 @@ from operations.serializers import (
     KelompokSerializer,
     SiswaSerializer,
 )
-from operations.services import impor_biodata, impor_spp
+from operations.services import impor_biaya_masuk, impor_biodata, impor_spp
 from operations.services.billing import invoice_gabungan
 from operations.services.kelengkapan import siswa_perlu_dilengkapi
 from operations.services.biaya_masuk import default_biaya_masuk
@@ -184,6 +186,27 @@ class SiswaViewSet(viewsets.ModelViewSet):
         diisi = impor_spp.terapkan_spp(hasil, user=request.user) if disimpan else 0
         return Response(ImporSppHasilSerializer({
             "disimpan": disimpan, "diisi": diisi, "ringkasan": impor_spp.ringkas_spp(hasil), "baris": hasil,
+        }).data)
+
+
+    @extend_schema(request={"multipart/form-data": ImporBiayaMasukInputSerializer}, responses=ImporBiayaMasukHasilSerializer)
+    @action(detail=False, methods=["post"], url_path="impor-biaya-masuk", parser_classes=[parsers.MultiPartParser])
+    def impor_biaya_masuk(self, request):
+        """Pratinjau (simpan=false) atau simpan biaya masuk + penerimaan saldo awal dari tab master (cut-over)."""
+        data = ImporBiayaMasukInputSerializer(data=request.data)
+        data.is_valid(raise_exception=True)
+        try:
+            mentah = impor_biaya_masuk.parse_master(data.validated_data["berkas"])
+        except impor_biodata.ImporBiodataError as exc:
+            raise ValidationError({"berkas": str(exc)})
+        hasil = impor_biaya_masuk.susun(mentah, Siswa.objects.all())
+        disimpan = data.validated_data["simpan"]
+        diisi = impor_biaya_masuk.terapkan(
+            hasil, tanggal=data.validated_data["tanggal"], user=request.user, simpan=disimpan,
+        )
+        return Response(ImporBiayaMasukHasilSerializer({
+            "disimpan": disimpan, "diisi": diisi if disimpan else 0,
+            "ringkasan": impor_biaya_masuk.ringkas(hasil), "baris": hasil,
         }).data)
 
 

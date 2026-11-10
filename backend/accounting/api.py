@@ -10,7 +10,9 @@ from rest_framework import serializers
 from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
 from rest_framework.response import Response
 
-from accounts.permissions import IsAdministration, IsFinance, IsFinanceOrReadOnly, IsPrincipal
+from accounts.permissions import (
+    BUDGET_PLANNER, FINANCE, PRINCIPAL, IsAdministration, IsNotBudgetPlannerOnly, IsFinance, IsFinanceOrReadOnly, IsPrincipal, role_permission,
+)
 
 from config.db_errors import humanize_db_error
 
@@ -98,7 +100,28 @@ class MsPeriodeAkuntansiViewSet(viewsets.ModelViewSet):
 class TrAnggaranViewSet(viewsets.ModelViewSet):
     queryset = TrAnggaran.objects.order_by("-tahun_anggaran", "kode_akun")
     serializer_class = TrAnggaranSerializer
-    permission_classes = [IsFinanceOrReadOnly]
+    permission_classes = [role_permission(
+        read=(FINANCE, PRINCIPAL, BUDGET_PLANNER), write=(FINANCE, BUDGET_PLANNER),
+    )]
+
+    def _cek_penyusun(self, bulan):
+        """Penyusun anggaran hanya menyusun anggaran bulanan; plafon tahunan ditetapkan Keuangan."""
+        user = self.request.user
+        if bulan is None and not user.is_superuser and not user.groups.filter(name=FINANCE).exists():
+            raise PermissionDenied("Plafon tahunan diisi Keuangan. Penyusun anggaran mengisi anggaran bulanan.")
+
+    def perform_create(self, serializer):
+        self._cek_penyusun(serializer.validated_data.get("bulan"))
+        serializer.save()
+
+    def perform_update(self, serializer):
+        self._cek_penyusun(serializer.instance.bulan)
+        self._cek_penyusun(serializer.validated_data.get("bulan", serializer.instance.bulan))
+        serializer.save()
+
+    def perform_destroy(self, instance):
+        self._cek_penyusun(instance.bulan)
+        instance.delete()
 
 
 class JurnalPagination(PageNumberPagination):
@@ -145,7 +168,7 @@ class TrJurnalViewSet(viewsets.ModelViewSet):
             return [IsFinance()]
         if self.action in ("approve", "void", "tolak"):
             return [IsPrincipal()]
-        return [IsAuthenticated()]
+        return [IsAuthenticated(), IsNotBudgetPlannerOnly()]
 
     def perform_create(self, serializer):
         with transaction.atomic(), audit_user(self.request.user):

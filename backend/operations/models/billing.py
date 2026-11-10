@@ -35,7 +35,7 @@ class Tagihan(SoftDeleteModel, TimeStampedModel):
     STATUS = [
         ("BELUM", "Belum Lunas"), ("SEBAGIAN", "Sebagian"), ("LUNAS", "Lunas"),
     ]
-    JENIS = [("BULANAN", "Bulanan"), ("BIAYA_MASUK", "Biaya masuk")]
+    JENIS = [("BULANAN", "Bulanan"), ("BIAYA_MASUK", "Biaya masuk"), ("LSU", "Paket LSU")]
     siswa = models.ForeignKey(
         "operations.Siswa", on_delete=models.PROTECT, related_name="tagihan"
     )
@@ -57,7 +57,8 @@ class Tagihan(SoftDeleteModel, TimeStampedModel):
         constraints = [
             models.UniqueConstraint(
                 fields=["siswa", "periode_bulan", "periode_tahun", "jenis"],
-                condition=models.Q(is_deleted=False),
+                # Paket LSU ditagih per paket; dua paket bisa jatuh di bulan yang sama.
+                condition=models.Q(is_deleted=False) & ~models.Q(jenis="LSU"),
                 name="tagihan_siswa_periode_jenis_unik",
             ),
         ]
@@ -118,6 +119,7 @@ class TagihanDetail(models.Model):
         ("SERAGAM", "Seragam"),
         ("KOMITE", "Iuran Komite"),
         ("PORTOFOLIO", "Portofolio & Rapor"),
+        ("LSU", "Paket LSU"),
         ("POTONGAN", "Potongan"),
         ("LAIN", "Lain-lain"),
     ]
@@ -147,11 +149,13 @@ class PembayaranTagihan(TimeStampedModel):
     no_bukti = models.CharField(max_length=100)
     nominal = models.DecimalField(max_digits=18, decimal_places=2)
     request_id = models.UUIDField(unique=True)
-    akun_kas = models.ForeignKey("accounting.MsCoa", on_delete=models.PROTECT, db_constraint=False)
+    # Kosong hanya untuk penerimaan saldo awal cut-over: uangnya sudah masuk saldo awal kas di COA.
+    akun_kas = models.ForeignKey("accounting.MsCoa", on_delete=models.PROTECT, db_constraint=False, null=True, blank=True)
     jurnal = models.OneToOneField(
         "accounting.TrJurnal", on_delete=models.PROTECT, db_constraint=False,
-        related_name="pembayaran_tagihan",
+        related_name="pembayaran_tagihan", null=True, blank=True,
     )
+    saldo_awal = models.BooleanField(default=False)
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True)
     dibatalkan = models.BooleanField(default=False)
     alasan_batal = models.TextField(blank=True)
@@ -167,6 +171,13 @@ class PembayaranTagihan(TimeStampedModel):
         constraints = [
             models.CheckConstraint(condition=models.Q(nominal__gt=0), name="pembayaran_tagihan_positif"),
             models.UniqueConstraint(fields=["tagihan", "no_bukti"], name="bukti_pembayaran_tagihan_unik"),
+            models.CheckConstraint(
+                condition=(
+                    models.Q(saldo_awal=True, jurnal__isnull=True, akun_kas__isnull=True)
+                    | models.Q(saldo_awal=False, jurnal__isnull=False, akun_kas__isnull=False)
+                ),
+                name="pembayaran_tagihan_jurnal_kecuali_saldo_awal",
+            ),
         ]
 
 

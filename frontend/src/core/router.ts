@@ -83,6 +83,12 @@ const router = createRouter({
           meta: { roles: ["Administration"] as Role[] },
         },
         {
+          path: "lsu",
+          name: "lsu",
+          component: () => import("@/features/lsu/LsuView.vue"),
+          meta: { roles: ["Administration"] as Role[] },
+        },
+        {
           path: "pendaftaran",
           name: "pendaftaran",
           component: () => import("@/features/pendaftaran/PendaftaranListView.vue"),
@@ -128,7 +134,7 @@ const router = createRouter({
           path: "anggaran",
           name: "anggaran",
           component: () => import("@/features/anggaran-periode/AnggaranListView.vue"),
-          meta: { roles: ["Finance", "SchoolPrincipal"] as Role[] },
+          meta: { roles: ["Finance", "SchoolPrincipal", "BudgetPlanner"] as Role[] },
         },
         {
           path: "periode",

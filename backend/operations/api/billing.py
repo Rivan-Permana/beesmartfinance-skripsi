@@ -12,7 +12,8 @@ from rest_framework.response import Response
 from accounts.permissions import IsAdministrationWriteFinancePrincipalRead
 
 from operations.models import Siswa, Tagihan
-from operations.serializers import BayarTagihanInputSerializer, BayarTagihanResponseSerializer, PembayaranTagihanSerializer, TagihanSerializer
+from operations.serializers import BatalSaldoAwalInputSerializer, BayarTagihanInputSerializer, BayarTagihanResponseSerializer, PembayaranTagihanSerializer, TagihanSerializer
+from operations.services.billing import batalkan_saldo_awal
 from operations.services import (
     generate_batch_tagihan,
     generate_tagihan,
@@ -55,11 +56,29 @@ class TagihanViewSet(viewsets.ModelViewSet):
             "jurnal_id": str(pembayaran.jurnal_id),
         })
 
+    @extend_schema(request=BatalSaldoAwalInputSerializer, responses=TagihanSerializer)
+    @action(detail=True, methods=["post"], url_path="batal-saldo-awal")
+    def batal_saldo_awal(self, request, pk=None):
+        """Batalkan penerimaan saldo awal cut-over pada tagihan ini (tanpa jurnal yang perlu dibalik)."""
+        tagihan = self.get_object()
+        payload = BatalSaldoAwalInputSerializer(data=request.data)
+        payload.is_valid(raise_exception=True)
+        pembayaran = tagihan.pembayaran.filter(pk=payload.validated_data["pembayaran"]).first()
+        if pembayaran is None:
+            raise ValidationError({"pembayaran": "Penerimaan tidak ditemukan di tagihan ini."})
+        try:
+            batalkan_saldo_awal(pembayaran, request.user, payload.validated_data["alasan"])
+        except ValueError as exc:
+            raise ValidationError(str(exc))
+        return Response(self.get_serializer(self.get_object()).data)
+
     def perform_destroy(self, instance):
         with transaction.atomic():
             instance = Tagihan.objects.select_for_update().get(pk=instance.pk)
             if instance.perlu_rekonsiliasi or instance.jurnal_id or instance.pembayaran.exists():
                 raise ValidationError("Tagihan dengan riwayat pembayaran tidak dapat dihapus.")
+            if instance.jenis == "LSU":
+                raise ValidationError("Tagihan paket LSU dihapus dari halaman LSU bersama paketnya.")
             instance.delete()
 
     @action(detail=False, methods=["post"])
