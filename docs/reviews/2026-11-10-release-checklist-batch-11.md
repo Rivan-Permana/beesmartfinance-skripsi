@@ -73,6 +73,12 @@ Hasil 10/11 17:14 UTC: `backups/db-20261110T171421Z-before-batch11.dump`, 288.26
 2. Tunggu Worker baru; cek dari luar: bundle COA memuat "Akun per transaksi", `/login` 200, API tanpa token 401.
 3. Cek read-only ulang: SHA baru, semua hitungan sama.
 
+### Hasil rilis — 10/11
+
+- PR #29 di-merge ke `main` 17:15:02 UTC (`39d06c5`) atas instruksi pengguna, setelah cek read-only dan backup `before-batch11`.
+- Worker baru terlihat 17:21:23 UTC, bundle `index-CsH51xwj.js`; chunk CoaListView memuat "Akun per transaksi". `/login` 200, API tanpa token 401.
+- Cek read-only pasca-rilis: menunggu pengguna.
+
 ## 4. User penyusun anggaran (superuser, web console)
 
 Langkah ini menulis data (1 user). Password acak dibuat di VPS (`secrets.token_urlsafe`) dan hanya dicetak sekali di web console; jangan ditempel ke chat atau dicatat di repo. Kalau user sudah ada, password tidak diubah.
