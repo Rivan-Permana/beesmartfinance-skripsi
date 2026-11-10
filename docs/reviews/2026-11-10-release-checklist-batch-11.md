@@ -71,27 +71,31 @@ Diharapkan: sekitar `…before-batch10` (288.196 byte), `TABLE DATA` = 53.
 
 ## 4. User penyusun anggaran (superuser, web console)
 
-Langkah ini menulis data (1 user). Nama tampilan boleh diganti di perintah; jangan dicatat di repo.
+Langkah ini menulis data (1 user). Password acak dibuat di VPS (`secrets.token_urlsafe`) dan hanya dicetak sekali di web console; jangan ditempel ke chat atau dicatat di repo. Kalau user sudah ada, password tidak diubah.
 
 ```sh
 cd /opt/beesmartfinance
 docker compose --env-file .env.vps -f docker-compose.production.yml exec -T backend python manage.py shell -c "
+import secrets
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import Group
 U = get_user_model()
 u, dibuat = U.objects.get_or_create(username='penyusun.anggaran', defaults={'first_name': 'Penyusun', 'last_name': 'Anggaran'})
+pw = None
 if dibuat:
-    u.set_unusable_password()
+    pw = secrets.token_urlsafe(12)
+    u.set_password(pw)
 u.is_staff = False
 u.is_superuser = False
 u.save()
 u.groups.set([Group.objects.get(name='BudgetPlanner')])
 print('dibuat' if dibuat else 'sudah ada', u.username, list(u.groups.values_list('name', flat=True)))
+if pw:
+    print('PASSWORD (catat sekarang, jangan ditempel ke chat):', pw)
 "
-docker compose --env-file .env.vps -f docker-compose.production.yml exec backend python manage.py changepassword penyusun.anggaran
 ```
 
-Diharapkan: `dibuat penyusun.anggaran ['BudgetPlanner']`, lalu prompt password dua kali (diketik pengguna, tidak tampil).
+Diharapkan: `dibuat penyusun.anggaran ['BudgetPlanner']` dan satu baris PASSWORD. Simpan password di pengelola password; saat menempel hasil ke chat, hapus baris PASSWORD.
 
 Smoke test penyusun (pengguna login, Claude memeriksa tanpa menyimpan): `/` → `/anggaran`; menu hanya Anggaran; jurnal, tagihan, aset, laba rugi 403; panel anggaran bulanan tampil; form tambah tanpa pilihan plafon.
 
