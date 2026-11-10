@@ -66,7 +66,22 @@ SQL
 | Jurnal pengeluaran | Kolom pertama = jumlah sekarang di daftar Pengeluaran; kolom kedua = tambahan setelah rilis | Catat kolom kedua; Keuangan diberi tahu kalau tidak 0. |
 | COA, kode, siswa, jurnal, tagihan | 205 / 60; 108 / 18 / 7 (10/11) | Catat; harus sama sesudah rilis. |
 
-### Hasil cek — (isi saat dijalankan)
+### Hasil cek — 10 November 2026 (web console, read-only)
+
+| Baris | Hasil | Status |
+|---|---|---|
+| SHA backend/frontend | `7cd5b97` keduanya; Worker version `1e0e2cab…` | Sesuai |
+| Container, disk | backend Up 54 menit, caddy dan db Up 3 minggu (db healthy); disk 9% | Sesuai |
+| GitHub | `github.com` resolve, `github 200` | Sesuai |
+| Migrasi terakhir | `accounts 0003_budget_planner_group`, `operations 0023_lsu` | Sesuai |
+| Posting rule LSU | 0 | Sesuai; LSU mengikuti urutan 418 → 417 |
+| Akun 418 | 0 | Dibuat Keuangan setelah rilis |
+| Paket / tagihan LSU | 0 / 0 | Sesuai |
+| Pembayaran / saldo awal | 3 / 0 | Sesuai |
+| Jurnal pengeluaran | 5 jurnal berakun beban; tambahan dari kode non-beban 0 | Daftar Pengeluaran tidak berubah saat rilis |
+| COA, kode, siswa, jurnal, tagihan | 205 / 60; 108 / 18 / 7 | Sama dengan pasca-rilis Batch 9 |
+
+Kesimpulan: tidak ada yang menghalangi backup dan merge.
 
 ## 2. Backup manual sebelum merge
 
