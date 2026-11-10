@@ -132,6 +132,8 @@ docker compose --env-file .env.vps -f docker-compose.production.yml exec -T db \
 
 Yang diharapkan: ukuran file sedikit di atas `…before-coa-kode` (276.912 byte), dan `TABLE DATA` = 51. Kalau ukurannya 0 atau perintah gagal, jangan merge.
 
+Hasil 10/11 15:24 UTC: koneksi GitHub hidup (`github.com` resolve, `github 200`). Backup `backups/db-20261110T152430Z-before-batch9.dump`, 278.077 byte (before-coa-kode: 276.912; selisih sesuai tambahan 17 akun, 14 kode, dan riwayat perubahannya), 51 `TABLE DATA`. Titik pulih rilis Batch 9.
+
 ## 3. Rilis
 
 1. Buka PR `codex/auto-deploy-fe-be` → `main`, lalu merge. Ini keputusan rilis dan hanya dilakukan atas instruksi eksplisit pengguna.
