@@ -179,7 +179,13 @@ Hasil 10/11 15:24 UTC: koneksi GitHub hidup (`github.com` resolve, `github 200`)
   - Tidak berubah: pembayaran 3 / 0 / 0; tagihan BULANAN 7, perlu dicocokkan 3; anggaran 2 / 0 / 0; akun tanpa sub-golongan 0; COA 205; kode pengeluaran 74 / 58 / 60; siswa 108 aktif; jurnal 18 (DRAFT/PENDING 7); periode 2026/2027 OPEN.
 
   Tidak ada data yang berubah selain skema dan grup baru.
-- Smoke test per role: menunggu pengguna.
+- Smoke test produksi per role (10/11; pengguna login di browser bawaan, Claude memeriksa tanpa menyimpan data, lalu logout tiap role):
+  - **Staf TU:** LSU terbuka (0 paket), form "Paket LSU baru" lengkap lalu Batal; form Tambah siswa menampilkan Iuran Komite dan Portofolio beserta teks bantu; dialog "Impor biaya masuk dari tab master" terbuka (tanggal saldo awal, berkas CSV) lalu ditutup; riwayat pembayaran tagihan lama tetap menampilkan kwitansi dan pembatalan. API: 3 pembayaran lama tetap punya jurnal, `saldo_awal` false.
+  - **Keuangan:** laba rugi menampilkan 6 kelompok dan 6 subtotal; subtotal = jumlah baris, total pendapatan/beban = jumlah akun, tidak ada akun "Lainnya". Panel anggaran bulanan 12 bulan. Form Tambah anggaran menampilkan plafon dan tahun pelajaran, lalu Batal.
+  - **Kepsek:** Beranda tanpa error (9 panel); laba rugi dan anggaran bulanan 200; menu Anggaran hanya baca (tanpa tombol tambah/ubah/hapus); menu LSU tidak tampil.
+  - **Guru:** menu hanya Absensi Siswa, Rekap Absensi, Kegiatan; Absensi siswa tanpa error dan tanpa rupiah; API siswa tanpa field nominal; LSU, tagihan, anggaran bulanan 403.
+
+  Semua lulus. Catatan: sekali muncul 401 saat token sesi diperbarui di tengah aksi (riwayat pembayaran tidak terbuka pada klik pertama, klik kedua normal). Perilaku lama, bukan dari Batch 9.
 
 ## 4. Setelah rilis
 
