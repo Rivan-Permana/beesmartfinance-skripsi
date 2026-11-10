@@ -116,7 +116,8 @@ Hasil 10/11 16:27 UTC: `backups/db-20261110T162737Z-before-batch10.dump`, 288.19
 - PR #28 di-merge ke `main` pukul 16:29:01 UTC (`242d519`) dari sesi Claude atas instruksi pengguna, setelah cek read-only dan backup `before-batch10`.
 - Worker baru terlihat dari luar 16:31:21 UTC, bundle `index-x02cqMm3.js`: chunk TagihanListView memuat "Batalkan saldo awal", JurnalListView memuat teks Pengeluaran "transfer ke yayasan".
 - Cek dari luar: `/login` 200; API tanpa token 401, lewat Worker maupun origin.
-- Cek read-only pasca-rilis dan smoke test per role: menunggu pengguna.
+- Cek read-only pasca-rilis (web console): SHA backend dan frontend `242d519`; Worker version `cfc17d85…`; backend Up 5 menit, db healthy, disk 9%. Migrasi tetap `0003`/`0023`. Tidak berubah: posting rule LSU 0, akun 418 0, paket/tagihan LSU 0/0, pembayaran 3/0, jurnal pengeluaran 5/0, COA 205, kode aktif 60, siswa 108, jurnal 18, tagihan 7.
+- Smoke test per role: menunggu pengguna.
 
 ## Rollback
 
