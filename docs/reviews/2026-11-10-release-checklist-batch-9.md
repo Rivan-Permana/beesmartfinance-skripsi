@@ -88,23 +88,34 @@ Cara membaca hasilnya:
 | Kode pengeluaran | `74 / 58 / 60` | Catat sebagai pembanding baru. |
 | Siswa, jurnal, periode | Siswa 108, jurnal sama dengan snapshot terakhir, periode 2026/2027 OPEN | Catat; harus sama sesudah rilis. |
 
-### Hasil cek — (isi saat dijalankan)
+### Hasil cek — 10 November 2026 (web console, read-only)
 
 | Baris | Hasil | Status |
 |---|---|---|
-| SHA backend/frontend | | |
-| Container | | |
-| Disk | | |
-| Backup | | |
-| Migrasi terakhir | | |
-| Grup | | |
-| Tabel LSU | | |
-| Pembayaran tanpa akun kas / jurnal | | |
-| Tagihan per jenis | | |
-| Anggaran | | |
-| Akun aktif tanpa sub-golongan | | |
-| COA / kode pengeluaran | | |
-| Siswa, jurnal, periode | | |
+| SHA backend/frontend | `774d93d` keduanya; Worker version `744f5c50…` | Sesuai |
+| Log deploy | Baris terakhir: `git fetch` gagal, `Could not resolve host: github.com` | **Perlu dicek** (lihat catatan) |
+| Container | backend Up 7 hari, caddy dan db Up 3 minggu (db healthy) | Sesuai |
+| Disk | 7,2 GB dari 96 GB (8%) | Cukup |
+| Backup | Terakhir `…before-coa-kode` (276.912 byte); 30 dump, total 7,0 MB | Ada; masih hanya di VPS |
+| Migrasi terakhir | `accounts 0002_seed_groups`, `operations 0021_harga_tp_2026_27` | Sesuai |
+| Grup | Administration, Finance, SchoolPrincipal, TeacherInCharge | Sesuai |
+| Tabel LSU | `f` / `f` | Sesuai |
+| Pembayaran tanpa akun kas / jurnal | 3 pembayaran; 0 / 0 | Sesuai; constraint baru aman |
+| Tagihan per jenis | BULANAN 7; perlu dicocokkan 3 | Sama dengan 2/11 |
+| Anggaran | 2 baris bulanan; 0 plafon; 0 tanpa bulan dan periode | Sesuai |
+| Akun aktif tanpa sub-golongan | 0 | Sesuai |
+| COA / kode pengeluaran | 205 / 205 aktif; 74 / 58 / 60 | Sama dengan hasil pengisian 10/11 |
+| Siswa, jurnal, periode | 108 aktif; jurnal 18 (DRAFT/PENDING 7); 2026/2027 01/07/2026–30/06/2027 OPEN | Sama dengan 2/11 |
+
+Catatan log deploy: poller tiap 5 menit menjalankan `git fetch` ke GitHub. Baris terakhir menunjukkan VPS sempat gagal resolve `github.com` (dulu juga pernah putus-sambung). Kalau masih gagal saat merge, deploy tidak jalan sampai koneksi pulih; produksi tetap di `774d93d`, tidak rusak. Sebelum merge, pastikan koneksi ke GitHub hidup:
+
+```sh
+getent hosts github.com; git -C /opt/beesmartfinance ls-remote --heads origin main | head -1
+```
+
+Yang diharapkan: alamat IP GitHub dan satu baris `774d93d… refs/heads/main`.
+
+Kesimpulan: data dan skema siap untuk migrasi Batch 9. Satu-satunya syarat tambahan: koneksi VPS ke GitHub hidup saat merge.
 
 ## 2. Backup manual sebelum merge
 
