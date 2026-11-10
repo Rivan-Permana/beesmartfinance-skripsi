@@ -12,21 +12,21 @@ async function coaKode({ apply = false } = {}) {
   }
   const AKUN = [
     ["115", "11", "Kas PG", "D"], ["116", "11", "Kas TK", "D"], ["117", "11", "Kas ADM", "D"], ["118", "11", "Kas Rekening Sekolah", "D"],
-    ["5134", "51", "TK-Beban Operasional-Kegiatan KBM", "D"], ["5135", "51", "TK-Beban Operasional-Fun Games", "D"],
-    ["5136", "51", "TK-Beban Operasional-Motorik Kasar", "D"], ["5137", "51", "TK-Beban Operasional-Perlengkapan Kelas", "D"],
-    ["5138", "51", "TK-Beban Operasional-MPLS", "D"],
-    ["5234", "52", "PG-Beban Operasional-Kegiatan KBM", "D"], ["5235", "52", "PG-Beban Operasional-Fun Games", "D"],
-    ["5236", "52", "PG-Beban Operasional-Motorik Kasar", "D"], ["5237", "52", "PG-Beban Operasional-Perlengkapan Kelas", "D"],
-    ["5238", "52", "PG-Beban Operasional-MPLS", "D"],
+    ["5135", "51", "TK-Beban Operasional-Kegiatan KBM", "D"], ["5136", "51", "TK-Beban Operasional-Fun Games", "D"],
+    ["5137", "51", "TK-Beban Operasional-Motorik Kasar", "D"], ["5138", "51", "TK-Beban Operasional-Perlengkapan Kelas", "D"],
+    ["5139", "51", "TK-Beban Operasional-MPLS", "D"],
+    ["5235", "52", "PG-Beban Operasional-Kegiatan KBM", "D"], ["5236", "52", "PG-Beban Operasional-Fun Games", "D"],
+    ["5237", "52", "PG-Beban Operasional-Motorik Kasar", "D"], ["5238", "52", "PG-Beban Operasional-Perlengkapan Kelas", "D"],
+    ["5239", "52", "PG-Beban Operasional-MPLS", "D"],
     ["5409", "54", "Beban Pengadaan Seragam Siswa", "D"], ["5410", "54", "Beban Seragam IGRA", "D"],
     ["313", "31", "Pembagian Dana ke Yayasan", "K"],
   ]
   const KODE = [ // [kode, unit, akun, nama]
-    ["KEG", "TK", "5134", "Kegiatan KBM"], ["KEG-COOK", "TK", "5116", "Fun Cooking"], ["KEG-FUN", "TK", "5135", "Fun Games"],
-    ["KEG-MK", "TK", "5136", "Motorik Kasar"], ["KEG-BELADIRI", "TK", "5118", "Olah raga bela diri"],
-    ["KLS", "TK", "5137", "Perlengkapan kelas"], ["MPBS", "TK", "5138", "MPLS anak"],
-    ["KEG", "PG", "5234", "Kegiatan KBM"], ["KEG-COOK", "PG", "5216", "Fun Cooking"], ["KEG-FUN", "PG", "5235", "Fun Games"],
-    ["KEG-MK", "PG", "5236", "Motorik Kasar"], ["KLS", "PG", "5237", "Perlengkapan kelas"], ["MPBS", "PG", "5238", "MPLS anak"],
+    ["KEG", "TK", "5135", "Kegiatan KBM"], ["KEG-COOK", "TK", "5116", "Fun Cooking"], ["KEG-FUN", "TK", "5136", "Fun Games"],
+    ["KEG-MK", "TK", "5137", "Motorik Kasar"], ["KEG-BELADIRI", "TK", "5118", "Olah raga bela diri"],
+    ["KLS", "TK", "5138", "Perlengkapan kelas"], ["MPBS", "TK", "5139", "MPLS anak"],
+    ["KEG", "PG", "5235", "Kegiatan KBM"], ["KEG-COOK", "PG", "5216", "Fun Cooking"], ["KEG-FUN", "PG", "5236", "Fun Games"],
+    ["KEG-MK", "PG", "5237", "Motorik Kasar"], ["KLS", "PG", "5238", "Perlengkapan kelas"], ["MPBS", "PG", "5239", "MPLS anak"],
     ["SRG", "UMUM", "5409", "Seragam siswa"], ["SRGI", "UMUM", "5410", "Seragam IGRA (dana BOP)"], ["DVD", "UMUM", "313", "Transfer ke yayasan"],
   ]
   const NONAKTIF_UMUM = ["KEG", "FUN", "KLS", "MK", "MPBS"]
