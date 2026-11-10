@@ -77,7 +77,7 @@ Hasil 10/11 17:14 UTC: `backups/db-20261110T171421Z-before-batch11.dump`, 288.26
 
 - PR #29 di-merge ke `main` 17:15:02 UTC (`39d06c5`) atas instruksi pengguna, setelah cek read-only dan backup `before-batch11`.
 - Worker baru terlihat 17:21:23 UTC, bundle `index-CsH51xwj.js`; chunk CoaListView memuat "Akun per transaksi". `/login` 200, API tanpa token 401.
-- Cek read-only pasca-rilis: menunggu pengguna.
+- Cek read-only pasca-rilis: SHA backend dan frontend `39d06c5`; backend Up 57 menit (kode backend tidak berubah, jadi image sama dan container tidak dibuat ulang), db healthy, disk 9%, `github 200`. Migrasi tetap `0003`/`0023`. Anggota BudgetPlanner 1, username `penyusun.anggaran` 1 (dari langkah 4). Tidak berubah: anggaran 2/0, kode tanpa akun `STR/PG STR/TK`, COA 206, kode aktif 60, siswa 108, jurnal 18, tagihan 7.
 
 ## 4. User penyusun anggaran (superuser, web console)
 
