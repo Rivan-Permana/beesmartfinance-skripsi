@@ -14,6 +14,7 @@ from rest_framework.test import APITestCase
 
 from accounting.models import TrJurnal
 from operations.models import Jenjang, Kelompok, MsPostingRule, PembayaranTagihan, Siswa, Tagihan
+from operations.services.biaya_masuk import sinkron_tagihan_biaya_masuk
 from operations.services.billing import build_tagihan_komponen, catat_saldo_awal_tagihan
 from operations.services.tp_templates import ensure_tp_templates
 from operations.test_tp_batch import _coa
@@ -219,6 +220,29 @@ class ImporBiayaMasukTests(CutoverBaseTest):
         self.assertEqual(ulang.data["diisi"], 0)
         self.assertEqual(ulang.data["ringkasan"]["sudah"], 2)
         self.assertEqual(PembayaranTagihan.objects.count(), 2)
+
+    def test_impor_ulang_siswa_belum_bayar_sudah_dan_tagihan_tanpa_penerimaan_tetap_diisi(self):
+        belum = Siswa.objects.create(nama="Anak Belum Bayar", kelompok=self.tka, spp_nominal=1, status="aktif")
+        rows = [JUDUL, SUB,
+                _baris(1, "Anak Belum Bayar", "TK A", "UMUM", 0, (1000000, None, None, None, None, None), ()),
+                _baris(2, "Anak Cicil", "PG Lebah 1", "UMUM", 0, (700000, None, None, None, None, None), (200000,))]
+        buf = io.StringIO()
+        csv.writer(buf).writerows(rows)
+        self.csv = buf.getvalue()
+        # Tagihan Anak Cicil sudah ada tanpa penerimaan (mis. terbentuk saat TU menyimpan data siswa).
+        self.cicil.uang_masuk = Decimal("700000")
+        self.cicil.save()
+        sinkron_tagihan_biaya_masuk(self.cicil, periode=(7, 2026))
+        self.assertTrue(Tagihan.objects.filter(siswa=self.cicil, jenis="BIAYA_MASUK").exists())
+
+        pertama = {b["nama"]: b["aksi"] for b in self.post(simpan=True).data["baris"]}
+        self.assertEqual(pertama, {"Anak Belum Bayar": "isi", "Anak Cicil": "isi"})
+        self.assertEqual(Tagihan.objects.get(siswa=belum, jenis="BIAYA_MASUK").status, "BELUM")
+
+        ulang = self.post(simpan=True)
+        self.assertEqual(ulang.data["diisi"], 0)
+        self.assertEqual({b["nama"]: b["aksi"] for b in ulang.data["baris"]}, {"Anak Belum Bayar": "sudah", "Anak Cicil": "sudah"})
+        self.assertEqual(PembayaranTagihan.objects.filter(tagihan__siswa=self.cicil, saldo_awal=True).count(), 1)
 
     def test_hanya_tu_yang_bisa_impor(self):
         for role in ("Finance", "SchoolPrincipal"):

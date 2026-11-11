@@ -3,7 +3,7 @@
 from datetime import date
 from decimal import Decimal
 
-from django.db import transaction
+from django.db import DatabaseError, transaction
 from django.db.models import Q
 
 from .common import akun_sistem, audit_user, buat_jurnal
@@ -171,3 +171,58 @@ def post_gaji(gaji, user=None, akun_beban=None, akun_kas=None,
             gaji.jurnal = jurnal
             gaji.save(update_fields=["jurnal", "updated_at"])
     return jurnal
+
+
+def _hasil_periode(slip, proses, simpan, user):
+    """Jalankan `proses` per slip dalam savepoint; satu slip gagal tidak membatalkan slip lain."""
+    hasil = []
+    for gaji in slip:
+        item = {"gaji": gaji.pk, "pegawai": gaji.pegawai_id, "nama": str(gaji.pegawai), "netto": gaji.total_netto,
+                "status": "siap", "pesan": None}
+        if simpan:
+            try:
+                with transaction.atomic():
+                    proses(gaji)
+                item["status"] = "berhasil"
+            except ValueError as exc:
+                item["status"], item["pesan"] = "gagal", str(exc)
+            except DatabaseError as exc:
+                from config.db_errors import humanize_db_error
+                pesan = str(exc).strip().splitlines()[0] if str(exc).strip() else ""
+                item["status"], item["pesan"] = "gagal", humanize_db_error(pesan)
+        hasil.append(item)
+    berhasil = [h for h in hasil if h["status"] == "berhasil"]
+    return {
+        "disimpan": simpan, "jumlah": len(hasil), "berhasil": len(berhasil),
+        "gagal": sum(1 for h in hasil if h["status"] == "gagal"),
+        "total_netto": sum((h["netto"] for h in (berhasil if simpan else hasil)), Decimal(0)),
+        "hasil": hasil,
+    }
+
+
+def posting_gaji_periode(bulan, tahun, user, *, simpan=False):
+    """Keuangan: buat jurnal untuk semua slip periode yang belum dijurnal, lalu ajukan ke Kepala Sekolah."""
+    from accounting.models import TrJurnal
+    from operations.models import GajiPegawai
+
+    def proses(gaji):
+        gaji = GajiPegawai.objects.select_for_update().get(pk=gaji.pk)
+        jurnal = post_gaji(gaji, user=user)
+        with audit_user(user):
+            TrJurnal.objects.filter(pk=jurnal.pk, status="DRAFT").update(status="PENDING", submitted_by=user)
+
+    slip = (GajiPegawai.objects.select_related("pegawai")
+            .filter(periode_bulan=bulan, periode_tahun=tahun, jurnal__isnull=True).order_by("pegawai__nama"))
+    return _hasil_periode(slip, proses, simpan, user)
+
+
+def setujui_gaji_periode(bulan, tahun, user, *, simpan=False):
+    """Kepala Sekolah: setujui semua jurnal gaji periode yang menunggu persetujuan (SoD dicek per jurnal)."""
+    from accounting.services import post_jurnal
+    from operations.models import GajiPegawai
+
+    slip = (GajiPegawai.objects.select_related("pegawai", "jurnal")
+            .filter(periode_bulan=bulan, periode_tahun=tahun, jurnal__status="PENDING",
+                    jurnal__tipe_sumber="AUTO_PAYROLL", jurnal__is_deleted=False)
+            .order_by("pegawai__nama"))
+    return _hasil_periode(slip, lambda gaji: post_jurnal(gaji.jurnal, user, approve=True), simpan, user)

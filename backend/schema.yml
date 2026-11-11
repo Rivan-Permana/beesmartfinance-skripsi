@@ -1362,6 +1362,62 @@ paths:
               schema:
                 $ref: '#/components/schemas/GajiPegawai'
           description: ''
+  /api/v1/gaji/posting-periode/:
+    post:
+      operationId: v1_gaji_posting_periode_create
+      description: 'Keuangan: jurnal + ajukan semua slip periode yang belum dijurnal
+        (pratinjau bila simpan=false).'
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GajiPeriodeInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/GajiPeriodeInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/GajiPeriodeInput'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GajiPeriodeHasil'
+          description: ''
+  /api/v1/gaji/setujui-periode/:
+    post:
+      operationId: v1_gaji_setujui_periode_create
+      description: 'Kepala Sekolah: setujui semua jurnal gaji periode yang menunggu
+        (pratinjau bila simpan=false).'
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GajiPeriodeInput'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/GajiPeriodeInput'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/GajiPeriodeInput'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GajiPeriodeHasil'
+          description: ''
   /api/v1/golongan/:
     get:
       operationId: v1_golongan_list
@@ -5665,15 +5721,98 @@ components:
           format: uuid
           readOnly: true
           nullable: true
+        jurnal_status:
+          type: string
+          readOnly: true
+          nullable: true
       required:
       - id
       - jurnal
+      - jurnal_status
       - pegawai
       - periode_bulan
       - periode_tahun
       - total_bruto
       - total_netto
       - total_potongan
+    GajiPeriodeBaris:
+      type: object
+      properties:
+        gaji:
+          type: integer
+        pegawai:
+          type: integer
+        nama:
+          type: string
+        netto:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+        status:
+          $ref: '#/components/schemas/GajiPeriodeBarisStatusEnum'
+        pesan:
+          type: string
+          nullable: true
+      required:
+      - gaji
+      - nama
+      - netto
+      - pegawai
+      - pesan
+      - status
+    GajiPeriodeBarisStatusEnum:
+      enum:
+      - siap
+      - berhasil
+      - gagal
+      type: string
+      description: |-
+        * `siap` - siap
+        * `berhasil` - berhasil
+        * `gagal` - gagal
+    GajiPeriodeHasil:
+      type: object
+      properties:
+        disimpan:
+          type: boolean
+        jumlah:
+          type: integer
+        berhasil:
+          type: integer
+        gagal:
+          type: integer
+        total_netto:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,16}(?:\.\d{0,2})?$
+        hasil:
+          type: array
+          items:
+            $ref: '#/components/schemas/GajiPeriodeBaris'
+      required:
+      - berhasil
+      - disimpan
+      - gagal
+      - hasil
+      - jumlah
+      - total_netto
+    GajiPeriodeInput:
+      type: object
+      properties:
+        periode_bulan:
+          type: integer
+          maximum: 12
+          minimum: 1
+        periode_tahun:
+          type: integer
+          maximum: 2100
+          minimum: 2020
+        simpan:
+          type: boolean
+          default: false
+      required:
+      - periode_bulan
+      - periode_tahun
     ImporBiayaMasukBaris:
       type: object
       properties:
@@ -7387,6 +7526,10 @@ components:
         jurnal:
           type: string
           format: uuid
+          readOnly: true
+          nullable: true
+        jurnal_status:
+          type: string
           readOnly: true
           nullable: true
     PatchedJenjang:

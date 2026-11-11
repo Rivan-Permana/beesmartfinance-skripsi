@@ -52,3 +52,23 @@ export function loanStatus(row: Pick<Pinjaman, 'jurnal' | 'is_legacy' | 'ikut_po
 }
 export function errorText(value: unknown, fallback: string) { const error = friendlyError(value,fallback); return [error.summary,error.detail].filter(Boolean).join('. ') }
 export function ambiguous(value: unknown) { const status = (value as {response?: {status?: number}})?.response?.status; return status == null || status >= 500 }
+/** Status slip berdasarkan jurnalnya; label dipakai di daftar slip. */
+export function slipState(row: Pick<Gaji, 'jurnal' | 'jurnal_status'>): { label: string, severity: 'warn' | 'info' | 'success' | 'danger' } {
+  if (!row.jurnal) return { label: 'Belum dijurnal', severity: 'warn' }
+  if (row.jurnal_status === 'POSTED') return { label: 'Tercatat', severity: 'success' }
+  if (row.jurnal_status === 'PENDING') return { label: 'Menunggu persetujuan', severity: 'info' }
+  if (row.jurnal_status === 'VOID') return { label: 'Jurnal dibatalkan', severity: 'danger' }
+  return { label: 'Draf jurnal', severity: 'info' }
+}
+/** Periode slip (terbaru dulu) beserta jumlah slip yang bisa diposting dan yang menunggu persetujuan. */
+export function payrollPeriods(rows: Pick<Gaji, 'periode_bulan' | 'periode_tahun' | 'jurnal' | 'jurnal_status'>[]) {
+  const map = new Map<string, { bulan: number, tahun: number, label: string, belum: number, menunggu: number }>()
+  for (const row of rows) {
+    const key = `${row.periode_tahun}-${String(row.periode_bulan).padStart(2, '0')}`
+    const item = map.get(key) ?? { bulan: row.periode_bulan, tahun: row.periode_tahun, label: salaryPeriod(row), belum: 0, menunggu: 0 }
+    if (!row.jurnal) item.belum++
+    else if (row.jurnal_status === 'PENDING') item.menunggu++
+    map.set(key, item)
+  }
+  return [...map.entries()].sort(([a], [b]) => b.localeCompare(a)).map(([key, item]) => ({ key, ...item }))
+}

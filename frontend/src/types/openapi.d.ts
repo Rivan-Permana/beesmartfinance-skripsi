@@ -464,6 +464,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/gaji/posting-periode/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Keuangan: jurnal + ajukan semua slip periode yang belum dijurnal (pratinjau bila simpan=false). */
+        post: operations["v1_gaji_posting_periode_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/gaji/setujui-periode/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description Kepala Sekolah: setujui semua jurnal gaji periode yang menunggu (pratinjau bila simpan=false). */
+        post: operations["v1_gaji_setujui_periode_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/golongan/": {
         parameters: {
             query?: never;
@@ -1792,6 +1826,38 @@ export interface components {
             readonly total_netto: number;
             /** Format: uuid */
             readonly jurnal: string | null;
+            readonly jurnal_status: string | null;
+        };
+        GajiPeriodeBaris: {
+            gaji: number;
+            pegawai: number;
+            nama: string;
+            /** Format: decimal */
+            netto: string;
+            status: components["schemas"]["GajiPeriodeBarisStatusEnum"];
+            pesan: string | null;
+        };
+        /**
+         * @description * `siap` - siap
+         *     * `berhasil` - berhasil
+         *     * `gagal` - gagal
+         * @enum {string}
+         */
+        GajiPeriodeBarisStatusEnum: "siap" | "berhasil" | "gagal";
+        GajiPeriodeHasil: {
+            disimpan: boolean;
+            jumlah: number;
+            berhasil: number;
+            gagal: number;
+            /** Format: decimal */
+            total_netto: string;
+            hasil: components["schemas"]["GajiPeriodeBaris"][];
+        };
+        GajiPeriodeInput: {
+            periode_bulan: number;
+            periode_tahun: number;
+            /** @default false */
+            simpan: boolean;
         };
         ImporBiayaMasukBaris: {
             baris: number;
@@ -2613,6 +2679,7 @@ export interface components {
             readonly total_netto?: number;
             /** Format: uuid */
             readonly jurnal?: string | null;
+            readonly jurnal_status?: string | null;
         };
         PatchedJenjang: {
             readonly id?: number;
@@ -4478,6 +4545,56 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GajiPegawai"];
+                };
+            };
+        };
+    };
+    v1_gaji_posting_periode_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GajiPeriodeInput"];
+                "application/x-www-form-urlencoded": components["schemas"]["GajiPeriodeInput"];
+                "multipart/form-data": components["schemas"]["GajiPeriodeInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GajiPeriodeHasil"];
+                };
+            };
+        };
+    };
+    v1_gaji_setujui_periode_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GajiPeriodeInput"];
+                "application/x-www-form-urlencoded": components["schemas"]["GajiPeriodeInput"];
+                "multipart/form-data": components["schemas"]["GajiPeriodeInput"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GajiPeriodeHasil"];
                 };
             };
         };

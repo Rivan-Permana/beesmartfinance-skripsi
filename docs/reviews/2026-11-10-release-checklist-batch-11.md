@@ -73,6 +73,12 @@ Hasil 10/11 17:14 UTC: `backups/db-20261110T171421Z-before-batch11.dump`, 288.26
 2. Tunggu Worker baru; cek dari luar: bundle COA memuat "Akun per transaksi", `/login` 200, API tanpa token 401.
 3. Cek read-only ulang: SHA baru, semua hitungan sama.
 
+### Hasil rilis — 10/11
+
+- PR #29 di-merge ke `main` 17:15:02 UTC (`39d06c5`) atas instruksi pengguna, setelah cek read-only dan backup `before-batch11`.
+- Worker baru terlihat 17:21:23 UTC, bundle `index-CsH51xwj.js`; chunk CoaListView memuat "Akun per transaksi". `/login` 200, API tanpa token 401.
+- Cek read-only pasca-rilis: SHA backend dan frontend `39d06c5`; backend Up 57 menit (kode backend tidak berubah, jadi image sama dan container tidak dibuat ulang), db healthy, disk 9%, `github 200`. Migrasi tetap `0003`/`0023`. Anggota BudgetPlanner 1, username `penyusun.anggaran` 1 (dari langkah 4). Tidak berubah: anggaran 2/0, kode tanpa akun `STR/PG STR/TK`, COA 206, kode aktif 60, siswa 108, jurnal 18, tagihan 7.
+
 ## 4. User penyusun anggaran (superuser, web console)
 
 Langkah ini menulis data (1 user). Password acak dibuat di VPS (`secrets.token_urlsafe`) dan hanya dicetak sekali di web console; jangan ditempel ke chat atau dicatat di repo. Kalau user sudah ada, password tidak diubah.
@@ -101,9 +107,15 @@ if pw:
 
 Diharapkan: `dibuat penyusun.anggaran ['BudgetPlanner']` dan satu baris PASSWORD. Simpan password di pengelola password; saat menempel hasil ke chat, hapus baris PASSWORD.
 
+Hasil 10/11: `dibuat penyusun.anggaran ['BudgetPlanner']`; password acak dicetak di console dan disimpan pengguna (tidak lewat chat). Pesan "9 objects could not be automatically imported" adalah info auto-import shell Django 5.2 untuk model Historical*, bukan galat.
+
 Smoke test penyusun (pengguna login, Claude memeriksa tanpa menyimpan): `/` → `/anggaran`; menu hanya Anggaran; jurnal, tagihan, aset, laba rugi 403; panel anggaran bulanan tampil; form tambah tanpa pilihan plafon.
 
+Hasil smoke test penyusun (10/11, produksi): login `penyusun.anggaran` (grup BudgetPlanner); `/` → `/anggaran`; menu hanya "Anggaran bulanan"; panel "Anggaran bulanan dan realisasi" tanpa error; API anggaran 200, jurnal/tagihan/aset/laba rugi 403; form Tambah anggaran hanya Bulan + Tahun kalender + Anggaran, tanpa pilihan plafon (ditutup dengan Batal). Lulus; lalu logout.
+
 ## 5. Plafon tahunan (Keuangan)
+
+Keputusan 10/11: **ditunda** sampai anggaran resmi per akun tersedia. Anggaran bulanan tetap bisa diisi tanpa plafon.
 
 Menu Anggaran → Tambah anggaran → kosongkan Bulan → pilih TP 2026/2027 → isi Plafon per akun beban. Nominal dari anggaran sekolah. Setelah itu penyusun bisa mengisi anggaran bulanan di bawah plafon tersebut.
 
