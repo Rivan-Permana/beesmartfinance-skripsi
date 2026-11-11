@@ -19,7 +19,7 @@ Kesimpulan: alur dan akuntansinya benar. Masalahnya ada di **beban kerja bulanan
 
 ## Temuan
 
-1. **Semua per slip.** Produksi punya 33 pegawai aktif. Setiap bulan: 33 slip diisi manual (±12 isian per slip, ±400 isian), 33 kali posting, 33 kali ajukan oleh Keuangan, dan 33 persetujuan Kepsek. Tidak ada buat sekaligus, salin dari bulan lalu, posting massal, atau persetujuan massal.
+1. **Semua per slip.** Produksi punya 33 pegawai aktif (catatan 28/10; cek 11/11: 30 aktif, 3 dihapus lunak sejak itu, jadi angka di bawah ±10% lebih kecil). Setiap bulan: 33 slip diisi manual (±12 isian per slip, ±400 isian), 33 kali posting, 33 kali ajukan oleh Keuangan, dan 33 persetujuan Kepsek. Tidak ada buat sekaligus, salin dari bulan lalu, posting massal, atau persetujuan massal.
 2. **Slip pertama (Januari) tidak punya sumber selain ketik ulang.** Rincian gaji per pegawai disiapkan bendahara di spreadsheet; belum ada impor.
 3. **Tarif uang makan/transport per hari di data pegawai dan absensi pegawai tidak dipakai slip.** Uang makan, transport, dan hari hadir diketik manual.
 4. **Akun kas gaji selalu 112** (aturan akun sistem); tidak bisa memilih Kas TK/PG/ADM. Tanggal jurnal selalu tanggal 28.

@@ -88,6 +88,10 @@ docker compose --env-file .env.vps -f docker-compose.production.yml exec -T db \
 
 Diharapkan: sekitar `…before-batch11` (288.263 byte), `TABLE DATA` = 53. Dump ini juga menjadi titik pulih untuk pekerjaan data di bagian 4.
 
+Hasil 11/11 04:00 UTC: `backups/db-20261111T040027Z-before-batch12.dump`, 288.363 byte (before-batch11: 288.263), 53 `TABLE DATA`. Titik pulih rilis Batch 12 dan pekerjaan data bagian 4.
+
+Rincian pegawai (read-only, bersama backup): 30 aktif, 1 nonaktif, 3 dihapus lunak (total 34, sama dengan 28/10). Tiga pegawai dihapus lewat aplikasi sejak 28/10; bukan akibat rilis. Angka pembanding slip gaji per bulan: 30.
+
 ## 3. Rilis
 
 1. PR `codex/auto-deploy-fe-be` → `main`, merge (hanya atas instruksi eksplisit pengguna).
