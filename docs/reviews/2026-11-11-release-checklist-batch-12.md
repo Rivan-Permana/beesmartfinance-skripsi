@@ -104,6 +104,14 @@ Rincian pegawai (read-only, bersama backup): 30 aktif, 1 nonaktif, 3 dihapus lun
    - **Staf TU:** dialog Impor biaya masuk terbuka; Pendaftaran menampilkan catatan "Perlu dicocokkan".
    - **Guru:** Absensi tetap jalan; Gaji tidak bisa dibuka.
 
+### Hasil rilis — 11/11
+
+- PR #30 di-merge ke `main` 04:02:10 UTC (`0b749dc`) dari sesi Claude atas instruksi pengguna, setelah cek read-only dan backup `before-batch12`.
+- Backend baru terlihat dari luar 04:05:29 UTC: schema memuat `posting-periode`, `setujui-periode`, dan `jurnal_status`.
+- Worker baru terlihat 04:07:04 UTC, bundle `index-BX7rLtFN.js`; chunk GajiListView memuat "Jurnal gaji per periode".
+- Cek dari luar: `/login` 200; API tanpa token 401, lewat Worker maupun origin.
+- Cek read-only pasca-rilis dan smoke test per role: menunggu pengguna.
+
 ## 4. Setelah rilis: pekerjaan data (masing-masing atas persetujuan pengguna)
 
 Urut dari yang paling aman. Rincian dan blok perintah: [data menggantung](./2026-11-11-data-menggantung.md), [rencana backup](./2026-11-11-rencana-backup-offsite.md).
