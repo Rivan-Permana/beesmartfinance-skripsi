@@ -57,7 +57,23 @@ SQL
 | Pegawai aktif | `33` | Catat. |
 | COA / kode aktif / siswa | `206` / `60` / `108` | Catat; harus sama sesudah rilis. |
 
-### Hasil cek — (isi saat dijalankan)
+### Hasil cek — 11/11 (web console, read-only)
+
+| Baris | Hasil | Status |
+|---|---|---|
+| SHA | `39d06c5` keduanya | Sesuai |
+| Container, disk, GitHub | backend Up 11 jam, caddy/db Up 3 minggu (db healthy); disk 9%; `github 200` | Sesuai |
+| Backup harian | belum ada | Dipasang di bagian 4 |
+| Migrasi | `accounts 0003`, `operations 0023` | Sesuai |
+| Jurnal belum POSTED | `AUTO_BILLING` DRAFT 2 + PENDING 1; `AUTO_KEGIATAN` PENDING 2; `AUTO_PENDAFTARAN` DRAFT 2 | Sesuai (7) |
+| Jurnal total / POSTED / VOID | 18 / 11 / 0 | Pembanding bagian 4: akhir 18 / 15 / 3 |
+| Tagihan / perlu dicocokkan | 7 / 3 | Sesuai |
+| Pendaftaran / perlu dicocokkan | 4 / 2 | Dua catatan untuk TU di bagian 4 |
+| Slip gaji | 1 slip; 0 belum dijurnal; 0 jurnal belum POSTED | Panel gaji tampil tanpa pekerjaan tertunda |
+| Pegawai aktif | **30** (28/10: 33 aktif + 1 nonaktif) | Berbeda dari catatan lama; tidak dipengaruhi rilis. Rincian per status dicek bersama backup |
+| COA / kode aktif / siswa | 206 / 60 / 108 | Sesuai |
+
+Kesimpulan: tidak ada yang menghalangi backup dan merge. Selisih pegawai aktif adalah perubahan data operasional sejak 28/10, bukan akibat rilis; dicatat supaya angka pembanding gaji (jumlah slip per bulan) memakai angka terbaru.
 
 ## 2. Backup manual sebelum merge
 
