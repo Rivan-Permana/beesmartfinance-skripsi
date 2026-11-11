@@ -70,10 +70,10 @@ SQL
 | Tagihan / perlu dicocokkan | 7 / 3 | Sesuai |
 | Pendaftaran / perlu dicocokkan | 4 / 2 | Dua catatan untuk TU di bagian 4 |
 | Slip gaji | 1 slip; 0 belum dijurnal; 0 jurnal belum POSTED | Panel gaji tampil tanpa pekerjaan tertunda |
-| Pegawai aktif | **30** (28/10: 33 aktif + 1 nonaktif) | Berbeda dari catatan lama; tidak dipengaruhi rilis. Rincian per status dicek bersama backup |
+| Pegawai aktif | **30** (catatan 28/10: 33 aktif + 1 nonaktif) | Catatan lama ikut menghitung 3 baris yang dihapus 13/10; angka benar 30 |
 | COA / kode aktif / siswa | 206 / 60 / 108 | Sesuai |
 
-Kesimpulan: tidak ada yang menghalangi backup dan merge. Selisih pegawai aktif adalah perubahan data operasional sejak 28/10, bukan akibat rilis; dicatat supaya angka pembanding gaji (jumlah slip per bulan) memakai angka terbaru.
+Kesimpulan: tidak ada yang menghalangi backup dan merge. Selisih pegawai aktif berasal dari cara hitung catatan 28/10 (ikut menghitung baris terhapus), bukan perubahan data; angka pembanding gaji (jumlah slip per bulan) adalah 30.
 
 ## 2. Backup manual sebelum merge
 
@@ -90,7 +90,7 @@ Diharapkan: sekitar `…before-batch11` (288.263 byte), `TABLE DATA` = 53. Dump 
 
 Hasil 11/11 04:00 UTC: `backups/db-20261111T040027Z-before-batch12.dump`, 288.363 byte (before-batch11: 288.263), 53 `TABLE DATA`. Titik pulih rilis Batch 12 dan pekerjaan data bagian 4.
 
-Rincian pegawai (read-only, bersama backup): 30 aktif, 1 nonaktif, 3 dihapus lunak (total 34, sama dengan 28/10). Tiga pegawai dihapus lewat aplikasi sejak 28/10; bukan akibat rilis. Angka pembanding slip gaji per bulan: 30.
+Rincian pegawai (read-only, bersama backup): 30 aktif, 1 nonaktif, 3 dihapus lunak (total 34, sama dengan 28/10). Ketiga pegawai itu dihapus pada 13/10 (masa uji coba), jadi angka "33 aktif" di catatan 28/10 ternyata ikut menghitung baris yang sudah dihapus; pegawai aktif memang 30 sejak itu dan tidak ada penghapusan baru. Angka pembanding slip gaji per bulan: 30.
 
 ## 3. Rilis
 
@@ -110,7 +110,8 @@ Rincian pegawai (read-only, bersama backup): 30 aktif, 1 nonaktif, 3 dihapus lun
 - Backend baru terlihat dari luar 04:05:29 UTC: schema memuat `posting-periode`, `setujui-periode`, dan `jurnal_status`.
 - Worker baru terlihat 04:07:04 UTC, bundle `index-BX7rLtFN.js`; chunk GajiListView memuat "Jurnal gaji per periode".
 - Cek dari luar: `/login` 200; API tanpa token 401, lewat Worker maupun origin.
-- Cek read-only pasca-rilis dan smoke test per role: menunggu pengguna.
+- Cek read-only pasca-rilis (web console): SHA backend dan frontend `0b749dc`; backend Up 4 menit, db healthy, disk 9%. Migrasi tetap `0003`/`0023`. Semua hitungan sama dengan sebelum merge: jurnal belum POSTED 7 (rincian sama), total 18 / POSTED 11 / VOID 0; tagihan 7 / 3; pendaftaran 4 / 2; slip gaji 1 / 0 / 0; pegawai aktif 30; COA 206, kode aktif 60, siswa 108. Rilis tidak mengubah data.
+- Smoke test per role: menunggu pengguna.
 
 ## 4. Setelah rilis: pekerjaan data (masing-masing atas persetujuan pengguna)
 
