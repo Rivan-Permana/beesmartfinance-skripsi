@@ -117,7 +117,7 @@ Rincian pegawai (read-only, bersama backup): 30 aktif, 1 nonaktif, 3 dihapus lun
   - **Staf TU:** dialog "Impor biaya masuk dari tab master" terbuka lalu ditutup; Pendaftaran menampilkan 2 dari 4 catatan "Perlu dicocokkan" (layar dan API); gaji 403.
   - **Guru:** menu Absensi Siswa, Rekap Absensi, Kegiatan; Absensi siswa tanpa error dan tanpa rupiah; gaji, posting periode, dan setujui periode 403.
 
-  Semua lulus. Di luar Batch 12 (perilaku lama): API daftar jurnal masih bisa dibaca akun Guru walau menunya tidak ada.
+  Semua lulus. Di luar Batch 12 (perilaku lama): API daftar jurnal masih bisa dibaca akun Guru walau menunya tidak ada. Diperbaiki di branch 11/11 (belum dirilis): baca jurnal hanya Keuangan, Kepsek, TU.
 
 ## 4. Setelah rilis: pekerjaan data (masing-masing atas persetujuan pengguna)
 

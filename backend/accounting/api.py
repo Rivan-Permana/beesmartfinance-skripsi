@@ -4,14 +4,13 @@ from django.db import DatabaseError, transaction
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied, ValidationError
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.pagination import PageNumberPagination
 from rest_framework import serializers
 from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
 from rest_framework.response import Response
 
 from accounts.permissions import (
-    BUDGET_PLANNER, FINANCE, PRINCIPAL, IsAdministration, IsNotBudgetPlannerOnly, IsFinance, IsFinanceOrReadOnly, IsPrincipal, role_permission,
+    ADMINISTRATION, BUDGET_PLANNER, FINANCE, PRINCIPAL, IsAdministration, IsFinance, IsFinanceOrReadOnly, IsPrincipal, role_permission,
 )
 
 from config.db_errors import humanize_db_error
@@ -192,7 +191,9 @@ class TrJurnalViewSet(viewsets.ModelViewSet):
             return [IsFinance()]
         if self.action in ("approve", "void", "tolak"):
             return [IsPrincipal()]
-        return [IsAuthenticated(), IsNotBudgetPlannerOnly()]
+        # Baca jurnal hanya untuk peran yang punya menu Pemasukan/Pengeluaran/Jurnal; Guru dan penyusun
+        # anggaran tidak (daftar jurnal memuat nominal). Superuser tetap lolos lewat role_permission.
+        return [role_permission(read=(FINANCE, PRINCIPAL, ADMINISTRATION))()]
 
     def perform_create(self, serializer):
         with transaction.atomic(), audit_user(self.request.user):
