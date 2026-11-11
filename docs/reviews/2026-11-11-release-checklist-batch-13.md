@@ -53,6 +53,14 @@ SHA `0b749dc` keduanya; backend Up 26 menit, db healthy; `github 200`. Migrasi `
 4. Cek pasca-rilis: blok bagian 1 **tanpa** bagian backup; SHA baru, hitungan sama.
 5. Smoke test (pengguna login; Claude hanya membaca): Guru → API jurnal 403, layar Kegiatan tetap memuat daftar akun; TU, Keuangan, Kepsek → Pemasukan/Pengeluaran tetap tampil.
 
+### Hasil pasca-rilis — 11/11 (web console)
+
+- PR #31 di-merge; SHA backend dan frontend `dbcfe48` keduanya; backend dibuat ulang, db healthy.
+- Baca jurnal lewat API di dalam backend produksi (permintaan HTTPS, satu akun aktif per peran): TeacherInCharge 403, BudgetPlanner 403, Administration 200, Finance 200, SchoolPrincipal 200. Sesuai.
+- Percobaan pertama memakai HTTP dan semua peran mendapat 301. Itu pengalihan HTTPS produksi, bukan izin; cek pasca-rilis berikutnya memakai `secure=True`.
+- Cek tambahan: 5 akun aktif, tidak ada yang memakai password demo dari README.
+- Smoke test login per peran di layar: belum dijalankan; cek API di atas sudah mencakup perubahan rilis ini.
+
 ## Rollback
 
 Revert merge commit di `main`, lalu push. Tidak ada migrasi dan tidak ada data yang berubah.
