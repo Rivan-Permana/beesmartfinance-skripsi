@@ -37,3 +37,10 @@ Dokumen publik: tanpa nama dan nominal. Sumber: cek read-only produksi lewat web
 
    Diharapkan tiga baris `tagihan … -> dihapus; jurnal BL-… -> VOID` dan "Rencana saja (3 tagihan)". Bila cocok, jalankan ulang perintah yang sama dengan `--terapkan` di akhir.
 4. Cek read-only: tagihan tidak terhapus 7 → 4, perlu dicocokkan 3 → 0, jurnal DRAFT+PENDING 7 → 0.
+
+## Hasil di produksi
+
+- **C, 11/11 (setelah rilis Batch 12, titik pulih `…before-batch12`):** rencana menampilkan tagihan 1, 2, 3 dengan jurnal `BL-1-202610` (PENDING), `BL-2-202610`, `BL-3-202609` (DRAFT); dijalankan dengan `--terapkan --oleh keuangan`. Cek read-only sesudahnya: tagihan 7 → 4, perlu dicocokkan 3 → 0; jurnal belum POSTED 7 → 4 (tersisa `AUTO_KEGIATAN` PENDING 2, `AUTO_PENDAFTARAN` DRAFT 2); jurnal total 18, POSTED 11, VOID 0 → 3; ketiga jurnal berketerangan "Dipensiunkan"; log audit mencatat 3 perubahan ke VOID oleh `keuangan`.
+- **B (`KG-1-1`, `KG-1-2`):** menunggu Keuangan memeriksa bukti lalu Catat.
+- **A (`REG-1`, `REG-2`):** menunggu TU mengisi biaya formulir/sit-in dua pendaftaran sesuai bukti, lalu Keuangan Catat.
+

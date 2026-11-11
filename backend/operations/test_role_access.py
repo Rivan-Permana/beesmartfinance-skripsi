@@ -11,7 +11,7 @@ from operations.models import Jenjang, Kelompok, Pegawai, Siswa
 class RoleAccessMatrixTests(APITestCase):
     def setUp(self):
         self.users = {}
-        for role in ("Finance", "SchoolPrincipal", "Administration", "TeacherInCharge"):
+        for role in ("Finance", "SchoolPrincipal", "Administration", "TeacherInCharge", "BudgetPlanner"):
             user = get_user_model().objects.create_user(f"matrix-{role}")
             user.groups.add(Group.objects.get(name=role))
             self.users[role] = user
@@ -86,6 +86,18 @@ class RoleAccessMatrixTests(APITestCase):
         self.assertEqual(client.post(f"/api/v1/jurnal/{created.data['id']}/submit/").status_code, 403)
         self.assertEqual(client.delete(f"/api/v1/jurnal/{created.data['id']}/").status_code, 204)
         self.assertEqual(self.as_role("TeacherInCharge").post("/api/v1/jurnal/", payload, format="json").status_code, 403)
+
+    def test_hanya_keuangan_kepsek_tu_yang_membaca_jurnal(self):
+        jurnal = self.as_role("Administration").post("/api/v1/jurnal/", {"no_bukti": "TU-2", "tanggal": "2026-10-28", "detail": [
+            {"kode_akun": "5101", "debit": "1000", "kredit": "0"}, {"kode_akun": "1101", "debit": "0", "kredit": "1000"}]}, format="json").data
+        for role in ("Finance", "SchoolPrincipal", "Administration"):
+            self.assertEqual(self.as_role(role).get("/api/v1/jurnal/").status_code, 200, role)
+            self.assertEqual(self.as_role(role).get(f"/api/v1/jurnal/{jurnal['id']}/").status_code, 200, role)
+        for role in ("TeacherInCharge", "BudgetPlanner"):
+            self.assertEqual(self.as_role(role).get("/api/v1/jurnal/").status_code, 403, role)
+            self.assertEqual(self.as_role(role).get(f"/api/v1/jurnal/{jurnal['id']}/").status_code, 403, role)
+        # Layar Kegiatan Guru tetap butuh daftar akun.
+        self.assertEqual(self.as_role("TeacherInCharge").get("/api/v1/coa/").status_code, 200)
 
 
 class PegawaiStatusTests(APITestCase):
