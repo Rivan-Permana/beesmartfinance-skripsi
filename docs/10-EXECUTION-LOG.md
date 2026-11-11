@@ -161,7 +161,7 @@
 
 | UJ   | Persona          | Langkah                                          | Status      |
 | ---- | ---------------- | ------------------------------------------------ | ----------- |
-| UJ-1 | Bu Fitri (Admin) | Absensi → tagihan → cetak struk → pendaftaran    | ✅ API 15/15 |
+| UJ-1 | Staf TU | Absensi → tagihan → cetak struk → pendaftaran    | ✅ API 15/15 |
 | UJ-2 | Staff Keuangan   | Jurnal → submit → laporan → tunggakan → gaji     | ✅ API 9/9   |
 | UJ-3 | Pak Ali (Kepsek) | Dashboard → approve jurnal → audit log → laporan | ✅ API 7/7   |
 

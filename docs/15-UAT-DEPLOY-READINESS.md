@@ -27,7 +27,7 @@
 
 | Username | Persona | Group | Password | Home | Menu utama |
 |----------|---------|-------|----------|------|------------|
-| `admin.tu` | Bu Fitri — Staf TU | Administration | `<password demo dari seed lokal>` | `/siswa` | Siswa, absensi, tagihan, katering, jemputan, pendaftaran, pegawai |
+| `admin.tu` | Staf TU | Administration | `<password demo dari seed lokal>` | `/siswa` | Siswa, absensi, tagihan, katering, jemputan, pendaftaran, pegawai |
 | `keuangan` | Staff Keuangan | Finance | `<password demo dari seed lokal>` | `/dashboard` | Dashboard, jurnal, COA, gaji, kasbon, aset, laporan, audit |
 | `kepsek` | Pak Ali — Kepala Sekolah | SchoolPrincipal | `<password demo dari seed lokal>` | `/dashboard` | Dashboard, approve jurnal, tutup periode, COA read-only, kegiatan (buat), laporan |
 | `guru.kegiatan` | Bu Desi — Guru PIC | TeacherInCharge | `<password demo dari seed lokal>` | `/kegiatan` | Kegiatan (realisasi), rekap absensi read-only |
@@ -85,7 +85,7 @@ Legenda: ✅ Pass · ⚠️ Partial (fungsi ada, perlu verifikasi manual/visual)
 
 ---
 
-## Rekap UJ-1 — Bu Fitri (`admin.tu`) · Operasional Siswa & TU
+## Rekap UJ-1 — Staf TU (`admin.tu`) · Operasional Siswa & TU
 
 | # | Skenario | Mark | Bukti / Catatan |
 |---|----------|------|-----------------|

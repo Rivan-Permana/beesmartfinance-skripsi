@@ -36,7 +36,7 @@ python manage.py uat_walkthrough   # target: 64/64 pass
 
 | Username | Persona | Password |
 |----------|---------|----------|
-| `admin.tu` | Bu Fitri — Staf TU | `<password demo dari seed lokal>` |
+| `admin.tu` | Staf TU | `<password demo dari seed lokal>` |
 | `keuangan` | Staff Keuangan | `<password demo dari seed lokal>` |
 | `kepsek` | Pak Ali — Kepala Sekolah | `<password demo dari seed lokal>` |
 
@@ -157,7 +157,7 @@ Dr  Kas di Tangan (111)          400.000
 
 Saat demo **Bayar Tagihan** di Fase 1, kamu bisa bilang:
 
-> *"Bu Fitri hanya klik Bayar — dia tidak perlu tahu debit kredit. Di belakang layar, sistem menerapkan **double-entry**: Kas di Tangan di-debit karena uang masuk, Pendapatan SPP di-kredit karena sekolah mengakui penghasilan. Jurnal masuk status **DRAFT**. Nanti Staff Keuangan **submit**, Kepala Sekolah **approve** menjadi **POSTED**, baru tercermin di **buku besar** akun 411 dan **neraca saldo**."*
+> *"Staf TU hanya klik Bayar — dia tidak perlu tahu debit kredit. Di belakang layar, sistem menerapkan **double-entry**: Kas di Tangan di-debit karena uang masuk, Pendapatan SPP di-kredit karena sekolah mengakui penghasilan. Jurnal masuk status **DRAFT**. Nanti Staff Keuangan **submit**, Kepala Sekolah **approve** menjadi **POSTED**, baru tercermin di **buku besar** akun 411 dan **neraca saldo**."*
 
 ---
 
@@ -225,7 +225,7 @@ flowchart LR
 
 ---
 
-## 2. Fase 1 — Bu Fitri (`admin.tu`) · Operasional → Jurnal DRAFT
+## 2. Fase 1 — Staf TU (`admin.tu`) · Operasional → Jurnal DRAFT
 
 **Login:** `admin.tu` / `<password demo dari seed lokal>`  
 **Home:** `/siswa`  

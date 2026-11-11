@@ -14,7 +14,7 @@ design_ref: ./DESIGN.md
 
 | Persona | Role DB | Home | Modul utama |
 |---------|---------|------|-------------|
-| Bu Fitri (Admin TU) | Administration | `/siswa` | Siswa, Absensi, Tagihan, Katering, Jemputan |
+| Staf TU | Administration | `/siswa` | Siswa, Absensi, Tagihan, Katering, Jemputan |
 | Staff Keuangan | Finance | `/dashboard` | Pemasukan, Pengeluaran, COA, Anggaran, Laporan, Tunggakan |
 | Pak Ali (Kepsek) | SchoolPrincipal | `/dashboard` | Approve + Dashboard + Tutup buku |
 | Bu Desi (Guru) | TeacherInCharge | `/kegiatan` | Kegiatan, realisasi; absensi **read-only** |
@@ -117,7 +117,7 @@ Progressive disclosure: istilah dan layar akuntansi hanya untuk Finance/Principa
 
 ## Key Flows
 
-### Flow A — Absensi → Tagihan (Bu Fitri)
+### Flow A — Absensi → Tagihan (Staf TU)
 1. `/absensi-siswa` → pilih PG/TKA/TKB → kelompok → grid
 2. Sistem simpan `kehadiran-siswa` + flags katering/jemputan
 3. `/tagihan` → Generate → preview line items → Simpan → **Bayar** (opsional) → Cetak

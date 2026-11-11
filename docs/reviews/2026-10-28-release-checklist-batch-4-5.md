@@ -57,7 +57,7 @@ Cara membaca hasilnya:
 | siswa aktif SPP 0 | Dicatat | Siswa ini ikut bertanda "Belum diisi" setelah rilis. |
 | biodata terisi | Dicatat | Kolom yang sudah terisi bisa ditimpa isi spreadsheet saat impor (sel kosong tidak menghapus). |
 | nama siswa kembar | `0` | Baris dengan nama kembar akan dilewati impor. Ubah lewat form satu per satu. |
-| kelompok (id, jenjang, nama, siswa aktif) | Ada kelompok untuk 11 kelas di spreadsheet: 8 kelas TK (Bu Indri, Bu Desi, Bu Ita, Bu Mei, Bu Dini, Bu Cita, Bu Okta, Bu Latifah) dan PG Lebah 1, Lebah 2, Kepompong | Kelas yang belum punya kelompok dibuat dulu di menu Kelompok sebelum impor. Kalau tidak, siswa barunya tersimpan tanpa kelompok. Pada 22/10 produksi baru punya 7 kelompok. |
+| kelompok (id, jenjang, nama, siswa aktif) | Ada kelompok untuk 11 kelas di spreadsheet: 8 kelas TK (4 TKA, 4 TKB; dinamai wali kelas, disamarkan di dokumen publik) dan PG Lebah 1, Lebah 2, Kepompong | Kelas yang belum punya kelompok dibuat dulu di menu Kelompok sebelum impor. Kalau tidak, siswa barunya tersimpan tanpa kelompok. Pada 22/10 produksi baru punya 7 kelompok. |
 | tagihan bulan ini sudah dibuat | Dicatat | Siswa baru hasil impor tidak punya tagihan Oktober. Tagihan berikutnya memakai SPP yang diisi setelah impor. |
 | akun guru aktif | ≥ 1 | Batch 4 menyembunyikan nominal dari role Guru. Tidak memblokir rilis. |
 | jurnal DRAFT/PENDING | 7 (sama seperti 28/10) | Tidak terkait rilis. Tetap menghalangi tutup buku. |
@@ -74,13 +74,13 @@ Cara membaca hasilnya:
 | Migrasi / kolom 0018 | `0017_biaya_masuk_siswa` / 0 | Sesuai |
 | Siswa | 32, semuanya aktif; SPP 0: 0; nama kembar: 0; tanpa kelompok: 2 | Aman. Impor tidak akan bentrok nama. |
 | Biodata terisi | tgl lahir 0, alamat 0, nama ayah 2, HP ayah 1, nama ibu 5, HP ibu 4 | Impor hampir hanya mengisi kolom kosong. |
-| Kelompok | PG: Kepompong (3), Lebah 1 (10), Lebah 2 (10). TKA: Bu Desi (0), Bu Indri (7), Bu Ita (0), Bu Mei (0). | **Belum ada kelompok untuk Bu Dini, Bu Cita, Bu Okta, Bu Latifah.** Buat dulu sebelum impor. Tidak memblokir merge. |
+| Kelompok | PG: Kepompong (3), Lebah 1 (10), Lebah 2 (10). TKA: kelas TKA-2 (0), kelas TKA-1 (7), kelas TKA-3 (0), kelas TKA-4 (0). | **Belum ada kelompok untuk kelas TKB-1, kelas TKB-2, kelas TKB-3, kelas TKB-4.** Buat dulu sebelum impor. Tidak memblokir merge. |
 | Tagihan | Bulanan 7 (bulan ini 3), Biaya masuk 0 | Tidak terkait rilis |
 | Akun Guru aktif | 1 | Terdampak 3a (tanpa nominal); tidak memblokir |
 | Jurnal DRAFT/PENDING | 7 | Sama seperti sebelumnya |
 | Periode | 2026/2027, 01/07/2026–30/06/2027, OPEN | Sesuai |
 
-Kesimpulan: tidak ada yang menghalangi backup dan merge. Sebelum impor biodata, buat 4 kelompok yang belum ada. Jenjangnya **TKB** (konfirmasi pengguna 28/10): `Bu Dini 26/27`, `Bu Cita 26/27`, `Bu Okta 26/27`, `Bu Latifah 26/27`.
+Kesimpulan: tidak ada yang menghalangi backup dan merge. Sebelum impor biodata, buat 4 kelompok yang belum ada. Jenjangnya **TKB** (konfirmasi pengguna 28/10): `kelas TKB-1 26/27`, `kelas TKB-2 26/27`, `kelas TKB-3 26/27`, `kelas TKB-4 26/27`.
 
 ## 2. Backup manual sebelum merge
 
@@ -164,7 +164,7 @@ Hasil 28/10 17:34–17:35 UTC: `backups/db-20261028T173437Z-before-batch45.dump`
 ## 4. Impor biodata (setelah rilis, oleh Staf TU)
 
 1. **Selesai 28/10 18:31 UTC:** `backups/db-20261028T183137Z-before-impor-biodata.dump` (249.561 byte, 50 `TABLE DATA`, sudah berisi 4 kelompok baru). Catatan asli langkah ini: buat backup lagi persis sebelum impor (blok bagian 2, ganti akhiran `before-batch45` menjadi `before-impor-biodata`).
-2. **Selesai 28/10:** 4 kelompok TKB dibuat Claude lewat UI produksi atas permintaan pengguna, dengan sesi Staf TU `admin.tu` yang login sendiri: id 8 Bu Dini, 9 Bu Cita, 10 Bu Okta, 11 Bu Latifah (semuanya 26/27, 0 siswa). Total 11 kelompok. Kelompok kosong bisa dihapus lagi dari menu Kelompok bila perlu. Catatan asli langkah ini: pastikan semua kelompok untuk 11 kelas sudah ada. Staf TU membuat 4 kelompok TKB di menu Kelompok → Tambah kelompok: Bu Dini 26/27, Bu Cita 26/27, Bu Okta 26/27, Bu Latifah 26/27. Saran pemetaan di pratinjau impor otomatis mengenali nama ini.
+2. **Selesai 28/10:** 4 kelompok TKB dibuat Claude lewat UI produksi atas permintaan pengguna, dengan sesi Staf TU `admin.tu` yang login sendiri: id 8 kelas TKB-1, 9 kelas TKB-2, 10 kelas TKB-3, 11 kelas TKB-4 (semuanya 26/27, 0 siswa). Total 11 kelompok. Kelompok kosong bisa dihapus lagi dari menu Kelompok bila perlu. Catatan asli langkah ini: pastikan semua kelompok untuk 11 kelas sudah ada. Staf TU membuat 4 kelompok TKB di menu Kelompok → Tambah kelompok: kelas TKB-1 26/27, kelas TKB-2 26/27, kelas TKB-3 26/27, kelas TKB-4 26/27. Saran pemetaan di pratinjau impor otomatis mengenali nama ini.
 3. Di Google Sheets, buka tab biodata → File → Download → Comma-separated values (.csv).
 4. Login sebagai Staf TU → Data siswa → **Impor biodata** → pilih CSV. Periksa pratinjau sebelum menyimpan:
    - Total siswa baru + diperbarui + sudah sama + bermasalah = **104** (hasil pratinjau lokal 28/10). Kalau jauh berbeda, berhenti.
@@ -196,10 +196,10 @@ Impor disimpan dari sesi Staf TU di browser bawaan oleh pengguna, sebelum pratin
   - 4 siswa lama tidak ada di sheet dan tidak berubah: 2 di PG Lebah 2 dan 2 tanpa kelompok. Kemiripan nama dengan siswa baru paling tinggi 0,33 (satu kata sama), jadi tidak ada indikasi siswa dobel.
 - **Per kelompok (sama dengan jumlah per kelas di sheet):**
   - PG: Kepompong 3, Lebah 1 10, Lebah 2 8 (+2 lama)
-  - TKA: Bu Desi 10, Bu Indri 10, Bu Ita 11, Bu Mei 11
-  - TKB: Bu Cita 10, Bu Dini 11, Bu Latifah 9, Bu Okta 11
+  - TKA: kelas TKA-2 10, kelas TKA-1 10, kelas TKA-3 11, kelas TKA-4 11
+  - TKB: kelas TKB-2 10, kelas TKB-1 11, kelas TKB-4 9, kelas TKB-3 11
 
-  Tidak ada siswa pindah lintas jenjang. PG lama tetap PG, dan 7 siswa Bu Indri lama tetap di Bu Indri.
+  Tidak ada siswa pindah lintas jenjang. PG lama tetap PG, dan 7 siswa kelas TKA-1 lama tetap di kelas TKA-1.
 - **Biodata:**
   - 104 siswa punya JK, tempat lahir, dan tanggal lahir.
   - 104 alamat terisi; 90 diawali/memuat `Jl.` dan 68 memuat `RT xxx/RW xxx`.

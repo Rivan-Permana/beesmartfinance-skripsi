@@ -47,7 +47,7 @@ App: http://localhost:5173
 
 | Username | Role | Home |
 |----------|------|------|
-| `admin.tu` | Administration (Bu Fitri) | `/siswa` |
+| `admin.tu` | Administration (Staf TU) | `/siswa` |
 | `keuangan` | Finance | `/dashboard` |
 | `kepsek` | School Principal | `/dashboard` |
 | `guru.kegiatan` | Teacher In Charge | `/kegiatan` |
@@ -106,7 +106,7 @@ python backend/manage.py uat_walkthrough   # 31 checks — UJ-1/2/3
 
 Gunakan password dev **`LebahMadu2026!`**. Centang setiap langkah setelah diverifikasi manual.
 
-### UJ-1 — Bu Fitri (Administration) `admin.tu`
+### UJ-1 — Staf TU (Administration) `admin.tu`
 
 Operasional harian siswa & tagihan.
 

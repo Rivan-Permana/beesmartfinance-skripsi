@@ -25,8 +25,8 @@ DEFAULT_PASSWORD = "LebahMadu2026!"
 DEMO_USERS = [
     {
         "username": "admin.tu",
-        "first_name": "Bu",
-        "last_name": "Fitri",
+        "first_name": "Staf",
+        "last_name": "TU",
         "group": "Administration",
     },
     {
@@ -43,8 +43,8 @@ DEMO_USERS = [
     },
     {
         "username": "guru.kegiatan",
-        "first_name": "Bu",
-        "last_name": "Desi",
+        "first_name": "Guru",
+        "last_name": "Kegiatan",
         "group": "TeacherInCharge",
     },
     {

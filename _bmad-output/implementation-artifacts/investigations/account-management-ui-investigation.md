@@ -59,7 +59,7 @@
 
 **Evidence:** `backend/accounts/admin.py:6` — register User ke Django Admin. `seed_demo.py:132-137` — user demo `is_staff=True` tapi **tidak** `is_superuser=True`.
 
-**Detail:** Screenshot `/admin/login/` menampilkan error "akun **staf**" — ini panel teknis Django, terpisah dari Vue di `:5174`. Staff tanpa superuser/permission model User **tidak bisa** kelola akun dengan nyaman. Ini **by design** untuk developer, bukan Bu Fitri.
+**Detail:** Screenshot `/admin/login/` menampilkan error "akun **staf**" — ini panel teknis Django, terpisah dari Vue di `:5174`. Staff tanpa superuser/permission model User **tidak bisa** kelola akun dengan nyaman. Ini **by design** untuk developer, bukan Staf TU.
 
 ### Finding 4: Real-world deployment tidak mengharuskan staf "jalanin backend"
 
@@ -76,7 +76,7 @@
 
 **Based on:** Finding 1, PRD FR-23
 
-**Conclusion:** Wajar user merasa "kurang" saat pegawai baru masuk. v1 mengandalkan seed/CLI; belum ada alur "Kepsek tambah user Bu Fitri baru".
+**Conclusion:** Wajar user merasa "kurang" saat pegawai baru masuk. v1 mengandalkan seed/CLI; belum ada alur "Kepsek tambah user Staf TU baru".
 
 ### Deduction 2: Jangan tambah role bisnis ke-5 "Admin Sistem"
 

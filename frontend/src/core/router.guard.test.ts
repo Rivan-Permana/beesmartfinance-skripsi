@@ -22,7 +22,7 @@ describe("router guard", () => {
     auth.user = {
       id: 1,
       username: "admin.tu",
-      nama: "Bu Fitri",
+      nama: "Staf TU",
       is_superuser: false,
       groups: ["Administration"],
     }
@@ -48,7 +48,7 @@ describe("router guard", () => {
     auth.user = {
       id: 1,
       username: "admin.tu",
-      nama: "Bu Fitri",
+      nama: "Staf TU",
       is_superuser: false,
       groups: ["Administration"],
     }
@@ -61,7 +61,7 @@ describe("router guard", () => {
     auth.user = {
       id: 1,
       username: "admin.tu",
-      nama: "Bu Fitri",
+      nama: "Staf TU",
       is_superuser: false,
       groups: ["Administration"],
     }

@@ -59,7 +59,7 @@ Yayasan Pendidikan Sobat Kecil mengelola **Sekolah Lebah Madu** (Playgroup & Kin
 
 | Role | Persona | Tanggung jawab keuangan |
 |------|---------|-------------------------|
-| Administration | Bu Fitri (Admin TU) | Siswa, absensi, katering/jemputan input, generate tagihan, cetak struk |
+| Administration | Staf TU | Siswa, absensi, katering/jemputan input, generate tagihan, cetak struk |
 | Finance | Staff Keuangan | COA, jurnal, anggaran, payroll, laporan |
 | SchoolPrincipal | Pak Ali (Kepsek) | Approve jurnal, review dashboard, tutup periode |
 
@@ -199,7 +199,7 @@ Ini selaras mockup sempro HTML dan literatur SIAS ([JPML 2024 — SIAS Muhammadi
 
 BeeSmart Finance berada di domain **SIA sekolah swasta single-unit TK/PG**. Standar industri menuntut integrasi operasional→akuntansi→pelaporan dalam satu sistem. Backend BeeSmart sudah memenuhi **fondasi akuntansi profesional** (double-entry, anggaran 9.x, maker-checker, audit DB). Gap dominan ada di **frontend operasional** dan **UX staf non-teknis**.
 
-**Target v1:** Sistem yang memungkinkan Bu Fitri, Staff Keuangan, dan Pak Ali menjalankan alur harian/bulanan tanpa Excel — selaras mockup sempro dan biaya resmi website sekolah.
+**Target v1:** Sistem yang memungkinkan Staf TU, Staff Keuangan, dan Pak Ali menjalankan alur harian/bulanan tanpa Excel — selaras mockup sempro dan biaya resmi website sekolah.
 
 **Target v2:** Portal ortu, notifikasi WA, pembayaran digital, laporan ISAK 35 lengkap.
 

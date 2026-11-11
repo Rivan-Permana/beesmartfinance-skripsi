@@ -37,7 +37,7 @@ describe("auth store", () => {
       data: {
         id: 1,
         username: "admin.tu",
-        nama: "Bu Fitri",
+        nama: "Staf TU",
         is_superuser: false,
         groups: ["Administration"],
       },

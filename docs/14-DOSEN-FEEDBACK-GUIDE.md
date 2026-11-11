@@ -193,7 +193,7 @@ cd backend
 
 ---
 
-### UJ-1 — Bu Fitri (`admin.tu`) · Operasional Siswa & TU
+### UJ-1 — Staf TU (`admin.tu`) · Operasional Siswa & TU
 
 | # | Halaman | Langkah | Expected | ✓ |
 |---|---------|---------|----------|---|

@@ -57,8 +57,8 @@ Staf operasional (Admin TU, Guru) **tidak wajib** memahami debit/kredit. UI mere
 
 ### 2.4 Key User Journeys
 
-**UJ-1. Bu Fitri menagih SPP bulan ini**
-- **Persona:** Bu Fitri, Admin 1, familiar Excel tapi tidak tech-savvy.
+**UJ-1. Staf TU menagih SPP bulan ini**
+- **Persona:** Staf TU (admin 1), familiar Excel tapi tidak tech-savvy.
 - **Entry:** Login Administration → home `/siswa`.
 - **Path:** Input absensi harian (jenjang→kelompok→siswa) → cek rekap katering/jemputan → buka Tagihan → generate periode → review line items (SPP, katering, jemputan) → cetak struk untuk ortu.
 - **Climax:** Faktur tercetak dengan rincian sesuai biaya di website sekolah.

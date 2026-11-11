@@ -263,7 +263,7 @@ Apakah setelah docs selesai, cakupan per user/role sudah komprehensif vs standar
 **Confirmed arsitektur sudah benar:**
 - Admin TU: operasional (absensi, tagihan, bayar) — auto-jurnal di backend, user tidak input debit/kredit — `backend/operations/api/billing.py` IsAdministration
 - Finance: jurnal, COA, laporan — standar akuntansi
-- PRD persona Bu Fitri: "familiar Excel, tidak tech-savvy" — `prd.md:48`
+- PRD persona Staf TU: "familiar Excel, tidak tech-savvy" — `prd.md:48`
 
 **Gap docs minor untuk non-akuntan:**
 - EXPERIENCE.md masih pakai istilah akuntansi penuh di modul Finance (wajar)

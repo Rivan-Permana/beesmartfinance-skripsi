@@ -50,3 +50,21 @@ external-docs/
 legacy-data/
 docs/SKRIPSI RIVAN (1).docx
 docs/draft_ed_sak_emkm_kompilasi.pdf
+
+# Repo publik: bahan lokal yang tidak boleh ikut ter-commit
+# (data sekolah, dump, kunci, catatan pribadi agen, hasil audit visual yang bisa memuat data)
+*.dump
+*.age
+*.pem
+*.key
+*.tokens.json
+*jawaban-sekolah*
+Recap Cash*
+.vite/
+.claude/settings.local.json
+design-artifacts/**/*.png
+design-artifacts/**/checks/*.json
+design-plans/**/*.png
+docs/portable-*.md
+docs/agent-resource-catalog.md
+scripts/uat_walkthrough.py

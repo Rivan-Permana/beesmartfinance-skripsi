@@ -4,7 +4,7 @@ Audit browser pertama dari matriks route × role × viewport yang direncanakan p
 
 ## Cakupan dan metode
 
-- Role: `admin.tu` (Bu Fitri, Staf TU) pada database demo lokal `db_lebah_madu`.
+- Role: `admin.tu` (Staf TU) pada database demo lokal `db_lebah_madu`.
 - Lingkungan: Vite `localhost:5173` → Django `127.0.0.1:8000`, branch `codex/auto-deploy-fe-be`.
 - Viewport: desktop 1440×900 dan mobile 375×812 (emulasi Android Chrome).
 - Route: `/siswa`, `/kelompok`, `/absensi-siswa`, `/rekap-siswa`, `/katering`, `/jemputan`, `/tagihan`, `/pendaftaran`, `/pegawai`, `/absensi-pegawai`.
@@ -96,7 +96,7 @@ Status 22 Oktober: bukan cacat. Saat diklik dengan Rp 0, form tidak terkirim, pe
 ### Rendah
 
 - **M1.** Di mobile, tombol aksi header (Rekap: 3 tombol, terbungkus 2 baris) dan kartu filter menghabiskan layar pertama, sehingga data baru terlihat setelah scroll. Terjadi di Rekap absensi, Tagihan, dan Katering.
-- **M2.** Di mobile, nama dan role pengguna (Bu Fitri, Staf TU) tidak tampil di header maupun drawer, padahal di desktop tampil di kanan atas.
+- **M2.** Di mobile, nama dan role pengguna (Staf TU) tidak tampil di header maupun drawer, padahal di desktop tampil di kanan atas.
 - **M3.** Kartu Rekap absensi di mobile sekitar 310px per siswa (20 kartu per halaman), sehingga perbandingan antar siswa sulit.
 - **L1.** Pendaftaran memakai marker native `▶` untuk "Alur calon, penerimaan, dan finalisasi", tidak seragam dengan ikon Phosphor.
 - **L2.** Label rentang minggu di Menu mingguan Katering terpotong menjadi dua baris di kotak sempit.

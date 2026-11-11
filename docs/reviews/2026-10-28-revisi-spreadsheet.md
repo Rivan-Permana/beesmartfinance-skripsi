@@ -69,7 +69,7 @@ Sesi `default_transaction_read_only = on`; tidak ada perubahan.
 
 ## Batch 4 — masukan WA Staf TU + keputusan review (tier 3) — selesai di branch kerja
 
-Sumber: 4 screenshot WA dari Staf TU (Bu Fitri). Screenshot diambil dari **versi sebelum rilis 28/10** (tab "Menu Mingguan" minggu 19–23/10, kolom "Harga / bulan"), jadi dua masukan sudah terpenuhi di produksi. Disetujui pengguna: opsi 1 untuk Kelompok, migrasi `0018`, keputusan review 3a dan 3b ya, 3c dan 3d ditunda.
+Sumber: 4 screenshot WA dari Staf TU. Screenshot diambil dari **versi sebelum rilis 28/10** (tab "Menu Mingguan" minggu 19–23/10, kolom "Harga / bulan"), jadi dua masukan sudah terpenuhi di produksi. Disetujui pengguna: opsi 1 untuk Kelompok, migrasi `0018`, keputusan review 3a dan 3b ya, 3c dan 3d ditunda.
 
 | Masukan / keputusan | Hasil |
 |---|---|
