@@ -128,7 +128,7 @@ Urut dari yang paling aman. Rincian dan blok perintah: [data menggantung](./2026
 | 1 | Pengguna | Pasang backup harian ke R2 (langkah 1–6 rencana backup), termasuk uji pulih | Baris `OK …` di log; `last_success` terisi; hitungan uji pulih = produksi |
 | 2 | Keuangan | Periksa bukti, lalu Catat `KG-1-1` dan `KG-1-2` | `AUTO_KEGIATAN` PENDING 2 → 0; POSTED +2 |
 | 3 | TU lalu Keuangan | TU mengisi biaya formulir/sit-in dua pendaftaran sesuai bukti; Keuangan Catat `REG-1`, `REG-2` | Pendaftaran perlu dicocokkan → 0; `AUTO_PENDAFTARAN` DRAFT 2 → 0; POSTED +2 |
-| 4 | Superuser | `pensiunkan_tagihan_lama 1 2 3` rencana dulu, lalu `--terapkan` | Tagihan 7 → 4, perlu dicocokkan 3 → 0; `AUTO_BILLING` belum POSTED 3 → 0; VOID +3 |
+| 4 | Superuser | `pensiunkan_tagihan_lama 1 2 3` rencana dulu, lalu `--terapkan` | **Selesai 11/11:** tagihan 7 → 4, perlu dicocokkan 3 → 0; `AUTO_BILLING` belum POSTED 3 → 0; VOID 0 → 3, audit oleh `keuangan` |
 
 Hasil akhir: jurnal belum POSTED 7 → 0, POSTED +4, VOID +3, total tetap 18.
 
