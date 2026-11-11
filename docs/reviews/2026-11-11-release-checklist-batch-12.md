@@ -105,7 +105,7 @@ Hasil akhir: jurnal belum POSTED 7 → 0, POSTED +4, VOID +3, total tetap 18.
 
 ## Keputusan sebelum merge
 
-0. Alur realisasi kegiatan tanpa persetujuan Kepsek (butir 1 di "Yang berubah") disetujui, atau dipersempit dulu.
+0. ~~Alur realisasi kegiatan~~ **diputuskan pengguna 11/11:** realisasi kegiatan dicatat Keuangan tanpa persetujuan Kepsek (Guru input → Keuangan Catat), seragam dengan pengeluaran manual.
 1. Hasil cek bagian 1 sudah ditempel dan diterima.
 2. Backup bagian 2 berhasil.
 3. Merge lewat PR, bukan push langsung ke `main`.

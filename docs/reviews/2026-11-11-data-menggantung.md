@@ -13,7 +13,7 @@ Dokumen publik: tanpa nama dan nominal. Sumber: cek read-only produksi lewat web
 ## Keputusan (pengguna, 11/11)
 
 1. A diselesaikan lewat layar oleh TU dan Keuangan sesuai bukti.
-2. B: Keuangan boleh mencatat jurnal realisasi kegiatan (sama seperti pengeluaran manual). SoD tetap: Kepsek tetap tidak bisa menyetujui jurnalnya sendiri.
+2. B: Keuangan boleh mencatat jurnal realisasi kegiatan (sama seperti pengeluaran manual). SoD tetap: Kepsek tetap tidak bisa menyetujui jurnalnya sendiri. Konsekuensi yang dikonfirmasi pengguna 11/11: berlaku juga untuk realisasi berikutnya yang diinput Guru PJ, jadi Kepsek tidak lagi menyetujui realisasi kegiatan; kontrolnya dua orang (Guru, Keuangan) dan pagu kegiatan.
 3. C: tiga tagihan lama dipensiunkan (jurnal → VOID, tagihan dihapus lunak dengan alasan di riwayat); ketiga siswa ikut alur cut-over biasa. Kas tetap benar karena uangnya ada di saldo sheet dan masuk lewat jurnal selisih 112.
 4. B dan alat C ikut rilis berikutnya bersama perbaikan impor ulang biaya masuk dan pemasangan backup.
 
