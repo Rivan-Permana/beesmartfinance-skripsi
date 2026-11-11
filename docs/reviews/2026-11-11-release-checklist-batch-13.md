@@ -59,7 +59,8 @@ SHA `0b749dc` keduanya; backend Up 26 menit, db healthy; `github 200`. Migrasi `
 - Baca jurnal lewat API di dalam backend produksi (permintaan HTTPS, satu akun aktif per peran): TeacherInCharge 403, BudgetPlanner 403, Administration 200, Finance 200, SchoolPrincipal 200. Sesuai.
 - Percobaan pertama memakai HTTP dan semua peran mendapat 301. Itu pengalihan HTTPS produksi, bukan izin; cek pasca-rilis berikutnya memakai `secure=True`.
 - Cek tambahan: 5 akun aktif, tidak ada yang memakai password demo dari README.
-- Smoke test login per peran di layar: belum dijalankan; cek API di atas sudah mencakup perubahan rilis ini.
+- Smoke test login per peran di layar: tidak dijalankan; cek API di atas sudah mencakup perubahan rilis ini.
+- **Batch 13 ditutup** (keputusan pengguna 11/11).
 
 ## Rollback
 
