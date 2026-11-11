@@ -111,7 +111,13 @@ Rincian pegawai (read-only, bersama backup): 30 aktif, 1 nonaktif, 3 dihapus lun
 - Worker baru terlihat 04:07:04 UTC, bundle `index-BX7rLtFN.js`; chunk GajiListView memuat "Jurnal gaji per periode".
 - Cek dari luar: `/login` 200; API tanpa token 401, lewat Worker maupun origin.
 - Cek read-only pasca-rilis (web console): SHA backend dan frontend `0b749dc`; backend Up 4 menit, db healthy, disk 9%. Migrasi tetap `0003`/`0023`. Semua hitungan sama dengan sebelum merge: jurnal belum POSTED 7 (rincian sama), total 18 / POSTED 11 / VOID 0; tagihan 7 / 3; pendaftaran 4 / 2; slip gaji 1 / 0 / 0; pegawai aktif 30; COA 206, kode aktif 60, siswa 108. Rilis tidak mengubah data.
-- Smoke test per role: menunggu pengguna.
+- Smoke test produksi per role (11/11; pengguna login di browser bawaan, Claude memeriksa tanpa menyimpan data, lalu logout tiap role):
+  - **Keuangan:** Penggajian menampilkan panel "Jurnal gaji per periode" (Oktober 2026, 0 belum dijurnal, 0 menunggu; tombol nonaktif) dan label "Tercatat"; pratinjau posting periode kosong 200 dengan 0 slip. `KG-1-1`/`KG-1-2` tampil di Pengeluaran dan rinciannya punya tombol "Catat ke buku besar" (tidak ditekan; keduanya tetap PENDING).
+  - **Kepsek:** Beranda tanpa error; "Menunggu persetujuan" kosong dan tidak memuat jurnal kegiatan; panel gaji versi Kepsek tampil (tombol nonaktif); pratinjau setujui periode 200 dengan 0 jurnal; posting periode 403.
+  - **Staf TU:** dialog "Impor biaya masuk dari tab master" terbuka lalu ditutup; Pendaftaran menampilkan 2 dari 4 catatan "Perlu dicocokkan" (layar dan API); gaji 403.
+  - **Guru:** menu Absensi Siswa, Rekap Absensi, Kegiatan; Absensi siswa tanpa error dan tanpa rupiah; gaji, posting periode, dan setujui periode 403.
+
+  Semua lulus. Di luar Batch 12 (perilaku lama): API daftar jurnal masih bisa dibaca akun Guru walau menunya tidak ada.
 
 ## 4. Setelah rilis: pekerjaan data (masing-masing atas persetujuan pengguna)
 
