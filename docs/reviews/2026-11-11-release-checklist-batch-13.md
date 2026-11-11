@@ -41,7 +41,9 @@ docker compose --env-file .env.vps -f docker-compose.production.yml exec -T db \
 | Tagihan / siswa / COA | 4 / 108 / 206 | Catat. |
 | Backup | ±288 KB, `TABLE DATA` = 53 | Ukuran 0 atau gagal: jangan merge. |
 
-### Hasil — (isi saat dijalankan)
+### Hasil — 11/11 (web console)
+
+SHA `0b749dc` keduanya; backend Up 26 menit, db healthy; `github 200`. Migrasi `0003`/`0023`. Jurnal 18 / POSTED 11 / VOID 3 / belum POSTED 4. Tagihan 4, siswa aktif 108, COA 206. Backup `backups/db-20261111T043218Z-before-batch13.dump`, 289.016 byte, 53 `TABLE DATA`. Semua sesuai; tidak ada yang menghalangi merge.
 
 ## 2. Rilis
 
